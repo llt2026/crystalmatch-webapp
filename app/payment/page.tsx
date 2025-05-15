@@ -1,5 +1,3 @@
-export const dynamic = 'force-dynamic';
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -7,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { PaymentMethod } from '@/app/lib/payment/service';
 import { OrderStatus } from '@/app/lib/subscription/types';
+import Image from 'next/image';
 
 interface Order {
   id: string;
