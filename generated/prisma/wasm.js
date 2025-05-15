@@ -113,6 +113,13 @@ Prisma.NullTypes = {
  * Enums
  */
 
+exports.Prisma.TransactionIsolationLevel = makeStrictEnum({
+  ReadUncommitted: 'ReadUncommitted',
+  ReadCommitted: 'ReadCommitted',
+  RepeatableRead: 'RepeatableRead',
+  Serializable: 'Serializable'
+});
+
 exports.Prisma.UserScalarFieldEnum = {
   id: 'id',
   email: 'email',
@@ -206,9 +213,85 @@ exports.Prisma.SortOrder = {
   desc: 'desc'
 };
 
+exports.Prisma.NullableJsonNullValueInput = {
+  DbNull: Prisma.DbNull,
+  JsonNull: Prisma.JsonNull
+};
+
+exports.Prisma.JsonNullValueInput = {
+  JsonNull: Prisma.JsonNull
+};
+
 exports.Prisma.QueryMode = {
   default: 'default',
   insensitive: 'insensitive'
+};
+
+exports.Prisma.JsonNullValueFilter = {
+  DbNull: Prisma.DbNull,
+  JsonNull: Prisma.JsonNull,
+  AnyNull: Prisma.AnyNull
+};
+
+exports.Prisma.NullsOrder = {
+  first: 'first',
+  last: 'last'
+};
+
+exports.Prisma.UserOrderByRelevanceFieldEnum = {
+  id: 'id',
+  email: 'email',
+  name: 'name',
+  avatar: 'avatar',
+  role: 'role'
+};
+
+exports.Prisma.SubscriptionPlanOrderByRelevanceFieldEnum = {
+  id: 'id',
+  name: 'name',
+  description: 'description',
+  period: 'period'
+};
+
+exports.Prisma.SubscriptionOrderByRelevanceFieldEnum = {
+  id: 'id',
+  status: 'status',
+  userId: 'userId',
+  planId: 'planId'
+};
+
+exports.Prisma.OrderOrderByRelevanceFieldEnum = {
+  id: 'id',
+  currency: 'currency',
+  status: 'status',
+  paymentMethod: 'paymentMethod',
+  transactionId: 'transactionId',
+  userId: 'userId',
+  subscriptionId: 'subscriptionId'
+};
+
+exports.Prisma.EnergyReportOrderByRelevanceFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  title: 'title'
+};
+
+exports.Prisma.EnergyReportCacheOrderByRelevanceFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  birthDate: 'birthDate',
+  reportMonth: 'reportMonth',
+  tier: 'tier',
+  report: 'report',
+  energyContext: 'energyContext'
+};
+
+exports.Prisma.LogOrderByRelevanceFieldEnum = {
+  id: 'id',
+  action: 'action',
+  entity: 'entity',
+  entityId: 'entityId',
+  userId: 'userId'
 };
 
 

@@ -1,3 +1,22 @@
 {
-  "buildCommand": "node prisma/force-generate.js"
+  "buildCommand": "node prisma/force-generate.js",
+  "installCommand": "npm i prisma@6.7.0 && npm install",
+  "framework": "nextjs",
+  "regions": ["sin1"],
+  "healthCheck": "/api/health",
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        }
+      ]
+    }
+  ]
 } 

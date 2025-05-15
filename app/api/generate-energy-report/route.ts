@@ -4,15 +4,7 @@
 if (process.env.NODE_ENV === 'production' && process.env.NEXT_PHASE === 'phase-production-build') {
   // Skip Prisma initialization during build
   const mockOpenAI = { chat: { completions: { create: async () => ({ choices: [{ message: { content: '{}' } }] }) } } };
-  const originalExport = globalThis.exports;
-  globalThis.exports = {
-    ...originalExport,
-    getOpenAiApiKey: () => 'sk-mock-key-for-build',
-    validateAdminToken: async () => true,
-    PrismaClient: function() {
-      return { $connect: async () => {}, $disconnect: async () => {} };
-    }
-  };
+  console.log("⚠️ 构建阶段: 跳过 OpenAI 和 Prisma 初始化");
 }
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -20,17 +12,67 @@ import OpenAI from 'openai';
 import { getOpenAiApiKey } from '@/app/lib/db.config';
 import { getFullEnergyContext } from '@/app/lib/getFullEnergyContext';
 import { SubscriptionTier } from '@/app/types/subscription';
+// 使用安全的Prisma导入
+import prisma from '@/app/lib/prisma';
 import { 
   getModelForTier, 
   getMaxTokensForTier, 
   hasRemainingRequests,
   generatePromptTemplate 
 } from '@/app/lib/subscription-service';
-import {
-  generateCacheKey,
-  findReportInDatabase,
-  saveReportToDatabase
-} from '@/app/lib/report-cache-service';
+
+// 由于将这些与Prisma相关的功能保留在路由文件中可能是问题的来源
+// 我们将它们移动到单独的无状态函数中
+/**
+ * 从缓存或数据库中查找报告
+ */
+async function findReportInDatabase(cacheKey: string) {
+  try {
+    // 使用 try-catch 包装所有 Prisma 调用
+    const report = await prisma?.report?.findUnique({
+      where: { cacheKey },
+    });
+    return report;
+  } catch (error) {
+    console.error('查找报告出错:', error);
+    return null;
+  }
+}
+
+/**
+ * 保存报告到数据库
+ */
+async function saveReportToDatabase(cacheKey: string, report: any, energyContext: any) {
+  try {
+    // 使用 try-catch 包装所有 Prisma 调用
+    await prisma?.report?.upsert({
+      where: { cacheKey },
+      update: {
+        report: report,
+        energyContext: energyContext,
+        updatedAt: new Date()
+      },
+      create: {
+        cacheKey,
+        report: report,
+        energyContext: energyContext,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }
+    });
+    return true;
+  } catch (error) {
+    console.error('保存报告出错:', error);
+    return false;
+  }
+}
+
+/**
+ * 生成缓存键
+ */
+function generateCacheKey(userId: string, birthDateTime: Date, currentDate: Date, tier: SubscriptionTier): string {
+  return `${userId}_${birthDateTime.toISOString()}_${currentDate.toISOString()}_${tier}`;
+}
 
 // 初始化OpenAI客户端
 const openai = new OpenAI({
