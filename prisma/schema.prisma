@@ -1,0 +1,131 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+// 用户模型
+model User {
+  id            String    @id @default(auto()) @map("_id") @db.ObjectId
+  email         String    @unique
+  name          String?
+  avatar        String?
+  location      Json?
+  birthInfo     Json?
+  preferences   Json?
+  role          String    @default("user") // user, admin
+  isActive      Boolean   @default(true)
+  lastLoginAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // 关联关系
+  subscriptions Subscription[]
+  orders        Order[]
+}
+
+// 订阅计划模型
+model SubscriptionPlan {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  description String?
+  price       Float
+  period      String   // monthly, yearly
+  features    Json
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // 关联关系
+  subscriptions Subscription[]
+}
+
+// 用户订阅模型
+model Subscription {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  status       String   // active, cancelled, expired, trial
+  startDate    DateTime @default(now())
+  endDate      DateTime?
+  renewalDate  DateTime?
+  cancelledAt  DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // 关联关系
+  userId       String   @db.ObjectId
+  user         User     @relation(fields: [userId], references: [id])
+  planId       String   @db.ObjectId
+  plan         SubscriptionPlan @relation(fields: [planId], references: [id])
+  orders       Order[]
+}
+
+// 订单模型
+model Order {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  amount        Float
+  currency      String   @default("USD")
+  status        String   // pending, completed, failed, refunded
+  paymentMethod String?
+  transactionId String?
+  metadata      Json?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // 关联关系
+  userId        String   @db.ObjectId
+  user          User     @relation(fields: [userId], references: [id])
+  subscriptionId String?  @db.ObjectId
+  subscription  Subscription? @relation(fields: [subscriptionId], references: [id])
+}
+
+// 能量报告模型
+model EnergyReport {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId     String   @db.ObjectId
+  title      String
+  birthData  Json
+  content    Json
+  crystals   Json[]
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+// 能量报告缓存模型
+model EnergyReportCache {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String
+  birthDate   String
+  reportMonth String
+  tier        String
+  report      String   @db.String // 存储为JSON字符串
+  energyContext String @db.String // 存储为JSON字符串
+  generatedAt DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  expiresAt   DateTime
+  
+  // 复合唯一索引，确保每位用户每个月每个出生日期和订阅级别只有一份报告
+  @@unique([userId, birthDate, reportMonth, tier], name: "report_unique_constraint")
+  @@index([userId, reportMonth]) // 按用户和月份查询的索引
+  @@index([expiresAt]) // 用于清理过期报告的索引
+}
+
+// 日志模型（用于审计和调试）
+model Log {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  action    String
+  entity    String
+  entityId  String?
+  userId    String?
+  details   Json?
+  createdAt DateTime @default(now())
+}

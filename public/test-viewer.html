@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>能量报告查看器</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        .prose {
+            max-width: 65ch;
+            color: #374151;
+        }
+        .prose h1 {
+            font-size: 2.25em;
+            margin-top: 0;
+            margin-bottom: 0.8888889em;
+            line-height: 1.1111111;
+        }
+        .prose h2 {
+            font-size: 1.5em;
+            margin-top: 2em;
+            margin-bottom: 1em;
+            line-height: 1.3333333;
+        }
+        .prose p {
+            margin-top: 1.25em;
+            margin-bottom: 1.25em;
+        }
+        .prose ul {
+            margin-top: 1.25em;
+            margin-bottom: 1.25em;
+            padding-left: 1.625em;
+            list-style-type: disc;
+        }
+        .prose table {
+            width: 100%;
+            table-layout: auto;
+            text-align: left;
+            margin-top: 2em;
+            margin-bottom: 2em;
+            font-size: 0.875em;
+            line-height: 1.7142857;
+            border-collapse: collapse;
+        }
+        .prose table th {
+            padding: 0.5714286em;
+            border-bottom: 1px solid #e5e7eb;
+            font-weight: 600;
+        }
+        .prose table td {
+            padding: 0.5714286em;
+            border-bottom: 1px solid #e5e7eb;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="max-w-6xl mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold text-center mb-8">能量报告测试查看器</h1>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <!-- 月度报告 -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-2xl font-bold mb-4">月度能量报告</h2>
+                <div id="monthly-report" class="prose max-w-none">加载中...</div>
+            </div>
+            
+            <!-- 年度报告 -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-2xl font-bold mb-4">年度能量评分表</h2>
+                <div id="yearly-report" class="prose max-w-none">加载中...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 加载报告文件
+        async function loadReports() {
+            try {
+                // 读取月度报告
+                const monthlyResponse = await fetch('/test-output/monthly-report-response.md');
+                if (monthlyResponse.ok) {
+                    const monthlyContent = await monthlyResponse.text();
+                    document.getElementById('monthly-report').innerHTML = marked.parse(monthlyContent);
+                } else {
+                    document.getElementById('monthly-report').innerHTML = '<p class="text-red-500">加载月度报告失败 (状态码: ' + monthlyResponse.status + ')</p>';
+                }
+                
+                // 读取年度报告
+                const yearlyResponse = await fetch('/test-output/yearly-report-response.md');
+                if (yearlyResponse.ok) {
+                    const yearlyContent = await yearlyResponse.text();
+                    document.getElementById('yearly-report').innerHTML = marked.parse(yearlyContent);
+                } else {
+                    document.getElementById('yearly-report').innerHTML = '<p class="text-red-500">加载年度报告失败 (状态码: ' + yearlyResponse.status + ')</p>';
+                }
+            } catch (error) {
+                console.error('加载报告失败:', error);
+                document.getElementById('monthly-report').innerHTML = '<p class="text-red-500">加载报告时出错: ' + error.message + '</p>';
+                document.getElementById('yearly-report').innerHTML = '<p class="text-red-500">加载报告时出错: ' + error.message + '</p>';
+            }
+        }
+
+        // 页面加载完成后执行
+        window.onload = loadReports;
+    </script>
+</body>
+</html> 

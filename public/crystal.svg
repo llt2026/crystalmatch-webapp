@@ -1,0 +1,17 @@
+<svg width="200" height="250" viewBox="0 0 200 250" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M100 25L50 62.5V175L100 212.5L150 175V62.5L100 25Z" fill="#8A2BE2" fill-opacity="0.2" stroke="#8A2BE2" stroke-width="3"/>
+  <path d="M100 25V212.5" stroke="#8A2BE2" stroke-width="2"/>
+  <path d="M50 62.5L150 175" stroke="#8A2BE2" stroke-width="2"/>
+  <path d="M150 62.5L50 175" stroke="#8A2BE2" stroke-width="2"/>
+  <path d="M100 25L150 62.5L100 100L50 62.5L100 25Z" fill="#8A2BE2" fill-opacity="0.4"/>
+  <path d="M100 100L50 137.5L100 175L150 137.5L100 100Z" fill="#8A2BE2" fill-opacity="0.6"/>
+  <path d="M100 175L50 212.5L100 250L150 212.5L100 175Z" fill="#8A2BE2" fill-opacity="0.8"/>
+  <path d="M100 100V175" stroke="#8A2BE2" stroke-width="1.5"/>
+  <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+    <feGaussianBlur stdDeviation="10" result="blur"/>
+    <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+  </filter>
+  <g filter="url(#glow)">
+    <path d="M100 25L50 62.5V175L100 212.5L150 175V62.5L100 25Z" fill="#8A2BE2" fill-opacity="0.1"/>
+  </g>
+</svg> 

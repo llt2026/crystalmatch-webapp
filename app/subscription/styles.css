@@ -1,0 +1,129 @@
+/* 订阅页面样式 */
+
+/* 确保移动端适配 */
+@media (max-width: 768px) {
+  .container {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+}
+
+/* 渐变背景动画效果 */
+.bg-gradient-animate {
+  background-size: 200% 200%;
+  animation: gradient 15s ease infinite;
+}
+
+@keyframes gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* 卡片悬浮效果 */
+.subscription-card {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.subscription-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
+}
+
+/* 金色星星闪烁动画 */
+.star-twinkle {
+  animation: twinkle 3s ease-in-out infinite;
+}
+
+@keyframes twinkle {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(0.9);
+  }
+}
+
+/* 按钮悬浮效果 */
+.btn-subscribe {
+  transition: all 0.3s ease;
+}
+
+.btn-subscribe:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* 确保文本在深色背景上清晰可见 */
+.text-shadow {
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* 适配不同屏幕尺寸的字体大小 */
+@media (max-width: 640px) {
+  h1 {
+    font-size: 2rem;
+  }
+  
+  h2 {
+    font-size: 1.75rem;
+  }
+}
+
+/* 用户评价卡片样式 */
+.grid {
+  display: grid;
+}
+
+@media (max-width: 768px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* 评分星星效果 */
+.text-yellow-300 {
+  color: #fcd34d;
+}
+
+/* FAQ 项目悬浮效果 */
+.bg-purple-800\/50 {
+  transition: background-color 0.3s ease;
+}
+
+.bg-purple-800\/50:hover {
+  background-color: rgba(107, 33, 168, 0.6);
+}
+
+/* 强调年度计划的边框 */
+.border-yellow-500\/30 {
+  border-color: rgba(234, 179, 8, 0.3);
+  border-width: 2px;
+}
+
+/* 移动端优化 */
+@media (max-width: 480px) {
+  .text-4xl {
+    font-size: 1.875rem;
+  }
+  
+  .text-3xl {
+    font-size: 1.5rem;
+  }
+  
+  .space-y-6 {
+    margin-top: 1rem;
+  }
+  
+  .p-6 {
+    padding: 1rem;
+  }
+} 

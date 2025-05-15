@@ -1,0 +1,37 @@
+# Node.js 依赖
+node_modules/
+
+# Next.js 构建产物
+.next/
+out/
+dist/
+build/
+
+# 本地环境变量
+.env
+.env.local
+.env.*.local
+
+# VSCode / IDE 配置文件
+.vscode/
+*.code-workspace
+
+# 日志、调试缓存
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 备份、测试数据
+/backups/
+/backup/
+/test-output/
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 压缩文件
+*.zip
+*.tar
+*.tgz
