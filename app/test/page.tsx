@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 export default function TestPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-900 to-black p-4">
