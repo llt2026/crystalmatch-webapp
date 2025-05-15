@@ -3,7 +3,6 @@
   "installCommand": "npm i prisma@6.7.0 && npm install",
   "framework": "nextjs",
   "regions": ["sin1"],
-  "healthCheck": "/api/health",
   "headers": [
     {
       "source": "/(.*)",
