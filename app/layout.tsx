@@ -3,7 +3,7 @@
 import './globals.css'
 import { Inter } from 'next/font/google'
 import Script from 'next/script'
-import { useEffect } from 'react';
+import { useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 
 const inter = Inter({ 
@@ -11,11 +11,8 @@ const inter = Inter({
   variable: '--font-inter',
 })
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+// 提取搜索参数逻辑到单独的客户端组件
+function ReferralHandler() {
   const searchParams = useSearchParams();
   
   useEffect(() => {
@@ -29,6 +26,14 @@ export default function RootLayout({
     }
   }, [searchParams]);
   
+  return null;
+}
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
   return (
     <html lang="en" className={inter.variable}>
       <head>
@@ -41,6 +46,9 @@ export default function RootLayout({
         <title>CrystalMatch - Find Your Perfect Crystal Match</title>
       </head>
       <body>
+        <Suspense fallback={null}>
+          <ReferralHandler />
+        </Suspense>
         {children}
         <Script src="/register-sw.js" strategy="afterInteractive" />
       </body>
