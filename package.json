@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev -H 0.0.0.0 -p 3000",
-    "build": "node prisma/force-generate.js && next build",
+    "build": "next build",
     "start": "next start",
     "postinstall": "prisma generate",
     "prisma:vercel": "npm i prisma@6.7.0 && node prisma/force-generate.js && node verify-prisma.js",
