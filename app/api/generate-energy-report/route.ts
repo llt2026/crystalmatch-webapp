@@ -21,6 +21,9 @@ if (process.env.NODE_ENV === 'production' && process.env.NEXT_PHASE === 'phase-p
   isPrismaSkipped = true;
 }
 
+// 告诉 Next.js：这个接口完全动态，不要在构建期进行预渲染
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { getOpenAiApiKey } from '@/app/lib/db.config';
@@ -57,13 +60,18 @@ try {
  */
 async function findReportInDatabase(cacheKey: string) {
   try {
-    // 如果处于构建阶段，返回null
-    if (isPrismaSkipped) {
+    // 如果正处于 Vercel 的 production build 阶段，直接跳过
+    if (process.env.VERCEL && process.env.NEXT_PHASE === 'phase-production-build') {
       return null;
     }
+
+    // **懒加载** Prisma —— 只有真正请求时才 import
+    const { PrismaClient } = await import('@prisma/client');
+    const prisma = globalThis.prisma ?? new PrismaClient();
+    if (!globalThis.prisma) globalThis.prisma = prisma;   // 简易单例
     
     // 使用 try-catch 包装所有 Prisma 调用
-    const report = await prismaClient?.report?.findUnique({
+    const report = await prisma.report.findUnique({
       where: { cacheKey },
     });
     return report;
@@ -78,13 +86,18 @@ async function findReportInDatabase(cacheKey: string) {
  */
 async function saveReportToDatabase(cacheKey: string, report: any, energyContext: any) {
   try {
-    // 如果处于构建阶段，跳过保存
-    if (isPrismaSkipped) {
+    // 如果正处于 Vercel 的 production build 阶段，直接跳过
+    if (process.env.VERCEL && process.env.NEXT_PHASE === 'phase-production-build') {
       return true;
     }
+
+    // **懒加载** Prisma —— 只有真正请求时才 import
+    const { PrismaClient } = await import('@prisma/client');
+    const prisma = globalThis.prisma ?? new PrismaClient();
+    if (!globalThis.prisma) globalThis.prisma = prisma;   // 简易单例
     
     // 使用 try-catch 包装所有 Prisma 调用
-    await prismaClient?.report?.upsert({
+    await prisma.report.upsert({
       where: { cacheKey },
       update: {
         report: report,
@@ -165,6 +178,11 @@ async function updateUserRequestCount(userId: string): Promise<void> {
  * 接收出生日期，使用八字计算和当前能量数据生成综合分析
  */
 export async function POST(request: NextRequest) {
+  // 如果正处于 Vercel 的 production build 阶段，直接跳过
+  if (process.env.VERCEL && process.env.NEXT_PHASE === 'phase-production-build') {
+    return NextResponse.json({ status: 'skipped during build' });
+  }
+  
   try {
     // 从请求体中获取数据
     const data = await request.json();

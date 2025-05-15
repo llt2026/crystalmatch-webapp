@@ -1,16 +1,26 @@
 import { NextResponse } from 'next/server';
-import bootstrapDatabase from '@/app/lib/bootstrap';
-import prisma from '@/app/lib/prisma';
+
+// 告诉 Next.js：这个接口完全动态，不要在构建期进行预渲染
+export const dynamic = 'force-dynamic';
 
 /**
  * API健康检查端点
  * 验证应用和数据库连接状态
  */
 export async function GET() {
-  // 确保数据库已初始化
-  await bootstrapDatabase();
+  // 如果正处于 Vercel 的 production build 阶段，直接跳过
+  if (process.env.VERCEL && process.env.NEXT_PHASE === 'phase-production-build') {
+    return NextResponse.json({ status: 'skipped during build' });
+  }
   
   try {
+    // 使用懒加载方式导入 Prisma
+    const { PrismaClient } = await import('@prisma/client');
+    
+    // 使用简易单例
+    const prisma = globalThis.prisma ?? new PrismaClient();
+    if (!globalThis.prisma) globalThis.prisma = prisma;
+    
     // 检查Prisma连接
     const dbResult = await prisma.$queryRaw`SELECT 1 as connected`;
     const dbConnected = Array.isArray(dbResult) && dbResult.length > 0;
