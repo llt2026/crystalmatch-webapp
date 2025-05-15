@@ -1,12 +1,23 @@
 /**
- * Prisma 客户端单例
- * 使用工厂函数创建安全的客户端
+ * Prisma 客户端单例 - 使用 require 避免初始化问题
  */
 
-import { PrismaClient } from '@prisma/client';
-import { getPrismaClient } from './prisma-factory';
+// 使用 require 而不是 import 来避免 Vercel 上的初始化问题
+// @ts-ignore - 忽略 TypeScript 错误
+const { PrismaClient } = require('@prisma/client');
 
-// 导出单例客户端
-export const prisma = getPrismaClient();
+// 简单直接的单例模式
+let prisma: any;
 
+if (process.env.NODE_ENV === 'production') {
+  prisma = new PrismaClient();
+} else {
+  // 防止开发环境中创建多个实例
+  if (!(global as any).prisma) {
+    (global as any).prisma = new PrismaClient();
+  }
+  prisma = (global as any).prisma;
+}
+
+export { prisma };
 export default prisma; 
