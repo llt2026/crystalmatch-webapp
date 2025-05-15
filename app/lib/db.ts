@@ -1,5 +1,7 @@
-import { PrismaClient, Prisma } from '@prisma/client';
-import { getDatabaseUrl, getDbConnectionOptions, getLogLevel } from './db.config';
+import { PrismaClient } from '@prisma/client';
+import { getDbConnectionOptions, getLogLevel } from './db.config';
+import 'dotenv/config'; // 确保加载环境变量
+import prisma from './prisma'; // 使用专门的 Prisma 单例
 
 // 防止开发环境中创建多个Prisma实例
 // 在生产环境中，这是不必要的，因为模块缓存工作正常
@@ -17,35 +19,15 @@ const LOG_LEVELS = {
   debug: ['query', 'info', 'warn', 'error']
 };
 
-// 确保有可用的数据库URL
-const databaseUrl = getDatabaseUrl();
-const dbOptions = getDbConnectionOptions();
+// 获取日志级别
 const logLevel = getLogLevel();
+const dbOptions = getDbConnectionOptions();
 
 // 配置Prisma日志级别
 const prismaLogLevels = LOG_LEVELS[logLevel as keyof typeof LOG_LEVELS] || LOG_LEVELS.info;
 
-// 初始化Prisma客户端
-export const prisma = global.prisma || new PrismaClient({
-  log: prismaLogLevels.map(level => level as 'query' | 'info' | 'warn' | 'error'),
-  datasources: {
-    db: {
-      url: databaseUrl
-    }
-  },
-  // 配置连接池
-  // @ts-ignore - Prisma类型定义可能不包含以下自定义参数
-  __internal: {
-    engine: {
-      connectionLimit: dbOptions.maxPoolSize
-    }
-  }
-});
-
-// 在开发环境中保存Prisma实例到全局对象
-if (process.env.NODE_ENV !== 'production') {
-  global.prisma = prisma;
-}
+// 导出 Prisma 客户端实例
+export { prisma };
 
 /**
  * 连接数据库并执行函数
@@ -73,7 +55,7 @@ export async function connectDB<T>(callback: (client: PrismaClient) => Promise<T
     
     // 根据错误类型处理
     if (error instanceof Error) {
-      // 检查是否是连接错误
+      // PostgreSQL 特定错误处理
       if (error.message.includes('Connection') || error.message.includes('connect')) {
         console.error('数据库连接错误，尝试重新连接...');
         // 可以在这里添加重连逻辑
@@ -91,7 +73,7 @@ export async function connectDB<T>(callback: (client: PrismaClient) => Promise<T
 export async function checkDBConnection(): Promise<{ isConnected: boolean, responseTime?: number }> {
   const startTime = Date.now();
   try {
-    // 执行一个简单查询来测试连接
+    // 执行一个简单查询来测试连接 - PostgreSQL 兼容
     await prisma.$queryRaw`SELECT 1`;
     const responseTime = Date.now() - startTime;
     return { isConnected: true, responseTime };
@@ -114,5 +96,9 @@ export async function withTransaction<T>(
 ): Promise<T> {
   return await prisma.$transaction(async (tx: TransactionClient) => {
     return await callback(tx);
+  }, {
+    // PostgreSQL 事务设置
+    maxWait: 5000, // 最大等待时间 (ms)
+    timeout: 10000 // 事务超时时间 (ms)
   });
 } 

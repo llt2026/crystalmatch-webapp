@@ -1,3 +1,6 @@
+// 加载环境变量
+require('dotenv').config();
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,

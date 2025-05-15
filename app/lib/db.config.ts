@@ -3,19 +3,17 @@
  * 为应用提供数据库连接信息
  */
 
-// MongoDB连接参数
+// 确保加载环境变量
+import 'dotenv/config';
+
+// PostgreSQL 连接参数
 export const DB_CONFIG = {
-  // MongoDB连接字符串
-  DATABASE_URL: process.env.DATABASE_URL || "mongodb://localhost:27017/crystalmatch",
+  // PostgreSQL 连接字符串 - Neon
+  DATABASE_URL: process.env.DATABASE_URL || "postgresql://user:password@localhost:5432/crystalmatch",
   
   // 连接池配置
-  MAX_POOL_SIZE: parseInt(process.env.MONGODB_MAX_POOL_SIZE || "10"),
-  MIN_POOL_SIZE: parseInt(process.env.MONGODB_MIN_POOL_SIZE || "5"),
-  MAX_IDLE_TIME_MS: parseInt(process.env.MONGODB_MAX_IDLE_TIME_MS || "30000"),
-  
-  // 重试配置
-  RETRY_WRITES: true,
-  RETRY_READS: true,
+  CONNECTION_LIMIT: parseInt(process.env.PG_CONNECTION_LIMIT || "10"),
+  IDLE_TIMEOUT: parseInt(process.env.PG_IDLE_TIMEOUT || "30000"),
   
   // JWT密钥
   JWT_SECRET: process.env.JWT_SECRET || "crystalmatch-secure-jwt-secret-key",
@@ -45,11 +43,8 @@ export function getDatabaseUrl(): string {
  */
 export function getDbConnectionOptions() {
   return {
-    maxPoolSize: DB_CONFIG.MAX_POOL_SIZE,
-    minPoolSize: DB_CONFIG.MIN_POOL_SIZE,
-    maxIdleTimeMS: DB_CONFIG.MAX_IDLE_TIME_MS,
-    retryWrites: DB_CONFIG.RETRY_WRITES,
-    retryReads: DB_CONFIG.RETRY_READS
+    connectionLimit: DB_CONFIG.CONNECTION_LIMIT,
+    idleTimeout: DB_CONFIG.IDLE_TIMEOUT
   };
 }
 
