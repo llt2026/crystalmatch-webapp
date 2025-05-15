@@ -1,70 +1,38 @@
-import { PrismaClient } from '@prisma/client';
-import { getDbConnectionOptions, getLogLevel } from './db.config';
-import 'dotenv/config'; // 确保加载环境变量
-import prisma from './prisma'; // 使用专门的 Prisma 单例
+/**
+ * 数据库连接管理
+ * 使用直接 require 方式加载 Prisma
+ */
 
-// 防止开发环境中创建多个Prisma实例
-// 在生产环境中，这是不必要的，因为模块缓存工作正常
+// 使用 require 直接加载 Prisma
+// @ts-ignore - 忽略类型错误
+const { PrismaClient } = require('@prisma/client');
 
+// 声明全局变量用于保存 Prisma 实例
 declare global {
-  var prisma: PrismaClient | undefined;
+  var _dbClient: any;
 }
 
-// 日志级别配置
-const LOG_LEVELS = {
-  info: ['info', 'warn', 'error'],
-  warn: ['warn', 'error'],
-  error: ['error'],
-  query: ['query', 'info', 'warn', 'error'],
-  debug: ['query', 'info', 'warn', 'error']
-};
-
-// 获取日志级别
-const logLevel = getLogLevel();
-const dbOptions = getDbConnectionOptions();
-
-// 配置Prisma日志级别
-const prismaLogLevels = LOG_LEVELS[logLevel as keyof typeof LOG_LEVELS] || LOG_LEVELS.info;
-
-// 导出 Prisma 客户端实例
-export { prisma };
-
-/**
- * 连接数据库并执行函数
- * 这个方法可以用来包装数据库操作，确保连接正常
- * @param callback 执行的回调函数
- * @returns 回调函数的结果
- */
-export async function connectDB<T>(callback: (client: PrismaClient) => Promise<T>): Promise<T> {
-  const startTime = Date.now();
+// 创建或获取 Prisma 客户端
+function getClient() {
   try {
-    // 执行数据库操作
-    const result = await callback(prisma);
-    
-    // 记录操作时间（仅在开发环境或日志级别为debug时）
-    if (process.env.NODE_ENV !== 'production' || logLevel === 'debug') {
-      const duration = Date.now() - startTime;
-      console.log(`数据库操作完成，耗时: ${duration}ms`);
-    }
-    
-    return result;
-  } catch (error) {
-    // 记录错误
-    const duration = Date.now() - startTime;
-    console.error(`数据库操作失败，耗时: ${duration}ms`, error);
-    
-    // 根据错误类型处理
-    if (error instanceof Error) {
-      // PostgreSQL 特定错误处理
-      if (error.message.includes('Connection') || error.message.includes('connect')) {
-        console.error('数据库连接错误，尝试重新连接...');
-        // 可以在这里添加重连逻辑
+    if (process.env.NODE_ENV === 'production') {
+      // 生产环境：创建新实例
+      return new PrismaClient();
+    } else {
+      // 开发环境：重用全局实例
+      if (!global._dbClient) {
+        global._dbClient = new PrismaClient();
       }
+      return global._dbClient;
     }
-    
-    throw error;
+  } catch (error) {
+    console.error('无法创建数据库客户端:', error);
+    // 如果在初始化过程中出错，尝试无参数创建
+    return new PrismaClient();
   }
 }
+
+export const prisma = getClient();
 
 /**
  * 健康检查函数，验证数据库连接是否正常
@@ -73,7 +41,7 @@ export async function connectDB<T>(callback: (client: PrismaClient) => Promise<T
 export async function checkDBConnection(): Promise<{ isConnected: boolean, responseTime?: number }> {
   const startTime = Date.now();
   try {
-    // 执行一个简单查询来测试连接 - PostgreSQL 兼容
+    // 执行一个简单查询来测试连接
     await prisma.$queryRaw`SELECT 1`;
     const responseTime = Date.now() - startTime;
     return { isConnected: true, responseTime };
@@ -83,22 +51,18 @@ export async function checkDBConnection(): Promise<{ isConnected: boolean, respo
   }
 }
 
-// 事务客户端类型定义
-type TransactionClient = Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use'>;
-
 /**
- * 创建数据库事务
- * @param callback 在事务中执行的回调函数
- * @returns 事务执行结果
+ * 连接数据库并执行函数
+ * @param callback 回调函数
+ * @returns 结果
  */
-export async function withTransaction<T>(
-  callback: (tx: TransactionClient) => Promise<T>
-): Promise<T> {
-  return await prisma.$transaction(async (tx: TransactionClient) => {
-    return await callback(tx);
-  }, {
-    // PostgreSQL 事务设置
-    maxWait: 5000, // 最大等待时间 (ms)
-    timeout: 10000 // 事务超时时间 (ms)
-  });
-} 
+export async function connectDB<T>(callback: (client: any) => Promise<T>): Promise<T> {
+  try {
+    return await callback(prisma);
+  } catch (error) {
+    console.error('数据库操作失败:', error);
+    throw error;
+  }
+}
+
+export default prisma; 
