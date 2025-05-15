@@ -22,14 +22,12 @@ const nextConfig = {
     maxInactiveAge: 60 * 60 * 1000,
     pagesBufferLength: 10,
   },
+  // 从experimental中移出的配置
+  skipTrailingSlashRedirect: true,
+  // 缓存处理器
+  cacheHandler: require.resolve('./scripts/cache-handler.js'),
   experimental: {
-    serverComponentsExternalPackages: ['prisma', '@prisma/client'],
-    // 允许某些页面在导出时出错
-    skipTrailingSlashRedirect: true,
-    // 即使在构建预渲染失败时也继续
-    isrMemoryCacheSize: 0,
-    // 添加以下选项来忽略构建失败的页面
-    incrementalCacheHandlerPath: require.resolve('./scripts/cache-handler.js'),
+    serverComponentsExternalPackages: ['prisma', '@prisma/client']
   },
   // 排除备份目录
   webpack(config) {

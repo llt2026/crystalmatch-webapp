@@ -1,14 +1,13 @@
-export const dynamic = 'force-dynamic';
-
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 
-export default function SharePage() {
+// 创建一个包含useSearchParams的子组件
+function ShareContent() {
   const searchParams = useSearchParams();
   const [sharedContent, setSharedContent] = useState({
     title: '',
@@ -92,5 +91,18 @@ export default function SharePage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// 主页面组件使用Suspense包装子组件
+export default function SharePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-b from-purple-900 to-purple-700 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-yellow-300"></div>
+      </div>
+    }>
+      <ShareContent />
+    </Suspense>
   );
 } 

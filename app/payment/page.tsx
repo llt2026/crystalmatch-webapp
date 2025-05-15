@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { PaymentMethod } from '@/app/lib/payment/service';
@@ -22,7 +22,8 @@ interface CardInfo {
   cvv: string;
 }
 
-export default function PaymentPage() {
+// 创建一个包含useSearchParams的子组件
+function PaymentContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const orderId = searchParams?.get('orderId') || '';
@@ -422,5 +423,18 @@ export default function PaymentPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+// 主页面组件使用Suspense包装子组件
+export default function PaymentPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-purple-900 to-black flex items-center justify-center p-4">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
+      </div>
+    }>
+      <PaymentContent />
+    </Suspense>
   );
 } 

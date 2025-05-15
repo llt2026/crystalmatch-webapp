@@ -1,13 +1,12 @@
-export const dynamic = 'force-dynamic';
-
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 
-export default function SubscriptionSuccess() {
+// 创建一个包含useSearchParams的子组件
+function SubscriptionSuccessContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(true);
@@ -133,5 +132,25 @@ export default function SubscriptionSuccess() {
         )}
       </div>
     </main>
+  );
+}
+
+// 主页面组件使用Suspense包装子组件
+export default function SubscriptionSuccess() {
+  return (
+    <Suspense fallback={
+      <main className="min-h-screen bg-gradient-to-br from-purple-900 to-black py-12 px-4">
+        <div className="max-w-2xl mx-auto">
+          <div className="glass-card p-8 rounded-2xl text-center">
+            <div className="flex justify-center mb-4">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
+            </div>
+            <p className="text-white">Loading subscription details...</p>
+          </div>
+        </div>
+      </main>
+    }>
+      <SubscriptionSuccessContent />
+    </Suspense>
   );
 } 
