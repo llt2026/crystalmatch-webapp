@@ -5,12 +5,12 @@ export const dynamic = 'force-dynamic'; // 明确标记为动态路由
 
 // 创建邮件传输器
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: Number(process.env.SMTP_PORT),
+  host: process.env.MAIL_HOST,
+  port: Number(process.env.MAIL_PORT),
   secure: true,
   auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
+    user: process.env.MAIL_USER,
+    pass: process.env.MAIL_PASS,
   },
 });
 
@@ -38,17 +38,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(`SMTP配置: ${process.env.SMTP_HOST}:${process.env.SMTP_PORT}`);
+    console.log(`邮件配置: ${process.env.MAIL_HOST}:${process.env.MAIL_PORT}`);
     
     // 检查环境变量是否存在
-    if (!process.env.SMTP_HOST || !process.env.SMTP_PORT || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
-      console.error('SMTP环境变量不完整', {
-        host: !!process.env.SMTP_HOST,
-        port: !!process.env.SMTP_PORT,
-        user: !!process.env.SMTP_USER,
-        pass: !!process.env.SMTP_PASS
+    if (!process.env.MAIL_HOST || !process.env.MAIL_PORT || !process.env.MAIL_USER || !process.env.MAIL_PASS) {
+      console.error('邮件环境变量不完整', {
+        host: !!process.env.MAIL_HOST,
+        port: !!process.env.MAIL_PORT,
+        user: !!process.env.MAIL_USER,
+        pass: !!process.env.MAIL_PASS
       });
-      return NextResponse.json({ error: 'SMTP configuration incomplete' }, { status: 500 });
+      return NextResponse.json({ error: 'Mail configuration incomplete' }, { status: 500 });
     }
 
     // 生成验证码
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
       console.log(`准备发送验证码 ${code} 到 ${email}`);
       // 发送验证码邮件
       await transporter.sendMail({
-        from: process.env.SMTP_USER,
+        from: process.env.MAIL_FROM || process.env.MAIL_USER,
         to: email,
         subject: 'CrystalMatch Verification Code',
         html: `
