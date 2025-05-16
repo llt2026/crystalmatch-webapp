@@ -73,7 +73,7 @@ export default function BirthInfo() {
     setError('');
 
     try {
-      const response = await fetch('/api/auth/register/send-code', {
+      const response = await fetch('/api/auth/send-code', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email })

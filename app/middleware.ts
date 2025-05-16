@@ -10,7 +10,6 @@ const publicPaths = [
   '/api/auth/send-code',
   '/api/auth/verify-code',
   '/api/auth/register',
-  '/api/auth/register/send-code',
   '/admin/login',
   '/api/admin/auth/login',
   '/subscription',
