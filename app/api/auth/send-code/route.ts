@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
+import { VerificationCode, MemoryVerificationCodes } from '@/app/lib/redis';
 
 export const dynamic = 'force-dynamic'; // 明确标记为动态路由
 
@@ -14,11 +15,8 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-// 存储验证码（在生产环境中应该使用Redis或数据库）
-const verificationCodes = new Map<string, {
-  code: string;
-  expiry: number;
-}>();
+// 内存存储验证码实例（Redis不可用时的回退方案）
+const memoryStorage = MemoryVerificationCodes.getInstance();
 
 // 生成6位数字验证码
 function generateCode(): string {
@@ -51,14 +49,35 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Mail configuration incomplete' }, { status: 500 });
     }
 
+    // 检查60秒内是否已发送验证码
+    try {
+      const rateLimit = await VerificationCode.checkRateLimit(email);
+      if (!rateLimit.allowed) {
+        return NextResponse.json(
+          { 
+            error: 'Too many requests. Please try again later.', 
+            remainingTime: rateLimit.remainingTime 
+          },
+          { status: 429 }
+        );
+      }
+    } catch (error) {
+      // 如果Redis不可用，回退到内存存储
+      const memoryLimit = memoryStorage.checkRateLimit(email);
+      if (!memoryLimit.allowed) {
+        return NextResponse.json(
+          { 
+            error: 'Too many requests. Please try again later.', 
+            remainingTime: memoryLimit.remainingTime 
+          },
+          { status: 429 }
+        );
+      }
+    }
+
     // 生成验证码
     const code = generateCode();
-    // 设置5分钟过期
-    const expiry = Date.now() + 5 * 60 * 1000;
 
-    // 存储验证码
-    verificationCodes.set(email, { code, expiry });
-    
     try {
       console.log(`准备发送验证码 ${code} 到 ${email}`);
       // 发送验证码邮件
@@ -77,6 +96,18 @@ export async function POST(request: NextRequest) {
         `
       });
       console.log('邮件发送成功');
+      
+      // 存储验证码
+      try {
+        await VerificationCode.saveCode(email, code);
+        await VerificationCode.setRateLimit(email);
+      } catch (storageError) {
+        // 回退到内存存储
+        console.warn('Redis存储失败，使用内存存储:', storageError);
+        memoryStorage.saveCode(email, code);
+        memoryStorage.setRateLimit(email);
+      }
+      
     } catch (emailError: any) {
       console.error('邮件发送失败:', emailError);
       return NextResponse.json(
@@ -95,6 +126,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
+// 旧的验证码验证方法，保留兼容性，但建议使用 /api/auth/verify-code
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const email = searchParams.get('email');
@@ -107,32 +139,22 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const storedData = verificationCodes.get(email);
-
-  if (!storedData) {
+  let verified = false;
+  
+  // 首先尝试从Redis验证
+  try {
+    verified = await VerificationCode.verifyCode(email, code);
+  } catch (error) {
+    // 如果Redis不可用，回退到内存存储
+    verified = memoryStorage.verifyCode(email, code);
+  }
+  
+  if (!verified) {
     return NextResponse.json(
-      { error: 'No verification code found' },
+      { error: 'Invalid or expired verification code' },
       { status: 400 }
     );
   }
-
-  if (Date.now() > storedData.expiry) {
-    verificationCodes.delete(email);
-    return NextResponse.json(
-      { error: 'Verification code expired' },
-      { status: 400 }
-    );
-  }
-
-  if (storedData.code !== code) {
-    return NextResponse.json(
-      { error: 'Invalid verification code' },
-      { status: 400 }
-    );
-  }
-
-  // 验证成功后删除验证码
-  verificationCodes.delete(email);
 
   return NextResponse.json({ verified: true });
 } 

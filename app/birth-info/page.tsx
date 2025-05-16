@@ -6,6 +6,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
+import VerificationCodeInput from '@/app/components/auth/VerificationCodeInput';
 
 // Countries data with regions
 const countries = [
@@ -62,6 +63,7 @@ export default function BirthInfo() {
   const [name, setName] = useState('');
   const [codeSent, setCodeSent] = useState(false);
   const [sendingCode, setSendingCode] = useState(false);
+  const [verificationError, setVerificationError] = useState('');
 
   const handleSendCode = async () => {
     if (!email) {
@@ -71,6 +73,7 @@ export default function BirthInfo() {
 
     setSendingCode(true);
     setError('');
+    setVerificationError('');
 
     try {
       const response = await fetch('/api/auth/send-code', {
@@ -82,6 +85,10 @@ export default function BirthInfo() {
       const data = await response.json();
       
       if (!response.ok) {
+        if (response.status === 429) {
+          // 频率限制错误
+          throw new Error(`Too many requests. Please try again in ${data.remainingTime || 60} seconds.`);
+        }
         throw new Error(data.error || 'Failed to send verification code');
       }
 
@@ -107,12 +114,13 @@ export default function BirthInfo() {
     }
     
     if (codeSent && !verificationCode) {
-      setError('Please enter the verification code sent to your email');
+      setVerificationError('Please enter the verification code sent to your email');
       return;
     }
     
     setIsLoading(true);
     setError('');
+    setVerificationError('');
     
     try {
       const birthDateTime = new Date(birthDate);
@@ -124,30 +132,45 @@ export default function BirthInfo() {
       
       localStorage.setItem('birthInfo', JSON.stringify(birthInfo));
       
-      // Register the user if code has been sent
+      // 验证验证码并注册用户
       if (codeSent) {
-        const registerResponse = await fetch('/api/auth/register', {
+        const verifyResponse = await fetch('/api/auth/verify-code', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             email,
-            name,
-            birthdate: birthDateTime.toISOString(),
             code: verificationCode
           })
         });
         
-        const registerData = await registerResponse.json();
+        const verifyData = await verifyResponse.json();
         
-        if (!registerResponse.ok) {
-          throw new Error(registerData.error || 'Registration failed');
+        if (!verifyResponse.ok) {
+          throw new Error(verifyData.error || 'Invalid verification code');
+        }
+        
+        // 用户验证成功后更新用户名
+        if (name && name !== verifyData.user?.name) {
+          await fetch('/api/user/update', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name,
+              birthdate: birthDateTime.toISOString(),
+              gender
+            })
+          });
         }
       }
       
       router.push('/energy-reading');
     } catch (error) {
       console.error('Submission error:', error);
-      setError(error instanceof Error ? error.message : 'Something went wrong. Please try again.');
+      if (error instanceof Error && error.message.includes('verification code')) {
+        setVerificationError(error.message);
+      } else {
+        setError(error instanceof Error ? error.message : 'Something went wrong. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -270,18 +293,16 @@ export default function BirthInfo() {
                 </div>
               </div>
               
-              {/* Verification Code */}
+              {/* Verification Code - 使用新组件 */}
               {codeSent && (
                 <div className="mb-4">
                   <label className="block text-sm font-medium mb-2 text-purple-200">Verification Code *</label>
-                  <input
-                    type="text"
+                  <VerificationCodeInput
                     value={verificationCode}
-                    onChange={(e) => setVerificationCode(e.target.value)}
-                    className="w-full p-3 bg-white/5 border border-purple-500/30 rounded-lg text-white focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all text-center tracking-widest"
-                    placeholder="000000"
-                    maxLength={6}
-                    required
+                    onChange={setVerificationCode}
+                    onResend={handleSendCode}
+                    isResending={sendingCode}
+                    error={verificationError}
                   />
                   <p className="mt-1 text-xs text-purple-300">
                     We've sent a verification code to {email}

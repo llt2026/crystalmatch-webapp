@@ -1,9 +1,15 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
+import { prisma } from '@/app/lib/prisma';
+import { VerificationCode, MemoryVerificationCodes } from '@/app/lib/redis';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+// 获取内存存储实例（Redis不可用时的回退方案）
+const memoryStorage = MemoryVerificationCodes.getInstance();
 
-export async function POST(request: Request) {
+export const dynamic = 'force-dynamic'; // 明确标记为动态路由
+
+export async function POST(request: NextRequest) {
   try {
     const { email, code } = await request.json();
     
@@ -14,46 +20,68 @@ export async function POST(request: Request) {
       );
     }
 
-    // 获取存储的验证码
-    const storedData = global.verificationCodes?.get(email);
+    // 验证码验证
+    let verified = false;
     
-    if (!storedData) {
-      return NextResponse.json(
-        { error: 'Verification code not found' },
-        { status: 400 }
-      );
+    // 首先尝试从Redis验证
+    try {
+      verified = await VerificationCode.verifyCode(email, code);
+    } catch (error) {
+      console.warn('Redis验证失败，尝试内存验证:', error);
+      // 如果Redis不可用，回退到内存存储
+      verified = memoryStorage.verifyCode(email, code);
     }
-
-    // 验证码5分钟有效期
-    const isExpired = Date.now() - storedData.timestamp > 5 * 60 * 1000;
     
-    if (isExpired) {
-      global.verificationCodes.delete(email);
+    if (!verified) {
       return NextResponse.json(
-        { error: 'Verification code expired' },
+        { error: 'Invalid or expired verification code' },
         { status: 400 }
       );
     }
-
-    if (storedData.code !== code) {
+    
+    // 验证成功，查找或创建用户
+    let user;
+    try {
+      user = await prisma.user.upsert({
+        where: { email },
+        update: { 
+          lastLoginAt: new Date() 
+        },
+        create: {
+          email,
+          name: email.split('@')[0], // 默认使用邮箱前缀作为用户名
+          lastLoginAt: new Date()
+        }
+      });
+    } catch (dbError) {
+      console.error('数据库操作失败:', dbError);
       return NextResponse.json(
-        { error: 'Invalid verification code' },
-        { status: 400 }
+        { error: 'Failed to process user information' },
+        { status: 500 }
       );
     }
-
-    // 验证成功，删除验证码
-    global.verificationCodes.delete(email);
 
     // 生成JWT令牌
     const token = jwt.sign(
-      { email },
+      { 
+        id: user.id,
+        email: user.email,
+        name: user.name
+      },
       JWT_SECRET,
       { expiresIn: '7d' }
     );
 
-    // 设置cookie
-    const response = NextResponse.json({ success: true });
+    // 设置HTTP Cookie
+    const response = NextResponse.json({ 
+      success: true,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name
+      }
+    });
+    
     response.cookies.set('token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -63,7 +91,7 @@ export async function POST(request: Request) {
 
     return response;
   } catch (error) {
-    console.error('Error verifying code:', error);
+    console.error('验证码验证错误:', error);
     return NextResponse.json(
       { error: 'Failed to verify code' },
       { status: 500 }
