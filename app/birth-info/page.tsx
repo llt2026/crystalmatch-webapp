@@ -86,7 +86,7 @@ export default function BirthInfo() {
       
       if (!response.ok) {
         if (response.status === 429) {
-          // 频率限制错误
+          // Frequency limit error
           throw new Error(`Too many requests. Please try again in ${data.remainingTime || 60} seconds.`);
         }
         throw new Error(data.error || 'Failed to send verification code');
@@ -132,7 +132,7 @@ export default function BirthInfo() {
       
       localStorage.setItem('birthInfo', JSON.stringify(birthInfo));
       
-      // 验证验证码并注册用户
+      // Verify code and register user
       if (codeSent) {
         const verifyResponse = await fetch('/api/auth/verify-code', {
           method: 'POST',
@@ -149,7 +149,7 @@ export default function BirthInfo() {
           throw new Error(verifyData.error || 'Invalid verification code');
         }
         
-        // 用户验证成功后更新用户名
+        // Update username after successful verification
         if (name && name !== verifyData.user?.name) {
           await fetch('/api/user/update', {
             method: 'POST',
@@ -293,7 +293,7 @@ export default function BirthInfo() {
                 </div>
               </div>
               
-              {/* Verification Code - 使用新组件 */}
+              {/* Verification Code - Using the new component */}
               {codeSent && (
                 <div className="mb-4">
                   <label className="block text-sm font-medium mb-2 text-purple-200">Verification Code *</label>

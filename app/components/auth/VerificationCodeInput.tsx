@@ -125,8 +125,8 @@ const VerificationCodeInput: React.FC<VerificationCodeInputProps> = ({
       <div className="flex justify-between items-center">
         <p className="text-sm text-purple-300">
           {isCounting 
-            ? `${countdown}秒后可重新发送` 
-            : '没有收到验证码？'}
+            ? `Resend in ${countdown}s` 
+            : "Didn't receive a code?"}
         </p>
         
         <button
@@ -139,7 +139,7 @@ const VerificationCodeInput: React.FC<VerificationCodeInputProps> = ({
               : 'text-purple-400 hover:text-purple-300'
           }`}
         >
-          {isResending ? '发送中...' : '重新发送'}
+          {isResending ? 'Sending...' : 'Resend'}
         </button>
       </div>
     </div>
