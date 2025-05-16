@@ -186,7 +186,14 @@ export default function BirthInfo() {
               <DatePicker
                 selected={birthDate}
                 onChange={(date) => setBirthDate(date)}
-                dateFormat="MMMM d, yyyy"
+                dateFormat="MM/dd/yyyy"
+                showMonthDropdown
+                showYearDropdown
+                dropdownMode="select"
+                yearDropdownItemNumber={100}
+                minDate={new Date(1920, 0, 1)}
+                maxDate={new Date()}
+                scrollableYearDropdown
                 className="w-full p-3 bg-white/5 border border-purple-500/30 rounded-lg text-white focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all"
                 placeholderText="Select your birth date"
                 required
