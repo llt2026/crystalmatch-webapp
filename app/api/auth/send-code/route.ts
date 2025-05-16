@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
 
+export const dynamic = 'force-dynamic'; // 明确标记为动态路由
+
 // 创建邮件传输器
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
@@ -25,13 +27,28 @@ function generateCode(): string {
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('开始处理发送验证码请求');
     const { email } = await request.json();
 
     if (!email) {
+      console.log('错误: 邮箱地址为空');
       return NextResponse.json(
         { error: 'Email is required' },
         { status: 400 }
       );
+    }
+
+    console.log(`SMTP配置: ${process.env.SMTP_HOST}:${process.env.SMTP_PORT}`);
+    
+    // 检查环境变量是否存在
+    if (!process.env.SMTP_HOST || !process.env.SMTP_PORT || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
+      console.error('SMTP环境变量不完整', {
+        host: !!process.env.SMTP_HOST,
+        port: !!process.env.SMTP_PORT,
+        user: !!process.env.SMTP_USER,
+        pass: !!process.env.SMTP_PASS
+      });
+      return NextResponse.json({ error: 'SMTP configuration incomplete' }, { status: 500 });
     }
 
     // 生成验证码
@@ -41,28 +58,38 @@ export async function POST(request: NextRequest) {
 
     // 存储验证码
     verificationCodes.set(email, { code, expiry });
-
-    // 发送验证码邮件
-    await transporter.sendMail({
-      from: process.env.SMTP_USER,
-      to: email,
-      subject: 'CrystalMatch Verification Code',
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2>CrystalMatch Verification Code</h2>
-          <p>Your verification code is:</p>
-          <h1 style="color: #8A2BE2; font-size: 32px; letter-spacing: 5px;">${code}</h1>
-          <p>This code will expire in 5 minutes.</p>
-          <p>If you didn't request this code, please ignore this email.</p>
-        </div>
-      `
-    });
+    
+    try {
+      console.log(`准备发送验证码 ${code} 到 ${email}`);
+      // 发送验证码邮件
+      await transporter.sendMail({
+        from: process.env.SMTP_USER,
+        to: email,
+        subject: 'CrystalMatch Verification Code',
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2>CrystalMatch Verification Code</h2>
+            <p>Your verification code is:</p>
+            <h1 style="color: #8A2BE2; font-size: 32px; letter-spacing: 5px;">${code}</h1>
+            <p>This code will expire in 5 minutes.</p>
+            <p>If you didn't request this code, please ignore this email.</p>
+          </div>
+        `
+      });
+      console.log('邮件发送成功');
+    } catch (emailError: any) {
+      console.error('邮件发送失败:', emailError);
+      return NextResponse.json(
+        { error: `Failed to send email: ${emailError.message}` },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error('Error sending verification code:', error);
+  } catch (error: any) {
+    console.error('验证码处理错误:', error);
     return NextResponse.json(
-      { error: 'Failed to send verification code' },
+      { error: `Processing error: ${error.message}` },
       { status: 500 }
     );
   }
