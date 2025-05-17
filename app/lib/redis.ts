@@ -3,33 +3,70 @@ import { env } from 'process';
 
 // Redis client singleton
 let redisClient: Redis | null = null;
+let redisDisabled = process.env.SKIP_REDIS === 'true';
+
+// Error with code property interface
+interface RedisError extends Error {
+  code?: string;
+}
 
 // Get Redis client instance
 export function getRedisClient(): Redis {
+  // If Redis is disabled due to connection issues or by environment variable, throw error to fallback to memory storage
+  if (redisDisabled) {
+    throw new Error('Redis is disabled due to connection issues or by configuration');
+  }
+
   if (!redisClient) {
-    const redisUrl = env.REDIS_URL || 'redis://localhost:6379';
-    
-    redisClient = new Redis(redisUrl, {
-      maxRetriesPerRequest: 3,
-      retryStrategy: (times) => {
-        const delay = Math.min(times * 50, 2000);
-        return delay;
-      },
-      connectTimeout: 10000, // Increased connection timeout
-      enableOfflineQueue: true // Queue requests when offline
-    });
+    try {
+      const redisUrl = env.REDIS_URL || 'redis://localhost:6379';
+      
+      redisClient = new Redis(redisUrl, {
+        maxRetriesPerRequest: 1, // Reduced from 3 to 1
+        retryStrategy: (times) => {
+          // Only retry twice, then give up
+          if (times > 2) {
+            console.log('Too many Redis connection attempts, disabling Redis');
+            redisDisabled = true;
+            return null; // Don't retry anymore
+          }
+          const delay = Math.min(times * 100, 3000);
+          return delay;
+        },
+        connectTimeout: 5000, // Reduced from 10000 to 5000
+        enableOfflineQueue: false, // Don't queue commands when offline
+        reconnectOnError: (err) => {
+          console.log('Redis error, deciding whether to reconnect:', err.message);
+          // Only reconnect for specific errors, not for connection refused
+          const targetError = err.message.includes('READONLY') || 
+                              err.message.includes('ETIMEDOUT');
+          return targetError ? 1 : false;
+        }
+      });
 
-    redisClient.on('error', (err) => {
-      console.error('Redis connection error:', err);
-      // In production environment, for application robustness, we don't throw fatal errors
-      // but instead fall back to memory storage
-    });
+      redisClient.on('error', (err: RedisError) => {
+        console.error('Redis connection error:', err.message);
+        if (err.code === 'ECONNREFUSED' || err.code === 'ETIMEDOUT') {
+          console.log('Redis connection refused or timed out, disabling Redis');
+          redisDisabled = true;
+          if (redisClient) {
+            redisClient.disconnect();
+            redisClient = null;
+          }
+        }
+      });
 
-    redisClient.on('connect', () => {
-      console.log('Redis connection successful');
-    });
+      redisClient.on('connect', () => {
+        console.log('Redis connection successful');
+        redisDisabled = false;
+      });
 
-    console.log('Redis client initialized successfully');
+      console.log('Redis client initialized');
+    } catch (e) {
+      console.error('Failed to initialize Redis client:', e);
+      redisDisabled = true;
+      throw e;
+    }
   }
   
   return redisClient;
@@ -46,6 +83,10 @@ export const VerificationCode = {
   
   // Save verification code to Redis
   async saveCode(email: string, code: string): Promise<{success: boolean, expirySeconds: number}> {
+    if (redisDisabled) {
+      throw new Error('Redis is disabled');
+    }
+
     try {
       const redis = getRedisClient();
       const key = this.CODE_PREFIX + email;
@@ -56,12 +97,16 @@ export const VerificationCode = {
       return { success: true, expirySeconds: this.CODE_EXPIRY };
     } catch (error) {
       console.error('Failed to save verification code:', error);
-      return { success: false, expirySeconds: this.CODE_EXPIRY };
+      throw error; // Rethrow to trigger fallback
     }
   },
   
   // Check rate limiting
   async checkRateLimit(email: string): Promise<{ allowed: boolean; remainingTime?: number }> {
+    if (redisDisabled) {
+      throw new Error('Redis is disabled');
+    }
+
     try {
       const redis = getRedisClient();
       const key = this.RATE_LIMIT_PREFIX + email;
@@ -80,13 +125,16 @@ export const VerificationCode = {
       };
     } catch (error) {
       console.error('Failed to check rate limit:', error);
-      // If Redis fails, allow the request to ensure application availability
-      return { allowed: true };
+      throw error; // Rethrow to trigger fallback
     }
   },
   
   // Set rate limit
   async setRateLimit(email: string): Promise<boolean> {
+    if (redisDisabled) {
+      throw new Error('Redis is disabled');
+    }
+
     try {
       const redis = getRedisClient();
       const key = this.RATE_LIMIT_PREFIX + email;
@@ -96,12 +144,16 @@ export const VerificationCode = {
       return true;
     } catch (error) {
       console.error('Failed to set rate limit:', error);
-      return false;
+      throw error; // Rethrow to trigger fallback
     }
   },
   
   // Verify code
   async verifyCode(email: string, code: string): Promise<{success: boolean, reason?: string}> {
+    if (redisDisabled) {
+      throw new Error('Redis is disabled');
+    }
+
     try {
       const redis = getRedisClient();
       const key = this.CODE_PREFIX + email;
@@ -127,12 +179,16 @@ export const VerificationCode = {
       return { success: true };
     } catch (error) {
       console.error('Verification code verification failed:', error);
-      return { success: false, reason: 'server_error' };
+      throw error; // Rethrow to trigger fallback
     }
   },
   
   // Get stored code info (for queries) and expiration time
   async getCodeInfo(email: string): Promise<{code: string | null, ttl: number | null}> {
+    if (redisDisabled) {
+      throw new Error('Redis is disabled');
+    }
+
     try {
       const redis = getRedisClient();
       const key = this.CODE_PREFIX + email;
@@ -143,7 +199,7 @@ export const VerificationCode = {
       return { code, ttl: ttl > 0 ? ttl : null };
     } catch (error) {
       console.error('Failed to get verification code info:', error);
-      return { code: null, ttl: null };
+      throw error; // Rethrow to trigger fallback
     }
   }
 };
@@ -157,6 +213,7 @@ export class MemoryVerificationCodes {
   private constructor() {
     this.codes = new Map();
     this.rateLimits = new Map();
+    console.log('Memory verification code storage initialized');
   }
   
   public static getInstance(): MemoryVerificationCodes {
