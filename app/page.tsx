@@ -31,7 +31,7 @@ export default function Home() {
         <div className="flex flex-col items-center mb-12 relative">
           <div className="flex items-center mb-4 space-x-3">
             <Image 
-              src="/crystal-logo.svg" 
+              src="/images/logo.png" 
               alt="Crystal Logo" 
               width={50} 
               height={50}
@@ -57,18 +57,23 @@ export default function Home() {
             </h2>
             
             {/* Crystal Animation */}
-            <div className="my-12 relative group">
+            <div className="my-8 relative group">
               <div className="animate-float transition-transform duration-500 group-hover:scale-110">
-                <Image 
-                  src="/crystal.svg" 
-                  alt="Mystical Crystal" 
-                  width={240} 
-                  height={300}
-                  priority
-                  className="mx-auto drop-shadow-[0_0_15px_rgba(138,43,226,0.5)]"
-                />
+                <div className="relative">
+                  <Image 
+                    src="/images/zhutu.png" 
+                    alt="Mystical Crystal" 
+                    width={240} 
+                    height={240}
+                    priority
+                    className="mx-auto z-10 relative"
+                  />
+                  {/* 发光效果 */}
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-purple-500/30 rounded-full blur-2xl animate-pulse-slow -z-10"></div>
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3/4 h-3/4 bg-purple-400/30 rounded-full blur-xl animate-pulse-fast -z-10"></div>
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1/2 h-1/2 bg-pink-400/30 rounded-full blur-md animate-pulse -z-10"></div>
+                </div>
               </div>
-              <div className="absolute inset-0 bg-gradient-radial from-purple-500/20 to-transparent opacity-70 blur-2xl -z-10"></div>
             </div>
             
             {/* CTA Button */}
@@ -101,7 +106,7 @@ export default function Home() {
         </div>
 
         {/* Contact Information */}
-        <div className="mt-8 text-center text-purple-300 text-sm">
+        <div className="mt-6 text-center text-purple-300 text-sm">
           <p>Questions? Contact us at: <a href="mailto:llt2921@outlook.com" className="hover:text-white underline">llt2921@outlook.com</a></p>
         </div>
 

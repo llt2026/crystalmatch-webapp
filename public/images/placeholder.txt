@@ -1,0 +1,9 @@
+请将以下图片上传到对应位置：
+
+1. logo.png - 上传到 /public/images/logo.png
+   - 这是显示在页面左上角的网站logo
+
+2. zhutu.png - 上传到 /public/images/zhutu.png
+   - 这是网站中央的主要晶石图片
+
+上传完成后，网站首页将显示新的logo和主图，并添加发光效果。 
