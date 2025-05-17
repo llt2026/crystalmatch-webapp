@@ -13,8 +13,8 @@ export default function Home() {
     if (typeof window !== 'undefined') {
       const logoImg = new window.Image();
       const crystalImg = new window.Image();
-      logoImg.src = `/images/crystal-logo-v2.svg?v=${now}`;
-      crystalImg.src = `/images/hero-crystal-v2.svg?v=${now}`;
+      logoImg.src = `/crystal-logo.svg?v=${now}`;
+      crystalImg.src = `/crystal.svg?v=${now}`;
     }
   }, []);
 
@@ -44,14 +44,16 @@ export default function Home() {
         {/* Header Section */}
         <div className="flex flex-col items-center mb-10 relative">
           <div className="flex items-center mb-4 space-x-3">
-            {/* 使用新上传的logo图片，增加尺寸50% */}
-            <img 
-              src={`/images/crystal-logo-v2.svg?t=${Date.now()}`}
-              alt="Crystal Logo" 
-              width={38} 
-              height={38}
-              className="animate-pulse"
-            />
+            {/* 使用项目中原有的SVG图片 */}
+            <div className="w-[38px] h-[38px] relative animate-pulse">
+              <Image 
+                src="/crystal-logo.svg" 
+                alt="Crystal Logo"
+                fill
+                className="object-contain"
+                priority
+              />
+            </div>
             <h1 className="text-4xl font-bold bg-gradient-to-r from-violet-400 to-purple-600 bg-clip-text text-transparent">
               CrystalMatch
             </h1>
@@ -71,17 +73,17 @@ export default function Home() {
               </span>
             </h2>
             
-            {/* Crystal Animation - 增加尺寸50% */}
+            {/* Crystal Animation - 使用放大尺寸 */}
             <div className="my-6 relative group">
               <div className="animate-float transition-transform duration-500 group-hover:scale-110">
                 <div className="relative w-[180px] h-[180px] mx-auto">
-                  {/* 使用新上传的水晶图片 */}
-                  <img 
-                    src={`/images/hero-crystal-v2.svg?t=${Date.now()}`}
-                    alt="Mystical Crystal" 
-                    width={180}
-                    height={180}
-                    className="absolute top-0 left-0 w-full h-full object-contain z-10"
+                  {/* 使用项目中原有的SVG图片但尺寸放大 */}
+                  <Image 
+                    src="/crystal.svg" 
+                    alt="Mystical Crystal"
+                    fill
+                    className="object-contain z-10 relative"
+                    priority
                   />
                   {/* 发光效果 */}
                   <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-purple-500/30 rounded-full blur-2xl animate-pulse-slow -z-10"></div>
