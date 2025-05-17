@@ -13,8 +13,8 @@ export default function Home() {
     if (typeof window !== 'undefined') {
       const logoImg = new window.Image();
       const crystalImg = new window.Image();
-      logoImg.src = `/crystal-logo.svg?v=${now}`;
-      crystalImg.src = `/crystal.svg?v=${now}`;
+      logoImg.src = `/images/crystal-logo-v2.png?v=${now}`;
+      crystalImg.src = `/images/hero-crystal-v2.png?v=${now}`;
     }
   }, []);
 
@@ -44,10 +44,10 @@ export default function Home() {
         {/* Header Section */}
         <div className="flex flex-col items-center mb-10 relative">
           <div className="flex items-center mb-4 space-x-3">
-            {/* 使用项目中原有的SVG图片 */}
+            {/* 使用PNG图片 */}
             <div className="w-[38px] h-[38px] relative animate-pulse">
               <Image 
-                src="/crystal-logo.svg" 
+                src="/images/crystal-logo-v2.png" 
                 alt="Crystal Logo"
                 fill
                 className="object-contain"
@@ -77,9 +77,9 @@ export default function Home() {
             <div className="my-6 relative group">
               <div className="animate-float transition-transform duration-500 group-hover:scale-110">
                 <div className="relative w-[180px] h-[180px] mx-auto">
-                  {/* 使用项目中原有的SVG图片但尺寸放大 */}
+                  {/* 使用PNG图片 */}
                   <Image 
-                    src="/crystal.svg" 
+                    src="/images/hero-crystal-v2.png" 
                     alt="Mystical Crystal"
                     fill
                     className="object-contain z-10 relative"
