@@ -24,17 +24,17 @@ export default function Home() {
       <div className="relative flex flex-col items-center justify-center max-w-4xl w-full">
         {/* Mystical Background Elements */}
         <div className="absolute inset-0 opacity-30">
-          <div className="absolute top-0 left-0 w-full h-full bg-[url('/stars.png')] bg-repeat animate-twinkle"></div>
+          <div className="absolute top-0 left-0 w-full h-full bg-[url('/stars.svg')] bg-repeat animate-twinkle"></div>
         </div>
 
         {/* Header Section */}
-        <div className="flex flex-col items-center mb-12 relative">
+        <div className="flex flex-col items-center mb-10 relative">
           <div className="flex items-center mb-4 space-x-3">
-            <Image 
+            <img 
               src="/images/logo.png" 
               alt="Crystal Logo" 
-              width={50} 
-              height={50}
+              width={25} 
+              height={25}
               className="animate-pulse"
             />
             <h1 className="text-4xl font-bold bg-gradient-to-r from-violet-400 to-purple-600 bg-clip-text text-transparent">
@@ -47,8 +47,8 @@ export default function Home() {
         </div>
         
         {/* Main Content */}
-        <div className="card backdrop-blur-md bg-white/5 p-8 rounded-2xl border border-purple-500/20 shadow-2xl">
-          <div className="space-y-6 text-center">
+        <div className="card backdrop-blur-md bg-white/5 p-6 rounded-2xl border border-purple-500/20 shadow-2xl">
+          <div className="space-y-4 text-center">
             <h2 className="text-3xl font-semibold text-white leading-tight">
               Your Personal<br/>
               <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
@@ -57,15 +57,14 @@ export default function Home() {
             </h2>
             
             {/* Crystal Animation */}
-            <div className="my-8 relative group">
+            <div className="my-6 relative group">
               <div className="animate-float transition-transform duration-500 group-hover:scale-110">
                 <div className="relative">
-                  <Image 
+                  <img 
                     src="/images/zhutu.png" 
                     alt="Mystical Crystal" 
-                    width={240} 
-                    height={240}
-                    priority
+                    width={120} 
+                    height={120}
                     className="mx-auto z-10 relative"
                   />
                   {/* 发光效果 */}
@@ -77,10 +76,10 @@ export default function Home() {
             </div>
             
             {/* CTA Button */}
-            <div className="space-y-4">
+            <div className="space-y-3">
               <Link 
                 href="/birth-info" 
-                className="inline-flex items-center px-8 py-4 text-lg font-medium text-white bg-gradient-to-r from-purple-600 to-purple-800 rounded-full hover:from-purple-700 hover:to-purple-900 transform hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-purple-500/50"
+                className="inline-flex items-center px-6 py-3 text-lg font-medium text-white bg-gradient-to-r from-purple-600 to-purple-800 rounded-full hover:from-purple-700 hover:to-purple-900 transform hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-purple-500/50"
               >
                 Get Your Reading
                 <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -95,7 +94,7 @@ export default function Home() {
         </div>
 
         {/* Trust Indicators */}
-        <div className="mt-8 text-center">
+        <div className="mt-6 text-center">
           <p className="text-purple-200 text-sm">
             Join over 10,000 people who've discovered their crystal connection
           </p>
@@ -106,7 +105,7 @@ export default function Home() {
         </div>
 
         {/* Contact Information */}
-        <div className="mt-6 text-center text-purple-300 text-sm">
+        <div className="mt-4 text-center text-purple-300 text-sm">
           <p>Questions? Contact us at: <a href="mailto:llt2921@outlook.com" className="hover:text-white underline">llt2921@outlook.com</a></p>
         </div>
 
