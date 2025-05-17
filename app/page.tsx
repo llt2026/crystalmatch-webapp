@@ -13,8 +13,8 @@ export default function Home() {
     if (typeof window !== 'undefined') {
       const logoImg = new window.Image();
       const crystalImg = new window.Image();
-      logoImg.src = `/crystal-logo.svg?v=${now}`;
-      crystalImg.src = `/crystal.svg?v=${now}`;
+      logoImg.src = `/images/crystal-logo-v2.svg?v=${now}`;
+      crystalImg.src = `/images/hero-crystal-v2.svg?v=${now}`;
     }
   }, []);
 
@@ -44,12 +44,12 @@ export default function Home() {
         {/* Header Section */}
         <div className="flex flex-col items-center mb-10 relative">
           <div className="flex items-center mb-4 space-x-3">
-            {/* 使用普通img标签避免Next.js图片优化可能导致的缓存问题 */}
+            {/* 使用新上传的logo图片，增加尺寸50% */}
             <img 
-              src={`/crystal-logo.svg?t=${Date.now()}`}
+              src={`/images/crystal-logo-v2.svg?t=${Date.now()}`}
               alt="Crystal Logo" 
-              width={25} 
-              height={25}
+              width={38} 
+              height={38}
               className="animate-pulse"
             />
             <h1 className="text-4xl font-bold bg-gradient-to-r from-violet-400 to-purple-600 bg-clip-text text-transparent">
@@ -71,16 +71,16 @@ export default function Home() {
               </span>
             </h2>
             
-            {/* Crystal Animation */}
+            {/* Crystal Animation - 增加尺寸50% */}
             <div className="my-6 relative group">
               <div className="animate-float transition-transform duration-500 group-hover:scale-110">
-                <div className="relative w-[120px] h-[120px] mx-auto">
-                  {/* 使用普通img标签代替Next.js Image组件 */}
+                <div className="relative w-[180px] h-[180px] mx-auto">
+                  {/* 使用新上传的水晶图片 */}
                   <img 
-                    src={`/crystal.svg?t=${Date.now()}`}
+                    src={`/images/hero-crystal-v2.svg?t=${Date.now()}`}
                     alt="Mystical Crystal" 
-                    width={120}
-                    height={120}
+                    width={180}
+                    height={180}
                     className="absolute top-0 left-0 w-full h-full object-contain z-10"
                   />
                   {/* 发光效果 */}
