@@ -4,14 +4,23 @@ import { prisma } from '@/app/lib/prisma';
 import { VerificationCode, MemoryVerificationCodes } from '@/app/lib/redis';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
-// 获取内存存储实例（Redis不可用时的回退方案）
+// Get memory storage instance (fallback when Redis is unavailable)
 const memoryStorage = MemoryVerificationCodes.getInstance();
 
-export const dynamic = 'force-dynamic'; // 明确标记为动态路由
+export const dynamic = 'force-dynamic'; // Mark as dynamic route
+
+// Define verification result type
+type VerificationResult = {
+  success: boolean;
+  reason?: string;
+};
 
 export async function POST(request: NextRequest) {
   try {
     const { email, code } = await request.json();
+    
+    // Log request info for debugging
+    console.log(`Verification request: email=${email}, code=${code}, time=${new Date().toISOString()}`);
     
     if (!email || !code) {
       return NextResponse.json(
@@ -20,26 +29,44 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 验证码验证
-    let verified = false;
+    // Verify verification code
+    let verificationResult: VerificationResult = { success: false, reason: 'unknown_error' };
     
-    // 首先尝试从Redis验证
+    // First try to verify with Redis
     try {
-      verified = await VerificationCode.verifyCode(email, code);
+      verificationResult = await VerificationCode.verifyCode(email, code);
     } catch (error) {
-      console.warn('Redis验证失败，尝试内存验证:', error);
-      // 如果Redis不可用，回退到内存存储
-      verified = memoryStorage.verifyCode(email, code);
+      console.warn('Redis verification failed, trying memory storage:', error);
+      // If Redis is unavailable, fall back to memory storage
+      verificationResult = memoryStorage.verifyCode(email, code);
     }
     
-    if (!verified) {
+    // If verification fails, return specific error reason
+    if (!verificationResult.success) {
+      const errorMessages: Record<string, string> = {
+        'code_not_found': 'Verification code not found or expired',
+        'code_mismatch': 'Incorrect verification code',
+        'server_error': 'Server verification failed',
+        'unknown_error': 'Unknown error'
+      };
+      
+      const reason = verificationResult.reason || 'unknown_error';
+      const errorMessage = errorMessages[reason] || 'Invalid verification code';
+      
+      console.log(`Verification failed: email=${email}, reason=${reason}`);
+      
       return NextResponse.json(
-        { error: 'Invalid or expired verification code' },
+        { 
+          error: errorMessage,
+          reason: reason 
+        },
         { status: 400 }
       );
     }
     
-    // 验证成功，查找或创建用户
+    console.log(`Verification successful: email=${email}`);
+    
+    // Verification successful, find or create user
     let user;
     try {
       user = await prisma.user.upsert({
@@ -49,19 +76,21 @@ export async function POST(request: NextRequest) {
         },
         create: {
           email,
-          name: email.split('@')[0], // 默认使用邮箱前缀作为用户名
+          name: email.split('@')[0], // Default to using email prefix as username
           lastLoginAt: new Date()
         }
       });
+      
+      console.log(`User information processed successfully: userID=${user.id}`);
     } catch (dbError) {
-      console.error('数据库操作失败:', dbError);
+      console.error('Database operation failed:', dbError);
       return NextResponse.json(
-        { error: 'Failed to process user information' },
+        { error: 'Failed to process user information', reason: 'database_error' },
         { status: 500 }
       );
     }
 
-    // 生成JWT令牌
+    // Generate JWT token
     const token = jwt.sign(
       { 
         id: user.id,
@@ -72,7 +101,7 @@ export async function POST(request: NextRequest) {
       { expiresIn: '7d' }
     );
 
-    // 设置HTTP Cookie
+    // Set HTTP Cookie
     const response = NextResponse.json({ 
       success: true,
       user: {
@@ -86,14 +115,14 @@ export async function POST(request: NextRequest) {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 // 7天
+      maxAge: 7 * 24 * 60 * 60 // 7 days
     });
 
     return response;
   } catch (error) {
-    console.error('验证码验证错误:', error);
+    console.error('Verification code error:', error);
     return NextResponse.json(
-      { error: 'Failed to verify code' },
+      { error: 'Verification failed', reason: 'server_error' },
       { status: 500 }
     );
   }

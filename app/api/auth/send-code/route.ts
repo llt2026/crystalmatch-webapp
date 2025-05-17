@@ -2,45 +2,57 @@ import { NextRequest, NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
 import { VerificationCode, MemoryVerificationCodes } from '@/app/lib/redis';
 
-export const dynamic = 'force-dynamic'; // 明确标记为动态路由
+export const dynamic = 'force-dynamic'; // Mark as dynamic route
 
-// 创建邮件传输器
+// Create email transporter
 const transporter = nodemailer.createTransport({
   host: process.env.MAIL_HOST,
-  port: Number(process.env.MAIL_PORT),
-  secure: true,
+  port: Number(process.env.MAIL_PORT) || 587,
+  secure: Number(process.env.MAIL_PORT) === 465, // true for 465, false for other ports
   auth: {
     user: process.env.MAIL_USER,
     pass: process.env.MAIL_PASS,
   },
 });
 
-// 内存存储验证码实例（Redis不可用时的回退方案）
+// Memory storage instance (fallback when Redis is unavailable)
 const memoryStorage = MemoryVerificationCodes.getInstance();
 
-// 生成6位数字验证码
+// Generate 6-digit verification code
 function generateCode(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
+// Define verification result type
+type VerificationResult = {
+  success: boolean;
+  reason?: string;
+};
+
 export async function POST(request: NextRequest) {
   try {
-    console.log('开始处理发送验证码请求');
+    console.log('Processing verification code request');
     const { email } = await request.json();
 
     if (!email) {
-      console.log('错误: 邮箱地址为空');
+      console.log('Error: Email address is empty');
       return NextResponse.json(
         { error: 'Email is required' },
         { status: 400 }
       );
     }
 
-    console.log(`邮件配置: ${process.env.MAIL_HOST}:${process.env.MAIL_PORT}`);
+    // Log mail configuration for debugging
+    console.log(`Mail configuration: ${process.env.MAIL_HOST}:${process.env.MAIL_PORT}`);
+    console.log(`From: ${process.env.MAIL_FROM || process.env.MAIL_USER}`);
     
-    // 检查环境变量是否存在
-    if (!process.env.MAIL_HOST || !process.env.MAIL_PORT || !process.env.MAIL_USER || !process.env.MAIL_PASS) {
-      console.error('邮件环境变量不完整', {
+    // Check if environment variables exist
+    const skipMailSending = process.env.SKIP_MAIL_SENDING === 'true';
+    const hasMailConfig = process.env.MAIL_HOST && process.env.MAIL_PORT && 
+                         process.env.MAIL_USER && process.env.MAIL_PASS;
+    
+    if (!hasMailConfig && !skipMailSending) {
+      console.error('Mail environment variables incomplete', {
         host: !!process.env.MAIL_HOST,
         port: !!process.env.MAIL_PORT,
         user: !!process.env.MAIL_USER,
@@ -49,7 +61,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Mail configuration incomplete' }, { status: 500 });
     }
 
-    // 检查60秒内是否已发送验证码
+    // Check if code was already sent within the last 60 seconds
     try {
       const rateLimit = await VerificationCode.checkRateLimit(email);
       if (!rateLimit.allowed) {
@@ -62,7 +74,7 @@ export async function POST(request: NextRequest) {
         );
       }
     } catch (error) {
-      // 如果Redis不可用，回退到内存存储
+      // Fallback to memory storage if Redis is unavailable
       const memoryLimit = memoryStorage.checkRateLimit(email);
       if (!memoryLimit.allowed) {
         return NextResponse.json(
@@ -75,50 +87,83 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 生成验证码
+    // Generate verification code
     const code = generateCode();
+    let codeExpirySeconds = 900; // Default 15 minutes
 
     try {
-      console.log(`准备发送验证码 ${code} 到 ${email}`);
-      // 发送验证码邮件
-      await transporter.sendMail({
-        from: process.env.MAIL_FROM || process.env.MAIL_USER,
-        to: email,
-        subject: 'CrystalMatch Verification Code',
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2>CrystalMatch Verification Code</h2>
-            <p>Your verification code is:</p>
-            <h1 style="color: #8A2BE2; font-size: 32px; letter-spacing: 5px;">${code}</h1>
-            <p>This code will expire in 5 minutes.</p>
-            <p>If you didn't request this code, please ignore this email.</p>
-          </div>
-        `
-      });
-      console.log('邮件发送成功');
+      console.log(`Preparing to send verification code ${code} to ${email}`);
       
-      // 存储验证码
+      // Store code and get expiry time
+      let saveResult;
       try {
-        await VerificationCode.saveCode(email, code);
+        saveResult = await VerificationCode.saveCode(email, code);
+        if (saveResult.success) {
+          codeExpirySeconds = saveResult.expirySeconds;
+        }
         await VerificationCode.setRateLimit(email);
       } catch (storageError) {
-        // 回退到内存存储
-        console.warn('Redis存储失败，使用内存存储:', storageError);
-        memoryStorage.saveCode(email, code);
+        // Fallback to memory storage
+        console.warn('Redis storage failed, using memory storage:', storageError);
+        saveResult = memoryStorage.saveCode(email, code);
+        if (saveResult.success) {
+          codeExpirySeconds = saveResult.expirySeconds;
+        }
         memoryStorage.setRateLimit(email);
       }
       
-    } catch (emailError: any) {
-      console.error('邮件发送失败:', emailError);
+      // Send verification code email
+      if (!skipMailSending) {
+        try {
+          await transporter.sendMail({
+            from: process.env.MAIL_FROM || process.env.MAIL_USER,
+            to: email,
+            subject: 'CrystalMatch Verification Code',
+            html: `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <h2>CrystalMatch Verification Code</h2>
+                <p>Your verification code is:</p>
+                <h1 style="color: #8A2BE2; font-size: 32px; letter-spacing: 5px;">${code}</h1>
+                <p>This code will expire in ${Math.floor(codeExpirySeconds / 60)} minutes.</p>
+                <p>If you didn't request this code, please ignore this email.</p>
+              </div>
+            `
+          });
+          console.log('Email sent successfully');
+        } catch (mailError: any) {
+          // Email sending failed but code was stored, log error but don't interrupt
+          console.error('Email sending failed, but verification code was saved:', mailError);
+          console.log(`======== Test mode: Code = ${code} ========`);
+        }
+      } else {
+        // Skip email sending, output code for testing
+        console.log(`======== Test mode: Code = ${code} ========`);
+      }
+      
+    } catch (error: any) {
+      console.error('Verification code processing error:', error);
+      // Return code in test mode even if error occurs
+      if (skipMailSending || !hasMailConfig) {
+        console.log(`======== Test mode (error): Code = ${code} ========`);
+        return NextResponse.json({ 
+          success: true,
+          expirySeconds: codeExpirySeconds,
+          testMode: true 
+        });
+      }
       return NextResponse.json(
-        { error: `Failed to send email: ${emailError.message}` },
+        { error: `Failed to process verification code: ${error.message}` },
         { status: 500 }
       );
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ 
+      success: true,
+      expirySeconds: codeExpirySeconds,
+      testMode: skipMailSending || !hasMailConfig
+    });
   } catch (error: any) {
-    console.error('验证码处理错误:', error);
+    console.error('Verification code processing error:', error);
     return NextResponse.json(
       { error: `Processing error: ${error.message}` },
       { status: 500 }
@@ -126,7 +171,8 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// 旧的验证码验证方法，保留兼容性，但建议使用 /api/auth/verify-code
+// Legacy verification code validation method, kept for compatibility
+// but it's recommended to use /api/auth/verify-code instead
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const email = searchParams.get('email');
@@ -139,19 +185,32 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  let verified = false;
+  let verificationResult: VerificationResult = { success: false, reason: 'unknown_error' };
   
-  // 首先尝试从Redis验证
+  // First try to verify from Redis
   try {
-    verified = await VerificationCode.verifyCode(email, code);
+    verificationResult = await VerificationCode.verifyCode(email, code);
   } catch (error) {
-    // 如果Redis不可用，回退到内存存储
-    verified = memoryStorage.verifyCode(email, code);
+    // If Redis is unavailable, fall back to memory storage
+    verificationResult = memoryStorage.verifyCode(email, code);
   }
   
-  if (!verified) {
+  if (!verificationResult.success) {
+    const errorMessages: Record<string, string> = {
+      'code_not_found': 'Verification code not found or expired',
+      'code_mismatch': 'Incorrect verification code',
+      'server_error': 'Server verification failed',
+      'unknown_error': 'Unknown error'
+    };
+    
+    const reason = verificationResult.reason || 'unknown_error';
+    const errorMessage = errorMessages[reason] || 'Invalid verification code';
+    
     return NextResponse.json(
-      { error: 'Invalid or expired verification code' },
+      { 
+        error: errorMessage,
+        reason: reason 
+      },
       { status: 400 }
     );
   }

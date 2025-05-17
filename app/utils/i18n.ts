@@ -1,3 +1,4 @@
+// American English localization
 export const translations = {
   common: {
     loading: 'Loading...',
@@ -18,8 +19,19 @@ export const translations = {
     verificationCode: 'Verification Code',
     sendCode: 'Send Code',
     verifyCode: 'Verify Code',
-    codeSent: 'Verification code has been sent',
+    codeSent: 'Verification code has been sent to',
     invalidCode: 'Invalid verification code',
+    verifyAndLogin: 'Verify and Login',
+    resend: 'Resend',
+    resendIn: ' remaining',
+    codeExpiry: 'Code expires in',
+    enterEmail: 'Please enter your email address',
+    sending: 'Sending...',
+    verifying: 'Verifying...',
+    notReceived: 'Didn\'t receive a code?',
+    enterVerificationCode: 'Please enter the 6-digit verification code',
+    pasteHint: 'Tip: You can copy and paste the verification code',
+    backToEmail: 'Back to email',
   },
   admin: {
     dashboard: 'Admin Dashboard',
@@ -100,6 +112,7 @@ export const translations = {
     invalidEmail: 'Please enter a valid email',
     networkError: 'Network connection error',
     unauthorized: 'Please login to continue',
-    forbidden: 'You do not have permission to access this resource'
+    forbidden: 'You do not have permission to access this resource',
+    emailFormat: 'Please enter an email address in format: username@example.com'
   }
 }; 
