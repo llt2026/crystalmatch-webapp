@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
-import { saveCode } from '@/utils/verify-code';
+import { saveCode, checkCode } from '@/utils/verify-code';
 
 export const dynamic = 'force-dynamic'; // Mark as dynamic route
 
 // 启用详细日志
 const DEBUG = true;
+
+// 使用内存Map存储频率限制信息
+const RATE_LIMIT_MAP = new Map<string, number>();
+const RATE_LIMIT_SECONDS = 60; // 60秒内只能发送一次
 
 // Create email transporter
 const transporter = nodemailer.createTransport({
@@ -23,16 +27,22 @@ function generateCode(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
-// Define verification result type
-type VerificationResult = {
-  success: boolean;
-  reason?: string;
-};
-
-// 定义率限制的接口，确保类型一致性
-interface RateLimit {
-  allowed: boolean;
-  remainingTime?: number;
+// 检查频率限制
+function checkRateLimit(email: string): { allowed: boolean; remainingTime?: number } {
+  const now = Date.now();
+  const lastSent = RATE_LIMIT_MAP.get(email) || 0;
+  const elapsedSeconds = Math.floor((now - lastSent) / 1000);
+  
+  if (lastSent && elapsedSeconds < RATE_LIMIT_SECONDS) {
+    return {
+      allowed: false,
+      remainingTime: RATE_LIMIT_SECONDS - elapsedSeconds
+    };
+  }
+  
+  // 更新最后发送时间
+  RATE_LIMIT_MAP.set(email, now);
+  return { allowed: true };
 }
 
 export async function POST(request: NextRequest) {
@@ -76,16 +86,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Mail configuration incomplete' }, { status: 500 });
     }
 
-    // Check if code was already sent within the last 60 seconds
-    let rateLimit: RateLimit = { allowed: true };
-    
-    try {
-      rateLimit = await VerificationCode.checkRateLimit(normalizedEmail);
-    } catch (error) {
-      console.log('Redis错误，使用内存存储检查频率限制');
-      // Fallback to memory storage if Redis is unavailable
-      rateLimit = memoryStorage.checkRateLimit(normalizedEmail);
-    }
+    // 检查频率限制
+    const rateLimit = checkRateLimit(normalizedEmail);
     
     if (!rateLimit.allowed) {
       return NextResponse.json(
@@ -99,7 +101,7 @@ export async function POST(request: NextRequest) {
 
     // Generate verification code
     const code = generateCode();
-    let codeExpirySeconds = 900; // Default 15 minutes
+    let codeExpirySeconds = 600; // 10 minutes (与verify-code.ts中的TTL一致)
 
     try {
       console.log(`Preparing to send verification code ${code} to ${normalizedEmail}`);
@@ -133,24 +135,6 @@ export async function POST(request: NextRequest) {
       } else {
         // Skip email sending, output code for testing
         console.log(`======== Test mode: Code = ${code} ========`);
-      }
-      
-      // For debugging in test mode
-      if (DEBUG) {
-        console.log(`使用${useMemoryStorage ? '内存存储' : 'Redis'}存储验证码: ${normalizedEmail} -> ${code}`);
-        
-        // 检查验证码是否已正确存储
-        try {
-          if (useMemoryStorage) {
-            const codeInfo = memoryStorage.getCodeInfo(normalizedEmail);
-            console.log('内存存储中的验证码信息:', codeInfo);
-          } else {
-            const codeInfo = await VerificationCode.getCodeInfo(normalizedEmail);
-            console.log('Redis中的验证码信息:', codeInfo);
-          }
-        } catch (infoError) {
-          console.error('获取验证码信息失败:', infoError);
-        }
       }
       
     } catch (error: any) {
@@ -203,32 +187,14 @@ export async function GET(request: NextRequest) {
   // 标准化邮箱
   const normalizedEmail = email.toLowerCase().trim();
   
-  let verificationResult: VerificationResult = { success: false, reason: 'unknown_error' };
+  // 使用新的统一验证接口
+  const isValid = await checkCode(normalizedEmail, code);
   
-  // First try to verify from Redis
-  try {
-    verificationResult = await VerificationCode.verifyCode(normalizedEmail, code);
-  } catch (error) {
-    // If Redis is unavailable, fall back to memory storage
-    verificationResult = memoryStorage.verifyCode(normalizedEmail, code);
-  }
-  
-  if (!verificationResult.success) {
-    const errorMessages: Record<string, string> = {
-      'code_not_found': 'Verification code not found or expired',
-      'code_mismatch': 'Incorrect verification code',
-      'code_expired': 'Verification code expired',
-      'server_error': 'Server verification failed',
-      'unknown_error': 'Unknown error'
-    };
-    
-    const reason = verificationResult.reason || 'unknown_error';
-    const errorMessage = errorMessages[reason] || 'Invalid verification code';
-    
+  if (!isValid) {
     return NextResponse.json(
       { 
-        error: errorMessage,
-        reason: reason 
+        error: 'Verification code not found or expired',
+        reason: 'invalid_code' 
       },
       { status: 400 }
     );
