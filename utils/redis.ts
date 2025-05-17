@@ -1,4 +1,5 @@
 import { Redis } from '@upstash/redis';
+import { localRedis } from './redis-alternative';
 
 // 使用try-catch包装Redis初始化
 function createRedisClient() {
@@ -10,7 +11,7 @@ function createRedisClient() {
       TOKEN_SET: !!process.env.UPSTASH_REDIS_REST_TOKEN
     });
 
-    // 当符合以下任一条件时使用内存存储:
+    // 当符合以下任一条件时使用本地存储:
     // 1. 显式设置SKIP_REDIS=true (字符串比较)
     // 2. 未设置Redis URL或Token
     const skipRedis = process.env.SKIP_REDIS === 'true' || 
@@ -19,10 +20,10 @@ function createRedisClient() {
 
     console.log('是否跳过Redis连接:', skipRedis);
 
-    // 创建Redis客户端或使用null
+    // 创建Redis客户端或使用本地存储
     if (skipRedis) {
-      console.log('使用内存存储代替Redis');
-      return null;
+      console.log('使用本地文件存储代替Redis');
+      return localRedis; // 改用文件系统存储
     }
 
     // 尝试创建Redis客户端
@@ -33,7 +34,9 @@ function createRedisClient() {
     });
   } catch (error) {
     console.error('Redis初始化错误:', error);
-    return null;
+    // 出错时使用本地文件存储作为备选
+    console.log('Redis初始化失败，改用本地文件存储');
+    return localRedis;
   }
 }
 

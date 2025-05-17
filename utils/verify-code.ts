@@ -1,6 +1,7 @@
 import { redis } from './redis';
+import { getAllStoredCodes } from './redis-alternative';
 
-// 使用全局Map存储验证码，确保在开发环境热重载时不丢失数据
+// 全局内存存储只用于调试，现在主要依赖文件存储
 // @ts-ignore
 const LOCAL_MAP = globalThis.__CODE_CACHE__ || (globalThis.__CODE_CACHE__ = new Map<string, { code: string; expires: number }>());
 const TTL = 600; // 秒
@@ -8,88 +9,107 @@ const TTL = 600; // 秒
 export async function saveCode(email: string, code: string) {
   // 标准化email地址（转为小写）
   const normalizedEmail = email.toLowerCase().trim();
+  const normalizedCode = String(code); // 确保code是字符串
   
   try {
+    console.log(`[SaveCode] 保存验证码: ${normalizedEmail} -> ${normalizedCode}`);
+    
     if (redis) {
-      await redis.set(`vcode:${normalizedEmail}`, code, { ex: TTL });
-      console.log(`[Redis] Verification code saved for ${normalizedEmail}, expires in ${TTL} seconds, code: ${code}`);
-    } else {
-      LOCAL_MAP.set(normalizedEmail, { code, expires: Date.now() + TTL * 1000 });
-      console.log(`[Memory] Verification code saved for ${normalizedEmail}, expires in ${TTL} seconds, code: ${code}`);
+      // 直接使用redis客户端或本地文件存储
+      await redis.set(`vcode:${normalizedEmail}`, normalizedCode, { ex: TTL });
+      console.log(`[Storage] 验证码存储成功: ${normalizedEmail}, 过期时间: ${TTL}秒`);
       
-      // 调试用：打印当前内存中的所有验证码
-      console.log('[Memory] Current codes in memory:');
-      LOCAL_MAP.forEach((value: { code: string; expires: number }, key: string) => {
-        console.log(`- ${key}: ${value.code}, expires in ${Math.ceil((value.expires - Date.now()) / 1000)} seconds`);
-      });
+      // 验证存储是否成功
+      try {
+        const storedCode = await redis.get(`vcode:${normalizedEmail}`);
+        console.log(`[Storage] 验证存储: ${normalizedEmail}, 期望=${normalizedCode}, 实际=${storedCode}, 匹配=${storedCode === normalizedCode}`);
+      } catch (verifyError) {
+        console.error('[Storage] 验证存储失败:', verifyError);
+      }
+    } else {
+      // 兜底情况，使用内存存储 (不应该发生)
+      console.warn('[SaveCode] Redis为null, 使用内存存储 (这不应该发生)');
+      LOCAL_MAP.set(normalizedEmail, { code: normalizedCode, expires: Date.now() + TTL * 1000 });
     }
   } catch (error) {
-    console.error('[验证码存储]发生错误:', error);
+    console.error('[SaveCode] 发生错误:', error);
     // 出错时回退到内存存储
-    LOCAL_MAP.set(normalizedEmail, { code, expires: Date.now() + TTL * 1000 });
-    console.log(`[Memory-Fallback] Verification code saved after error: ${normalizedEmail}, code: ${code}`);
+    LOCAL_MAP.set(normalizedEmail, { code: normalizedCode, expires: Date.now() + TTL * 1000 });
+    console.log(`[Memory-Fallback] 验证码存储到内存: ${normalizedEmail} -> ${normalizedCode}`);
   }
 }
 
 export async function checkCode(email: string, code: string) {
-  // 标准化email地址
+  // 标准化email地址和验证码
   const normalizedEmail = email.toLowerCase().trim();
+  const normalizedCode = String(code); // 确保code是字符串
+  
+  console.log(`[CheckCode] 验证码检查: ${normalizedEmail}, code=${normalizedCode}, type=${typeof normalizedCode}`);
   
   try {
     if (redis) {
-      const storedCode = await redis.get<string>(`vcode:${normalizedEmail}`);
-      const isValid = storedCode === code;
+      // 使用redis客户端或本地文件存储
+      const storedCode = await redis.get(`vcode:${normalizedEmail}`);
+      
+      console.log(`[CheckCode] 存储的验证码: ${storedCode}, 类型: ${typeof storedCode}`);
+      console.log(`[CheckCode] 输入的验证码: ${normalizedCode}, 类型: ${typeof normalizedCode}`);
+      
+      // 确保字符串比较
+      const isValid = String(storedCode) === String(normalizedCode);
       
       // 成功验证后删除验证码（一次性使用）
       if (isValid) {
         await redis.del(`vcode:${normalizedEmail}`);
-        console.log(`[Redis] Verification successful for ${normalizedEmail}, code deleted`);
+        console.log(`[Storage] 验证成功, 已删除验证码: ${normalizedEmail}`);
       } else {
-        console.log(`[Redis] Verification failed for ${normalizedEmail}: ${code} !== ${storedCode}`);
+        console.log(`[Storage] 验证失败: ${normalizedEmail}, 期望=${storedCode}, 实际=${normalizedCode}`);
       }
       
       return isValid;
     }
   } catch (error) {
-    console.error('[验证码检查]Redis操作出错:', error);
+    console.error('[CheckCode] 存储操作出错:', error);
     // 如果Redis出错，回退到内存存储
-    console.log(`[验证码检查]回退到内存存储检查: ${normalizedEmail}`);
+    console.log(`[CheckCode] 回退到内存存储检查: ${normalizedEmail}`);
   }
   
-  // 内存存储逻辑（作为Redis的备份或SKIP_REDIS为true时使用）
+  // 内存存储逻辑 (不应该运行到这里)
+  console.warn('[CheckCode] 回退到内存存储 (这不应该发生)');
   const record = LOCAL_MAP.get(normalizedEmail);
   
   if (!record) {
-    console.log(`[Memory] Verification code for ${normalizedEmail} not found`);
+    console.log(`[Memory] 验证码不存在: ${normalizedEmail}`);
     return false;
   }
   
   if (Date.now() >= record.expires) {
-    console.log(`[Memory] Verification code for ${normalizedEmail} has expired`);
+    console.log(`[Memory] 验证码已过期: ${normalizedEmail}`);
     LOCAL_MAP.delete(normalizedEmail);
     return false;
   }
   
-  const isValid = record.code === code;
+  // 确保字符串比较
+  const isValid = String(record.code) === String(normalizedCode);
   
   if (isValid) {
     // 成功验证后删除验证码（一次性使用）
     LOCAL_MAP.delete(normalizedEmail);
-    console.log(`[Memory] Verification successful for ${normalizedEmail}, code deleted`);
+    console.log(`[Memory] 验证成功, 已删除验证码: ${normalizedEmail}`);
   } else {
-    console.log(`[Memory] Verification code mismatch for ${normalizedEmail}: got ${code}, expected ${record.code}`);
+    console.log(`[Memory] 验证失败: ${normalizedEmail}, 期望=${record.code}, 实际=${normalizedCode}`);
   }
   
   return isValid;
 }
 
-// 调试用：获取所有存储在内存中的验证码
+// 调试用：获取所有存储的验证码
 export function getAllLocalCodes() {
-  const result: Record<string, any> = {};
+  // 本地内存中的验证码
+  const memoryResult: Record<string, any> = {};
   const now = Date.now();
   
   LOCAL_MAP.forEach((data: { code: string; expires: number }, email: string) => {
-    result[email] = {
+    memoryResult[email] = {
       code: data.code,
       expires: new Date(data.expires).toISOString(),
       expiresIn: Math.ceil((data.expires - now) / 1000),
@@ -97,8 +117,19 @@ export function getAllLocalCodes() {
     };
   });
   
+  // 尝试从文件存储获取验证码
+  let fileStoredCodes = {};
+  try {
+    fileStoredCodes = getAllStoredCodes();
+  } catch (error) {
+    console.error('获取文件存储的验证码失败:', error);
+  }
+  
   return {
-    total: LOCAL_MAP.size,
-    codes: result
+    memory: {
+      total: LOCAL_MAP.size,
+      codes: memoryResult
+    },
+    fileStorage: fileStoredCodes
   };
 } 

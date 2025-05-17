@@ -38,6 +38,9 @@ const VerificationCodeInput: React.FC<VerificationCodeInputProps> = ({
   // 检测验证码是否填写完成
   useEffect(() => {
     if (value.length === 6 && onComplete) {
+      // 添加日志以确认发送的是字符串
+      console.log('验证码提交', value, typeof value);
+      
       // 当验证码填写完成时，等待一小段时间后触发提交
       const timer = setTimeout(() => {
         onComplete();
@@ -108,6 +111,7 @@ const VerificationCodeInput: React.FC<VerificationCodeInputProps> = ({
       // 更新验证码
       const newCode = [...value.padEnd(6, '')];
       newCode[index] = digit;
+      // 确保直接返回字符串，而不是转换为数字
       onChange(newCode.join(''));
       
       // 自动聚焦下一个输入框
