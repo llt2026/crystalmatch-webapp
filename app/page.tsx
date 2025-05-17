@@ -2,14 +2,8 @@ export const dynamic = 'force-dynamic';
 
 import Image from 'next/image'
 import Link from 'next/link'
-import { useEffect, useState } from 'react';
 
 export default function Home() {
-  // 在客户端加载时检查图片加载状态
-  // 注意：服务器端渲染中的逻辑需在客户端生效
-  const [logoLoaded, setLogoLoaded] = useState(false);
-  const [mainImageLoaded, setMainImageLoaded] = useState(false);
-
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-4 bg-gradient-to-br from-purple-900 to-black">
       {/* Login Button - Fixed to top right corner */}
@@ -36,7 +30,7 @@ export default function Home() {
         {/* Header Section */}
         <div className="flex flex-col items-center mb-10 relative">
           <div className="flex items-center mb-4 space-x-3">
-            {/* 使用标准img标签和绝对URL */}
+            {/* 使用标准img标签和内置SVG */}
             <div className="w-[25px] h-[25px] relative animate-pulse">
               <Image 
                 src="/crystal-logo.svg" 
@@ -69,7 +63,7 @@ export default function Home() {
             <div className="my-6 relative group">
               <div className="animate-float transition-transform duration-500 group-hover:scale-110">
                 <div className="relative w-[120px] h-[120px] mx-auto">
-                  {/* 使用Next.js内置Image组件，避免路径问题 */}
+                  {/* 使用Next.js内置Image组件和内置SVG */}
                   <Image 
                     src="/crystal.svg" 
                     alt="Mystical Crystal" 
