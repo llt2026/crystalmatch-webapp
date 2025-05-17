@@ -1,22 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 import { prisma } from '@/app/lib/prisma';
-import { VerificationCode, MemoryVerificationCodes } from '@/app/lib/redis';
+import { checkCode } from '@/utils/verify-code';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
-// Get memory storage instance (fallback when Redis is unavailable)
-const memoryStorage = MemoryVerificationCodes.getInstance();
-
-// 启用详细日志
-const DEBUG = true;
 
 export const dynamic = 'force-dynamic';
-
-// Define verification result type
-type VerificationResult = {
-  success: boolean;
-  reason?: string;
-};
 
 export async function POST(request: NextRequest) {
   try {
@@ -34,42 +23,19 @@ export async function POST(request: NextRequest) {
 
     // 标准化邮箱
     const normalizedEmail = email.toLowerCase().trim();
-    
-    if (DEBUG) {
-      console.log(`验证码验证请求: ${normalizedEmail}, code=${code}`);
-    }
+    console.log(`验证码验证请求: ${normalizedEmail}, code=${code}`);
 
-    // Verify verification code
-    let verificationResult: VerificationResult = { success: false, reason: 'unknown_error' };
+    // Verify verification code using the new system
+    const isValid = await checkCode(normalizedEmail, code);
     
-    // First try to verify with Redis
-    try {
-      verificationResult = await VerificationCode.verifyCode(normalizedEmail, code);
-    } catch (error) {
-      console.warn('Redis verification failed, trying memory storage:', error);
-      // If Redis is unavailable, fall back to memory storage
-      verificationResult = memoryStorage.verifyCode(normalizedEmail, code);
-    }
-    
-    // If verification fails, return specific error reason
-    if (!verificationResult.success) {
-      const errorMessages: Record<string, string> = {
-        'code_not_found': 'Verification code not found or expired',
-        'code_mismatch': 'Incorrect verification code',
-        'code_expired': 'Verification code expired',
-        'server_error': 'Server verification failed',
-        'unknown_error': 'Unknown error'
-      };
-      
-      const reason = verificationResult.reason || 'unknown_error';
-      const errorMessage = errorMessages[reason] || 'Invalid verification code';
-      
-      console.log(`Verification failed: email=${normalizedEmail}, reason=${reason}`);
+    // If verification fails, return error
+    if (!isValid) {
+      console.log(`Verification failed: email=${normalizedEmail}, reason=invalid_code`);
       
       return NextResponse.json(
         { 
-          error: errorMessage,
-          reason: reason 
+          error: 'Verification code not found or expired',
+          reason: 'invalid_code' 
         },
         { status: 400 }
       );
@@ -118,7 +84,7 @@ export async function POST(request: NextRequest) {
       { expiresIn: '30d' }
     );
     
-    // Return success and token
+    // Return success response
     return NextResponse.json({
       success: true,
       token,

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
-import { VerificationCode, MemoryVerificationCodes } from '@/app/lib/redis';
+import { saveCode } from '@/utils/verify-code';
 
 export const dynamic = 'force-dynamic'; // Mark as dynamic route
 
@@ -17,9 +17,6 @@ const transporter = nodemailer.createTransport({
     pass: process.env.MAIL_PASS,
   },
 });
-
-// Memory storage instance (fallback when Redis is unavailable)
-const memoryStorage = MemoryVerificationCodes.getInstance();
 
 // Generate 6-digit verification code
 function generateCode(): string {
@@ -107,28 +104,8 @@ export async function POST(request: NextRequest) {
     try {
       console.log(`Preparing to send verification code ${code} to ${normalizedEmail}`);
       
-      // Store code and get expiry time
-      let saveResult;
-      let useMemoryStorage = false;
-      
-      try {
-        // 由于环境变量SKIP_REDIS=true，这里会抛出错误
-        saveResult = await VerificationCode.saveCode(normalizedEmail, code);
-        if (saveResult.success) {
-          codeExpirySeconds = saveResult.expirySeconds;
-        }
-        await VerificationCode.setRateLimit(normalizedEmail);
-      } catch (storageError) {
-        // Fallback to memory storage
-        console.warn('Redis storage failed, using memory storage:', storageError);
-        useMemoryStorage = true;
-        // 在这里存储验证码到内存中
-        saveResult = memoryStorage.saveCode(normalizedEmail, code);
-        if (saveResult.success) {
-          codeExpirySeconds = saveResult.expirySeconds;
-        }
-        memoryStorage.setRateLimit(normalizedEmail);
-      }
+      // Store code using the new unified storage system (Redis or memory)
+      await saveCode(normalizedEmail, code);
       
       // Send verification code email
       if (!skipMailSending) {
