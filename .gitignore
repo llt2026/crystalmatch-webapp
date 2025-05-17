@@ -11,27 +11,54 @@ build/
 .env
 .env.local
 .env.*.local
+env-temp.txt
+env-config.txt
 
 # VSCode / IDE 配置文件
 .vscode/
 *.code-workspace
+.idea/
+*.iml
+*.swp
 
 # 日志、调试缓存
+logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+.pnpm-debug.log*
 
 # 备份、测试数据
 /backups/
 /backup/
 /test-output/
+/generated/
+/.vercel
 
 # 系统文件
 .DS_Store
 Thumbs.db
+desktop.ini
+
+# 临时文件
+*.tmp
+*.temp
+*.bak
+*~
 
 # 压缩文件
 *.zip
 *.tar
 *.tgz
+*.gz
+*.rar
+
+# 测试文件
+test-*.js
+test-*.mjs
+test-*.ts
+temp-test.ts
+
+# 自动生成的类型声明
+*.d.ts.map
