@@ -5,18 +5,30 @@ import Link from 'next/link'
 import { useEffect } from 'react';
 
 export default function Home() {
+  // 使用时间戳来强制浏览器不缓存图片
+  const timestamp = Date.now();
+  
   // 强制刷新图片缓存
   useEffect(() => {
-    // 清除浏览器缓存
-    const now = new Date().getTime();
-    // 在浏览器环境中预加载图片
+    // 在浏览器环境中预加载图片并强制刷新缓存
     if (typeof window !== 'undefined') {
+      // 清除可能存在的图片缓存
+      const links = document.querySelectorAll('link[rel="prefetch"]');
+      links.forEach(link => {
+        const linkElement = link as HTMLLinkElement;
+        if (linkElement.href.includes('images/crystal-logo-v2.svg') || 
+            linkElement.href.includes('images/hero-crystal-v2.svg')) {
+          link.parentNode?.removeChild(link);
+        }
+      });
+
+      // 预加载新图片
       const logoImg = new window.Image();
       const crystalImg = new window.Image();
-      logoImg.src = `/images/crystal-logo-v2.png?v=${now}`;
-      crystalImg.src = `/images/hero-crystal-v2.png?v=${now}`;
+      logoImg.src = `/images/crystal-logo-v2.svg?nocache=${timestamp}`;
+      crystalImg.src = `/images/hero-crystal-v2.svg?nocache=${timestamp}`;
     }
-  }, []);
+  }, [timestamp]);
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-4 bg-gradient-to-br from-purple-900 to-black">
@@ -44,16 +56,14 @@ export default function Home() {
         {/* Header Section */}
         <div className="flex flex-col items-center mb-10 relative">
           <div className="flex items-center mb-4 space-x-3">
-            {/* 使用PNG图片 */}
-            <div className="w-[38px] h-[38px] relative animate-pulse">
-              <Image 
-                src="/images/crystal-logo-v2.png" 
-                alt="Crystal Logo"
-                fill
-                className="object-contain"
-                priority
-              />
-            </div>
+            {/* 使用SVG图片，强制不缓存 */}
+            <img 
+              src={`/images/crystal-logo-v2.svg?nocache=${timestamp}`}
+              alt="Crystal Logo" 
+              width={38} 
+              height={38}
+              className="animate-pulse"
+            />
             <h1 className="text-4xl font-bold bg-gradient-to-r from-violet-400 to-purple-600 bg-clip-text text-transparent">
               CrystalMatch
             </h1>
@@ -77,13 +87,13 @@ export default function Home() {
             <div className="my-6 relative group">
               <div className="animate-float transition-transform duration-500 group-hover:scale-110">
                 <div className="relative w-[180px] h-[180px] mx-auto">
-                  {/* 使用PNG图片 */}
-                  <Image 
-                    src="/images/hero-crystal-v2.png" 
-                    alt="Mystical Crystal"
-                    fill
-                    className="object-contain z-10 relative"
-                    priority
+                  {/* 使用SVG图片，强制不缓存 */}
+                  <img 
+                    src={`/images/hero-crystal-v2.svg?nocache=${timestamp}`}
+                    alt="Mystical Crystal" 
+                    width={180}
+                    height={180}
+                    className="absolute top-0 left-0 w-full h-full object-contain z-10"
                   />
                   {/* 发光效果 */}
                   <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-purple-500/30 rounded-full blur-2xl animate-pulse-slow -z-10"></div>
