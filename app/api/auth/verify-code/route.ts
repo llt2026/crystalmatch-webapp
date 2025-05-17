@@ -7,7 +7,10 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 // Get memory storage instance (fallback when Redis is unavailable)
 const memoryStorage = MemoryVerificationCodes.getInstance();
 
-export const dynamic = 'force-dynamic'; // Mark as dynamic route
+// 启用详细日志
+const DEBUG = true;
+
+export const dynamic = 'force-dynamic';
 
 // Define verification result type
 type VerificationResult = {
@@ -29,16 +32,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // 标准化邮箱
+    const normalizedEmail = email.toLowerCase().trim();
+    
+    if (DEBUG) {
+      console.log(`验证码验证请求: ${normalizedEmail}, code=${code}`);
+    }
+
     // Verify verification code
     let verificationResult: VerificationResult = { success: false, reason: 'unknown_error' };
     
     // First try to verify with Redis
     try {
-      verificationResult = await VerificationCode.verifyCode(email, code);
+      verificationResult = await VerificationCode.verifyCode(normalizedEmail, code);
     } catch (error) {
       console.warn('Redis verification failed, trying memory storage:', error);
       // If Redis is unavailable, fall back to memory storage
-      verificationResult = memoryStorage.verifyCode(email, code);
+      verificationResult = memoryStorage.verifyCode(normalizedEmail, code);
     }
     
     // If verification fails, return specific error reason
@@ -46,6 +56,7 @@ export async function POST(request: NextRequest) {
       const errorMessages: Record<string, string> = {
         'code_not_found': 'Verification code not found or expired',
         'code_mismatch': 'Incorrect verification code',
+        'code_expired': 'Verification code expired',
         'server_error': 'Server verification failed',
         'unknown_error': 'Unknown error'
       };
@@ -53,7 +64,7 @@ export async function POST(request: NextRequest) {
       const reason = verificationResult.reason || 'unknown_error';
       const errorMessage = errorMessages[reason] || 'Invalid verification code';
       
-      console.log(`Verification failed: email=${email}, reason=${reason}`);
+      console.log(`Verification failed: email=${normalizedEmail}, reason=${reason}`);
       
       return NextResponse.json(
         { 
@@ -64,65 +75,67 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    console.log(`Verification successful: email=${email}`);
+    console.log(`Verification successful: email=${normalizedEmail}`);
     
     // Verification successful, find or create user
     let user;
     try {
-      user = await prisma.user.upsert({
-        where: { email },
-        update: { 
-          lastLoginAt: new Date() 
-        },
-        create: {
-          email,
-          name: email.split('@')[0], // Default to using email prefix as username
-          lastLoginAt: new Date()
-        }
+      user = await prisma.user.findUnique({
+        where: { email: normalizedEmail },
       });
       
-      console.log(`User information processed successfully: userID=${user.id}`);
-    } catch (dbError) {
-      console.error('Database operation failed:', dbError);
-      return NextResponse.json(
-        { error: 'Failed to process user information', reason: 'database_error' },
-        { status: 500 }
-      );
+      if (!user) {
+        // Create new user if doesn't exist
+        user = await prisma.user.create({
+          data: {
+            email: normalizedEmail,
+            emailVerified: new Date(),
+          },
+        });
+        console.log(`New user created: ${normalizedEmail}`);
+      } else {
+        // Update existing user's emailVerified field
+        user = await prisma.user.update({
+          where: { email: normalizedEmail },
+          data: { emailVerified: new Date() },
+        });
+        console.log(`Existing user updated: ${normalizedEmail}`);
+      }
+    } catch (error) {
+      console.error('Error accessing database:', error);
+      // Continue even if database operations fail - this allows login to work 
+      // even if Prisma/database is not available
     }
-
-    // Generate JWT token
+    
+    // Generate JWT token for authentication
     const token = jwt.sign(
       { 
-        id: user.id,
-        email: user.email,
-        name: user.name
+        email: normalizedEmail,
+        id: user?.id || 'temp-id', 
+        timestamp: Date.now() 
       },
       JWT_SECRET,
-      { expiresIn: '7d' }
+      { expiresIn: '30d' }
     );
-
-    // Set HTTP Cookie
-    const response = NextResponse.json({ 
+    
+    // Return success and token
+    return NextResponse.json({
       success: true,
-      user: {
+      token,
+      user: user ? {
         id: user.id,
         email: user.email,
-        name: user.name
+        name: user.name,
+        emailVerified: user.emailVerified,
+      } : {
+        email: normalizedEmail,
+        emailVerified: new Date()
       }
     });
-    
-    response.cookies.set('token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 // 7 days
-    });
-
-    return response;
-  } catch (error) {
-    console.error('Verification code error:', error);
+  } catch (error: any) {
+    console.error('Verification process error:', error);
     return NextResponse.json(
-      { error: 'Verification failed', reason: 'server_error' },
+      { error: `Verification failed: ${error.message}` },
       { status: 500 }
     );
   }

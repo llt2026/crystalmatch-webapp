@@ -5,6 +5,17 @@ import { env } from 'process';
 let redisClient: Redis | null = null;
 let redisDisabled = process.env.SKIP_REDIS === 'true';
 
+// 启用更详细的日志记录
+const DEBUG = true;
+
+// 创建全局的内存验证码存储实例，确保只有一个实例
+export const globalMemoryStorage = new Map<string, { code: string; expiry: number }>();
+export const globalRateLimits = new Map<string, number>();
+
+// Log Redis status
+console.log(`Redis status: ${redisDisabled ? 'DISABLED' : 'ENABLED'}`);
+console.log(`SKIP_REDIS=${process.env.SKIP_REDIS}`);
+
 // Error with code property interface
 interface RedisError extends Error {
   code?: string;
@@ -14,12 +25,15 @@ interface RedisError extends Error {
 export function getRedisClient(): Redis {
   // If Redis is disabled due to connection issues or by environment variable, throw error to fallback to memory storage
   if (redisDisabled) {
+    if (DEBUG) console.log('Redis is disabled, using memory storage instead');
     throw new Error('Redis is disabled due to connection issues or by configuration');
   }
 
   if (!redisClient) {
     try {
       const redisUrl = env.REDIS_URL || 'redis://localhost:6379';
+      
+      if (DEBUG) console.log(`Attempting to connect to Redis at ${redisUrl}`);
       
       redisClient = new Redis(redisUrl, {
         maxRetriesPerRequest: 1, // Reduced from 3 to 1
@@ -84,6 +98,7 @@ export const VerificationCode = {
   // Save verification code to Redis
   async saveCode(email: string, code: string): Promise<{success: boolean, expirySeconds: number}> {
     if (redisDisabled) {
+      if (DEBUG) console.log(`Redis is disabled, not saving code to Redis: ${code} for ${email}`);
       throw new Error('Redis is disabled');
     }
 
@@ -104,6 +119,7 @@ export const VerificationCode = {
   // Check rate limiting
   async checkRateLimit(email: string): Promise<{ allowed: boolean; remainingTime?: number }> {
     if (redisDisabled) {
+      if (DEBUG) console.log(`Redis is disabled, not checking rate limit in Redis for ${email}`);
       throw new Error('Redis is disabled');
     }
 
@@ -132,6 +148,7 @@ export const VerificationCode = {
   // Set rate limit
   async setRateLimit(email: string): Promise<boolean> {
     if (redisDisabled) {
+      if (DEBUG) console.log(`Redis is disabled, not setting rate limit in Redis for ${email}`);
       throw new Error('Redis is disabled');
     }
 
@@ -151,6 +168,7 @@ export const VerificationCode = {
   // Verify code
   async verifyCode(email: string, code: string): Promise<{success: boolean, reason?: string}> {
     if (redisDisabled) {
+      if (DEBUG) console.log(`Redis is disabled, not verifying code in Redis for ${email}`);
       throw new Error('Redis is disabled');
     }
 
@@ -186,6 +204,7 @@ export const VerificationCode = {
   // Get stored code info (for queries) and expiration time
   async getCodeInfo(email: string): Promise<{code: string | null, ttl: number | null}> {
     if (redisDisabled) {
+      if (DEBUG) console.log(`Redis is disabled, not getting code info from Redis for ${email}`);
       throw new Error('Redis is disabled');
     }
 
@@ -207,13 +226,12 @@ export const VerificationCode = {
 // Memory fallback storage (used when Redis is unavailable)
 export class MemoryVerificationCodes {
   private static instance: MemoryVerificationCodes;
-  private codes: Map<string, { code: string; expiry: number }>;
-  private rateLimits: Map<string, number>;
   
   private constructor() {
-    this.codes = new Map();
-    this.rateLimits = new Map();
     console.log('Memory verification code storage initialized');
+    // 清空全局存储，确保初始状态为空
+    globalMemoryStorage.clear();
+    globalRateLimits.clear();
   }
   
   public static getInstance(): MemoryVerificationCodes {
@@ -227,13 +245,29 @@ export class MemoryVerificationCodes {
     // Keep same expiry as Redis
     const expirySeconds = VerificationCode.CODE_EXPIRY;
     const expiry = Date.now() + expirySeconds * 1000;
-    this.codes.set(email, { code, expiry });
-    console.log(`[Memory] Verification code saved for ${email}, expires in ${expirySeconds} seconds`);
+    
+    // 标准化email地址（转为小写）
+    const normalizedEmail = email.toLowerCase().trim();
+    
+    // 存储到全局Map中
+    globalMemoryStorage.set(normalizedEmail, { code, expiry });
+    console.log(`[Memory] Verification code saved for ${normalizedEmail}, expires in ${expirySeconds} seconds, code: ${code}`);
+    
+    // 打印当前内存中的所有验证码（调试用）
+    if (DEBUG) {
+      console.log('[Memory] Current codes in memory:');
+      globalMemoryStorage.forEach((value, key) => {
+        console.log(`- ${key}: ${value.code}, expires in ${Math.ceil((value.expiry - Date.now()) / 1000)} seconds`);
+      });
+    }
+    
     return { success: true, expirySeconds };
   }
   
   public checkRateLimit(email: string): { allowed: boolean; remainingTime?: number } {
-    const limit = this.rateLimits.get(email);
+    // 标准化email地址
+    const normalizedEmail = email.toLowerCase().trim();
+    const limit = globalRateLimits.get(normalizedEmail);
     
     if (!limit || limit < Date.now()) {
       return { allowed: true };
@@ -246,39 +280,56 @@ export class MemoryVerificationCodes {
   }
   
   public setRateLimit(email: string): void {
+    // 标准化email地址
+    const normalizedEmail = email.toLowerCase().trim();
     // 60 second limit
-    this.rateLimits.set(email, Date.now() + 60 * 1000);
+    globalRateLimits.set(normalizedEmail, Date.now() + 60 * 1000);
+    console.log(`[Memory] Rate limit set for ${normalizedEmail}, expires in 60 seconds`);
   }
   
   public verifyCode(email: string, code: string): {success: boolean, reason?: string} {
-    const data = this.codes.get(email);
+    // 标准化email地址
+    const normalizedEmail = email.toLowerCase().trim();
+    const data = globalMemoryStorage.get(normalizedEmail);
+    
+    console.log(`[Memory] Verifying code for ${normalizedEmail}: input=${code}`);
+    
+    // 输出当前内存中所有验证码（调试用）
+    if (DEBUG) {
+      console.log('[Memory] Current codes during verification:');
+      globalMemoryStorage.forEach((value, key) => {
+        console.log(`- ${key}: ${value.code}, expires in ${Math.ceil((value.expiry - Date.now()) / 1000)} seconds`);
+      });
+    }
     
     if (!data) {
-      console.log(`[Memory] Verification code for ${email} not found`);
+      console.log(`[Memory] Verification code for ${normalizedEmail} not found`);
       return { success: false, reason: 'code_not_found' };
     }
     
     // Check if expired
     if (Date.now() > data.expiry) {
-      console.log(`[Memory] Verification code for ${email} has expired`);
-      this.codes.delete(email);
+      console.log(`[Memory] Verification code for ${normalizedEmail} has expired`);
+      globalMemoryStorage.delete(normalizedEmail);
       return { success: false, reason: 'code_expired' };
     }
     
     // Code match
     if (data.code !== code) {
-      console.log(`[Memory] Verification code mismatch for ${email}: got ${code}, expected ${data.code}`);
+      console.log(`[Memory] Verification code mismatch for ${normalizedEmail}: got ${code}, expected ${data.code}`);
       return { success: false, reason: 'code_mismatch' };
     }
     
     // Delete code after success
-    this.codes.delete(email);
-    console.log(`[Memory] Verification successful for ${email}, code deleted`);
+    globalMemoryStorage.delete(normalizedEmail);
+    console.log(`[Memory] Verification successful for ${normalizedEmail}, code deleted`);
     return { success: true };
   }
   
   public getCodeInfo(email: string): {code: string | null, ttl: number | null} {
-    const data = this.codes.get(email);
+    // 标准化email地址
+    const normalizedEmail = email.toLowerCase().trim();
+    const data = globalMemoryStorage.get(normalizedEmail);
     
     if (!data) {
       return { code: null, ttl: null };
@@ -286,7 +337,7 @@ export class MemoryVerificationCodes {
     
     // Check if expired
     if (Date.now() > data.expiry) {
-      this.codes.delete(email);
+      globalMemoryStorage.delete(normalizedEmail);
       return { code: null, ttl: null };
     }
     
@@ -296,5 +347,10 @@ export class MemoryVerificationCodes {
       code: data.code, 
       ttl: ttlMs > 0 ? Math.floor(ttlMs / 1000) : null 
     };
+  }
+  
+  // 添加调试方法，直接返回当前内存中所有验证码
+  public getAllCodes(): Map<string, { code: string; expiry: number }> {
+    return new Map(globalMemoryStorage);
   }
 } 

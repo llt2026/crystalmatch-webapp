@@ -4,6 +4,9 @@ import { VerificationCode, MemoryVerificationCodes } from '@/app/lib/redis';
 
 export const dynamic = 'force-dynamic'; // Mark as dynamic route
 
+// 启用详细日志
+const DEBUG = true;
+
 // Create email transporter
 const transporter = nodemailer.createTransport({
   host: process.env.MAIL_HOST,
@@ -29,9 +32,17 @@ type VerificationResult = {
   reason?: string;
 };
 
+// 定义率限制的接口，确保类型一致性
+interface RateLimit {
+  allowed: boolean;
+  remainingTime?: number;
+}
+
 export async function POST(request: NextRequest) {
   try {
     console.log('Processing verification code request');
+    console.log('SKIP_REDIS is set to:', process.env.SKIP_REDIS);
+    
     const { email } = await request.json();
 
     if (!email) {
@@ -40,6 +51,13 @@ export async function POST(request: NextRequest) {
         { error: 'Email is required' },
         { status: 400 }
       );
+    }
+
+    // 标准化邮箱地址
+    const normalizedEmail = email.toLowerCase().trim();
+    
+    if (DEBUG) {
+      console.log(`处理邮箱: ${normalizedEmail}`);
     }
 
     // Log mail configuration for debugging
@@ -62,29 +80,24 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if code was already sent within the last 60 seconds
+    let rateLimit: RateLimit = { allowed: true };
+    
     try {
-      const rateLimit = await VerificationCode.checkRateLimit(email);
-      if (!rateLimit.allowed) {
-        return NextResponse.json(
-          { 
-            error: 'Too many requests. Please try again later.', 
-            remainingTime: rateLimit.remainingTime 
-          },
-          { status: 429 }
-        );
-      }
+      rateLimit = await VerificationCode.checkRateLimit(normalizedEmail);
     } catch (error) {
+      console.log('Redis错误，使用内存存储检查频率限制');
       // Fallback to memory storage if Redis is unavailable
-      const memoryLimit = memoryStorage.checkRateLimit(email);
-      if (!memoryLimit.allowed) {
-        return NextResponse.json(
-          { 
-            error: 'Too many requests. Please try again later.', 
-            remainingTime: memoryLimit.remainingTime 
-          },
-          { status: 429 }
-        );
-      }
+      rateLimit = memoryStorage.checkRateLimit(normalizedEmail);
+    }
+    
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { 
+          error: 'Too many requests. Please try again later.', 
+          remainingTime: rateLimit.remainingTime 
+        },
+        { status: 429 }
+      );
     }
 
     // Generate verification code
@@ -92,24 +105,29 @@ export async function POST(request: NextRequest) {
     let codeExpirySeconds = 900; // Default 15 minutes
 
     try {
-      console.log(`Preparing to send verification code ${code} to ${email}`);
+      console.log(`Preparing to send verification code ${code} to ${normalizedEmail}`);
       
       // Store code and get expiry time
       let saveResult;
+      let useMemoryStorage = false;
+      
       try {
-        saveResult = await VerificationCode.saveCode(email, code);
+        // 由于环境变量SKIP_REDIS=true，这里会抛出错误
+        saveResult = await VerificationCode.saveCode(normalizedEmail, code);
         if (saveResult.success) {
           codeExpirySeconds = saveResult.expirySeconds;
         }
-        await VerificationCode.setRateLimit(email);
+        await VerificationCode.setRateLimit(normalizedEmail);
       } catch (storageError) {
         // Fallback to memory storage
         console.warn('Redis storage failed, using memory storage:', storageError);
-        saveResult = memoryStorage.saveCode(email, code);
+        useMemoryStorage = true;
+        // 在这里存储验证码到内存中
+        saveResult = memoryStorage.saveCode(normalizedEmail, code);
         if (saveResult.success) {
           codeExpirySeconds = saveResult.expirySeconds;
         }
-        memoryStorage.setRateLimit(email);
+        memoryStorage.setRateLimit(normalizedEmail);
       }
       
       // Send verification code email
@@ -117,7 +135,7 @@ export async function POST(request: NextRequest) {
         try {
           await transporter.sendMail({
             from: process.env.MAIL_FROM || process.env.MAIL_USER,
-            to: email,
+            to: normalizedEmail,
             subject: 'CrystalMatch Verification Code',
             html: `
               <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -140,6 +158,24 @@ export async function POST(request: NextRequest) {
         console.log(`======== Test mode: Code = ${code} ========`);
       }
       
+      // For debugging in test mode
+      if (DEBUG) {
+        console.log(`使用${useMemoryStorage ? '内存存储' : 'Redis'}存储验证码: ${normalizedEmail} -> ${code}`);
+        
+        // 检查验证码是否已正确存储
+        try {
+          if (useMemoryStorage) {
+            const codeInfo = memoryStorage.getCodeInfo(normalizedEmail);
+            console.log('内存存储中的验证码信息:', codeInfo);
+          } else {
+            const codeInfo = await VerificationCode.getCodeInfo(normalizedEmail);
+            console.log('Redis中的验证码信息:', codeInfo);
+          }
+        } catch (infoError) {
+          console.error('获取验证码信息失败:', infoError);
+        }
+      }
+      
     } catch (error: any) {
       console.error('Verification code processing error:', error);
       // Return code in test mode even if error occurs
@@ -148,7 +184,8 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ 
           success: true,
           expirySeconds: codeExpirySeconds,
-          testMode: true 
+          testMode: true,
+          code: process.env.NODE_ENV !== 'production' ? code : undefined // 仅在非生产环境返回验证码
         });
       }
       return NextResponse.json(
@@ -160,7 +197,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ 
       success: true,
       expirySeconds: codeExpirySeconds,
-      testMode: skipMailSending || !hasMailConfig
+      testMode: skipMailSending || !hasMailConfig,
+      code: process.env.NODE_ENV !== 'production' ? code : undefined // 仅在非生产环境返回验证码
     });
   } catch (error: any) {
     console.error('Verification code processing error:', error);
@@ -185,20 +223,24 @@ export async function GET(request: NextRequest) {
     );
   }
 
+  // 标准化邮箱
+  const normalizedEmail = email.toLowerCase().trim();
+  
   let verificationResult: VerificationResult = { success: false, reason: 'unknown_error' };
   
   // First try to verify from Redis
   try {
-    verificationResult = await VerificationCode.verifyCode(email, code);
+    verificationResult = await VerificationCode.verifyCode(normalizedEmail, code);
   } catch (error) {
     // If Redis is unavailable, fall back to memory storage
-    verificationResult = memoryStorage.verifyCode(email, code);
+    verificationResult = memoryStorage.verifyCode(normalizedEmail, code);
   }
   
   if (!verificationResult.success) {
     const errorMessages: Record<string, string> = {
       'code_not_found': 'Verification code not found or expired',
       'code_mismatch': 'Incorrect verification code',
+      'code_expired': 'Verification code expired',
       'server_error': 'Server verification failed',
       'unknown_error': 'Unknown error'
     };
