@@ -16,8 +16,8 @@ export default function Home() {
       const links = document.querySelectorAll('link[rel="prefetch"]');
       links.forEach(link => {
         const linkElement = link as HTMLLinkElement;
-        if (linkElement.href.includes('images/crystal-logo-v2.svg') || 
-            linkElement.href.includes('images/hero-crystal-v2.svg')) {
+        if (linkElement.href.includes('images/crystal-logo-v3.svg') || 
+            linkElement.href.includes('images/hero-crystal-v3.svg')) {
           link.parentNode?.removeChild(link);
         }
       });
@@ -25,8 +25,8 @@ export default function Home() {
       // 预加载新图片
       const logoImg = new window.Image();
       const crystalImg = new window.Image();
-      logoImg.src = `/images/crystal-logo-v2.svg?nocache=${timestamp}`;
-      crystalImg.src = `/images/hero-crystal-v2.svg?nocache=${timestamp}`;
+      logoImg.src = `/images/crystal-logo-v3.svg?nocache=${timestamp}`;
+      crystalImg.src = `/images/hero-crystal-v3.svg?nocache=${timestamp}`;
     }
   }, [timestamp]);
 
@@ -58,7 +58,7 @@ export default function Home() {
           <div className="flex items-center mb-4 space-x-3">
             {/* 使用SVG图片，强制不缓存 */}
             <img 
-              src={`/images/crystal-logo-v2.svg?nocache=${timestamp}`}
+              src={`/images/crystal-logo-v3.svg?nocache=${timestamp}`}
               alt="Crystal Logo" 
               width={38} 
               height={38}
@@ -89,7 +89,7 @@ export default function Home() {
                 <div className="relative w-[180px] h-[180px] mx-auto">
                   {/* 使用SVG图片，强制不缓存 */}
                   <img 
-                    src={`/images/hero-crystal-v2.svg?nocache=${timestamp}`}
+                    src={`/images/hero-crystal-v3.svg?nocache=${timestamp}`}
                     alt="Mystical Crystal" 
                     width={180}
                     height={180}
