@@ -4,16 +4,21 @@ import { saveCode, checkCode, checkRateLimit } from '@/utils/upstash';
 
 export const dynamic = 'force-dynamic'; // 明确标记为动态路由
 
-// 创建邮件传输器
-const transporter = nodemailer.createTransport({
-  host: process.env.MAIL_HOST,
-  port: Number(process.env.MAIL_PORT || 587),
-  secure: Number(process.env.MAIL_PORT) === 465, // true for 465, false for other ports
-  auth: {
-    user: process.env.MAIL_USER,
-    pass: process.env.MAIL_PASS,
-  },
-});
+let transporter: nodemailer.Transporter | null = null;
+
+function getTransporter() {
+  if (transporter) return transporter;
+  transporter = nodemailer.createTransport({
+    host: process.env.MAIL_HOST,
+    port: Number(process.env.MAIL_PORT || 587),
+    secure: Number(process.env.MAIL_PORT) === 465, // true for 465, false for other ports
+    auth: {
+      user: process.env.MAIL_USER,
+      pass: process.env.MAIL_PASS,
+    },
+  });
+  return transporter;
+}
 
 // 生成6位数字验证码
 function generateCode(): string {
@@ -78,7 +83,9 @@ export async function POST(request: NextRequest) {
       // 发送验证码邮件
       if (!skipMailSending) {
         try {
-          await transporter.sendMail({
+          // 延迟获取 transporter
+          const tx = getTransporter();
+          await tx.sendMail({
             from: process.env.MAIL_FROM || process.env.MAIL_USER,
             to: normalizedEmail,
             subject: 'CrystalMatch Verification Code',
