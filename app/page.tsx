@@ -31,7 +31,7 @@ export default function Home() {
         <div className="flex flex-col items-center mb-12 relative">
           <div className="flex items-center mb-4 space-x-3">
             <Image 
-              src="/crystal-logo.svg" 
+              src="/images/crystal-logo-v3.svg" 
               alt="Crystal Logo" 
               width={50} 
               height={50}
@@ -60,7 +60,7 @@ export default function Home() {
             <div className="my-12 relative group">
               <div className="animate-float transition-transform duration-500 group-hover:scale-110">
                 <Image 
-                  src="/crystal.svg" 
+                  src="/images/hero-crystal-v3.svg" 
                   alt="Mystical Crystal" 
                   width={240} 
                   height={300}
