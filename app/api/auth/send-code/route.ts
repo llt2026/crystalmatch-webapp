@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import nodemailer from 'nodemailer';
+import type { Transporter } from 'nodemailer';
 import { saveCode, checkCode, checkRateLimit } from '@/utils/upstash';
 
 export const dynamic = 'force-dynamic'; // 明确标记为动态路由
 
-let transporter: nodemailer.Transporter | null = null;
+// nodemailer 仅在需要发送邮件时动态导入，避免在Serverless只读文件系统触发写操作
+let transporter: Transporter | null = null;
 
-function getTransporter() {
+async function getTransporter() {
   if (transporter) return transporter;
-  transporter = nodemailer.createTransport({
+  const nodemailer = await import('nodemailer');
+  transporter = nodemailer.default.createTransport({
     host: process.env.MAIL_HOST,
     port: Number(process.env.MAIL_PORT || 587),
     secure: Number(process.env.MAIL_PORT) === 465, // true for 465, false for other ports
@@ -84,7 +86,7 @@ export async function POST(request: NextRequest) {
       if (!skipMailSending) {
         try {
           // 延迟获取 transporter
-          const tx = getTransporter();
+          const tx = await getTransporter();
           await tx.sendMail({
             from: process.env.MAIL_FROM || process.env.MAIL_USER,
             to: normalizedEmail,
