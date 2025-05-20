@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 import { checkCode } from '@/utils/upstash';
+import { prisma } from '@/app/lib/prisma';
 // import { PrismaClient } from '@prisma/client';
 
 // 暂时注释掉Prisma数据库操作，以允许构建通过
@@ -30,18 +31,17 @@ export async function POST(request: NextRequest) {
     }
 
     // 检查邮箱是否已注册
-    // 暂时模拟此操作
-    // const existingUser = await prisma.user.findUnique({
-    //   where: { email }
-    // });
-    
-    // if (existingUser) {
-    //   return NextResponse.json({ error: 'User already exists' }, { status: 409 });
-    // }
-
-    // 统一使用Upstash Redis验证验证码
     const normalizedEmail = email.toLowerCase().trim();
 
+    const existingUser = await prisma.user.findUnique({
+      where: { email: normalizedEmail }
+    });
+
+    if (existingUser) {
+      return NextResponse.json({ error: 'User already exists' }, { status: 409 });
+    }
+
+    // 统一使用Upstash Redis验证验证码
     const isValid = await checkCode(normalizedEmail, code);
 
     if (!isValid) {
@@ -55,33 +55,19 @@ export async function POST(request: NextRequest) {
     const birthDate = new Date(birthdate);
     
     // 创建新用户
-    // 暂时模拟此操作
-    // const user = await prisma.user.create({
-    //   data: {
-    //     email,
-    //     name,
-    //     birthInfo: {
-    //       date: birthDate.toISOString(),
-    //       time: birthDate.toTimeString(),
-    //     },
-    //     preferences: {
-    //       notifications: true,
-    //       newsletter: true,
-    //       language: 'zh'
-    //     }
-    //   }
-    // });
-    
-    const mockUser = {
-      id: 'user-id-123',
-      email,
-      name,
-      createdAt: new Date()
-    };
+    const user = await prisma.user.create({
+      data: {
+        email: normalizedEmail,
+        name,
+        birthInfo: {
+          date: birthDate.toISOString(),
+        },
+      },
+    });
 
     // 生成JWT令牌
     const token = jwt.sign(
-      { userId: mockUser.id, email },
+      { userId: user.id, email },
       JWT_SECRET,
       { expiresIn: '7d' }
     );
@@ -90,9 +76,9 @@ export async function POST(request: NextRequest) {
     const response = NextResponse.json({ 
       message: 'User registered successfully',
       user: {
-        id: mockUser.id,
-        email: mockUser.email,
-        name: mockUser.name
+        id: user.id,
+        email: user.email,
+        name: user.name
       }
     });
     
