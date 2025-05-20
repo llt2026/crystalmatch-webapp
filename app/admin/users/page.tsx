@@ -23,25 +23,44 @@ export default function AdminUsersPage() {
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const usersPerPage = 10;
+  const [totalPages, setTotalPages] = useState(1);
 
   // 加载用户数据
+  useEffect(() => {
+    const fetchUsers = async (page: number = 1, search: string = '') => {
+      try {
+        setIsLoading(true);
+        const res = await fetch(`/api/admin/users?page=${page}&search=${encodeURIComponent(search)}`);
+        if (!res.ok) {
+          throw new Error('API 请求失败');
+        }
+        const data = await res.json();
+        setUsers(data.users);
+        if (data.totalPages) {
+          setTotalPages(data.totalPages);
+        }
+      } catch (err) {
+        setError('无法加载用户数据');
+        console.error(err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchUsers(currentPage, searchTerm);
+  }, []);
+
+  // 当搜索词或分页变化时重新获取
   useEffect(() => {
     const fetchUsers = async () => {
       try {
         setIsLoading(true);
-        // 实际环境中应该从API获取数据
-        // 这里使用示例数据
-        const mockUsers: User[] = Array(25).fill(null).map((_, i) => ({
-          id: `user-${i+1}`,
-          email: `user${i+1}@example.com`,
-          name: `用户 ${i+1}`,
-          createdAt: new Date(Date.now() - Math.random() * 10000000000).toISOString(),
-          lastLogin: new Date(Date.now() - Math.random() * 1000000000).toISOString(),
-          subscriptionStatus: ['free', 'premium', 'none'][Math.floor(Math.random() * 3)] as 'free' | 'premium' | 'none'
-        }));
-        
-        setUsers(mockUsers);
+        const res = await fetch(`/api/admin/users?page=${currentPage}&search=${encodeURIComponent(searchTerm)}`);
+        if (!res.ok) {
+          throw new Error('API 请求失败');
+        }
+        const data = await res.json();
+        setUsers(data.users);
       } catch (err) {
         setError('无法加载用户数据');
         console.error(err);
@@ -51,19 +70,10 @@ export default function AdminUsersPage() {
     };
 
     fetchUsers();
-  }, []);
+  }, [searchTerm, currentPage]);
 
   // 过滤用户
-  const filteredUsers = users.filter(user => 
-    user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  // 分页
-  const indexOfLastUser = currentPage * usersPerPage;
-  const indexOfFirstUser = indexOfLastUser - usersPerPage;
-  const currentUsers = filteredUsers.slice(indexOfFirstUser, indexOfLastUser);
-  const totalPages = Math.ceil(filteredUsers.length / usersPerPage);
+  const currentUsers = users;
 
   const handlePageChange = (page: number) => {
     if (page < 1 || page > totalPages) return;

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAdminToken } from '@/app/middleware/adminAuth';
+import { prisma } from '@/app/lib/prisma';
 
 export async function GET(request: NextRequest) {
   // Verify admin token
@@ -12,36 +13,62 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search') || '';
     const pageSize = 10;
 
-    // In a real application, this data would be fetched from a database
-    // Using mock data for development purposes
-    const mockUsers = Array.from({ length: 50 }, (_, i) => ({
-      id: `user-${i + 1}`,
-      name: `User ${i + 1}`,
-      email: `user${i + 1}@example.com`,
-      createdAt: new Date(Date.now() - Math.random() * 10000000000).toISOString(),
-      subscription: {
-        status: Math.random() > 0.7 ? 'premium' : 'free',
-        expiresAt: Math.random() > 0.7 ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() : undefined
+    // Prisma 查询条件
+    const whereCondition = search
+      ? {
+          OR: [
+            {
+              name: {
+                contains: search,
+                mode: 'insensitive',
+              },
+            },
+            {
+              email: {
+                contains: search,
+                mode: 'insensitive',
+              },
+            },
+          ],
+        }
+      : {};
+
+    const totalUsers = await prisma.user.count({ where: whereCondition });
+    const totalPages = Math.ceil(totalUsers / pageSize);
+
+    const users = await prisma.user.findMany({
+      where: whereCondition,
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+      orderBy: {
+        createdAt: 'desc',
       },
-      reportsCount: Math.floor(Math.random() * 20)
-    }));
+      include: {
+        subscriptions: {
+          select: {
+            status: true,
+            endDate: true,
+          },
+        },
+      },
+    });
 
-    // Simulate search functionality
-    let filteredUsers = mockUsers;
-    if (search) {
-      filteredUsers = mockUsers.filter(user => 
-        user.name.toLowerCase().includes(search.toLowerCase()) ||
-        user.email.toLowerCase().includes(search.toLowerCase())
-      );
-    }
-
-    // Pagination
-    const totalPages = Math.ceil(filteredUsers.length / pageSize);
-    const paginatedUsers = filteredUsers.slice((page - 1) * pageSize, page * pageSize);
+    // 转换数据结构供前端使用
+    const serializedUsers = users.map((u: any) => {
+      const latestSub = u.subscriptions?.[0];
+      return {
+        id: u.id,
+        email: u.email,
+        name: u.name || '',
+        createdAt: u.createdAt,
+        lastLogin: u.lastLoginAt,
+        subscriptionStatus: latestSub ? latestSub.status : 'none',
+      };
+    });
 
     return NextResponse.json({
-      users: paginatedUsers,
-      totalPages
+      users: serializedUsers,
+      totalPages,
     });
   } catch (error) {
     console.error('Failed to retrieve user list:', error);

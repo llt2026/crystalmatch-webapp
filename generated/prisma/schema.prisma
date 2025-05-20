@@ -7,7 +7,7 @@
 generator client {
   provider        = "prisma-client-js"
   output          = "../generated/prisma"
-  previewFeatures = ["metrics", "fullTextSearch", "postgresqlExtensions"]
+  previewFeatures = ["metrics", "fullTextSearchPostgres", "postgresqlExtensions"]
   engineType      = "binary"
 }
 

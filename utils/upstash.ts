@@ -9,8 +9,12 @@ export const redis = process.env.SKIP_REDIS === 'true'
       token: process.env.UPSTASH_REDIS_REST_TOKEN!,
     });
 
+// 为globalThis扩展类型声明
+declare global {
+  var __UPSTASH_MEMORY_STORE: Map<string, {value: any, expires: number}> | undefined;
+}
+
 // 用于内存存储的Map（开发环境使用）
-// @ts-ignore - 使用全局存储确保热重载不丢失数据
 const memoryStore: Map<string, {value: any, expires: number}> = 
   globalThis.__UPSTASH_MEMORY_STORE || (globalThis.__UPSTASH_MEMORY_STORE = new Map());
 
