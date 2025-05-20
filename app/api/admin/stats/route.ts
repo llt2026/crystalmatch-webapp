@@ -13,6 +13,9 @@ setInterval(() => {
   onlineUsers = Math.max(20, Math.min(100, onlineUsers + change)); // Keep between 20-100
 }, 30000); // Update every 30 seconds
 
+// 强制动态，避免被 Next.js 预渲染时执行
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     // Validate admin authentication
@@ -95,11 +98,6 @@ export async function GET(request: NextRequest) {
       // Financial metrics
       conversionRate: `${conversionRate}%`,
       revenue: parseFloat((mrr * 12).toFixed(2)),
-      revenueDetails: {
-        total: parseFloat((mrr * 12).toFixed(2)),
-        mrr: parseFloat(mrr.toFixed(2)),
-        arpu: parseFloat(arpu)
-      },
       
       // Growth metrics
       userGrowth: {
