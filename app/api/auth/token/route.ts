@@ -32,6 +32,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User not found', unregistered: true }, { status: 404 });
     }
 
+    // 更新最后登录时间
+    await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
+
     // 生成JWT令牌
     const token = jwt.sign(
       {
