@@ -20,7 +20,9 @@ export default function LoginPage() {
       const response = await fetch('/api/auth/send-code', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email })
+        body: JSON.stringify({ email }),
+        cache: 'no-store',
+        credentials: 'include',
       });
 
       const data = await response.json();
@@ -42,20 +44,26 @@ export default function LoginPage() {
       setIsLoading(true);
       setError('');
       
-      const response = await fetch('/api/auth/verify-code', {
+      const response = await fetch('/api/auth/token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, code })
+        body: JSON.stringify({ email, code }),
+        cache: 'no-store',
+        credentials: 'include',
       });
 
       const data = await response.json();
       
-      if (!response.ok) {
-        throw new Error(data.error);
+      if (response.status === 404 && data?.unregistered) {
+        router.push('/birth-info?email=' + encodeURIComponent(email));
+        return;
       }
 
-      // Login successful, redirect to dashboard
-      router.push('/dashboard');
+      if (!response.ok) {
+        throw new Error(data.error || 'Login failed');
+      }
+
+      router.push('/profile');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to verify code');
     } finally {
