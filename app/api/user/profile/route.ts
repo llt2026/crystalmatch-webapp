@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+export const dynamic = 'force-dynamic'; // 确保 API 路由始终动态执行，避免构建期缓存
 import { jwtVerify } from 'jose';
 
 // Validate user token
@@ -61,7 +62,30 @@ export async function GET(request: NextRequest) {
     const mockUser = getMockUser(userId.toString());
     const { id, ...userProfile } = mockUser;
     
-    return NextResponse.json(userProfile);
+    // 兼容 TS，使用 any 访问可能不存在的字段
+    const userProfileAny: any = userProfile;
+
+    // 转换成前端 /profile 页所需结构
+    const normalizedProfile = {
+      name: userProfile.name,
+      email: userProfile.email,
+      avatar: userProfileAny.avatar ?? '',
+      location: {
+        country: userProfile.location.country || '',
+        state: userProfileAny.location?.state || '',
+        city: userProfileAny.location?.city || '',
+      },
+      subscription: {
+        status: 'free' as const,
+        expiresAt: undefined,
+      },
+      reportsCount: 0,
+      joinedAt: userProfile.createdAt,
+      // 附带原始数据，方便后续升级
+      _raw: userProfile,
+    };
+
+    return NextResponse.json(normalizedProfile);
   } catch (error) {
     console.error('Error fetching user profile:', error);
     return NextResponse.json(
