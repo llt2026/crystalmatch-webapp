@@ -140,7 +140,7 @@ export default function ProfilePage() {
           <h2 className="text-sm font-semibold">Reports</h2>
 
           {/* Annual Basic Report */}
-          <Link href={`/report/annual-basic-${new Date().getFullYear()}`} className="bg-gradient-to-br from-purple-600/30 to-purple-800/30 p-4 rounded-xl flex justify-between items-start no-underline">
+          <Link href={`/report/annual-basic-${new Date().getFullYear()}${profile.birthInfo?.date ? `?birthDate=${encodeURIComponent(profile.birthInfo.date)}` : ''}`} className="bg-gradient-to-br from-purple-600/30 to-purple-800/30 p-4 rounded-xl flex justify-between items-start no-underline">
             <div className="leading-tight">
               <p className="text-sm font-medium">Annual Basic Report</p>
               <p className="text-[11px] text-purple-200">2025</p>
@@ -149,7 +149,7 @@ export default function ProfilePage() {
           </Link>
 
           {/* Annual Premium Report */}
-          <Link href={`/report/annual-premium-${new Date().getFullYear()}`} className="bg-gradient-to-br from-purple-600/30 to-purple-800/30 p-4 rounded-xl flex justify-between items-center no-underline">
+          <Link href={`/report/annual-premium-${new Date().getFullYear()}${profile.birthInfo?.date ? `?birthDate=${encodeURIComponent(profile.birthInfo.date)}` : ''}`} className="bg-gradient-to-br from-purple-600/30 to-purple-800/30 p-4 rounded-xl flex justify-between items-center no-underline">
             <p className="text-sm font-medium">Annual Premium Report 2025</p>
           </Link>
 
@@ -160,7 +160,7 @@ export default function ProfilePage() {
               { label: 'May 2025 Energy Report', isNew: true },
               { label: 'Apr 2025 Energy Report', isNew: false },
             ].map((r) => (
-              <Link key={r.label} href={`/report/${r.label.startsWith('May') ? `${new Date().getFullYear()}-05` : `${new Date().getFullYear()}-04`}`} className="bg-black/40 p-3 rounded-lg flex justify-between items-center no-underline">
+              <Link key={r.label} href={`/report/${r.label.startsWith('May') ? `${new Date().getFullYear()}-05` : `${new Date().getFullYear()}-04`}${profile.birthInfo?.date ? `?birthDate=${encodeURIComponent(profile.birthInfo.date)}` : ''}`} className="bg-black/40 p-3 rounded-lg flex justify-between items-center no-underline">
                 <span className="text-xs">{r.label}</span>
                 {r.isNew && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-purple-600 text-white">NEW</span>}
               </Link>
