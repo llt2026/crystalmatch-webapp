@@ -75,7 +75,17 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Regular user authentication
+  // Special handling for report pages to allow public annual-basic slugs
+  if (pathname.startsWith('/report')) {
+    const slug = pathname.split('/').pop() || '';
+    const isFreeSlug = slug.startsWith('annual-basic-');
+    if (isFreeSlug) {
+      return NextResponse.next();
+    }
+    // For premium/monthly slug, require token later; fall through
+  }
+
+  // Regular user authentication (for non-public & non-free report)
   const token = request.cookies.get('token')?.value;
 
   if (!token) {
@@ -89,28 +99,25 @@ export async function middleware(request: NextRequest) {
       new TextEncoder().encode(process.env.JWT_SECRET || 'crystalmatch-secure-jwt-secret-key')
     );
     
+    // After verifying token exists, additional subscription check for paid reports
+    if (pathname.startsWith('/report')) {
+      const slug = pathname.split('/').pop() || '';
+      // free slug already returned earlier
+      if (!token) {
+        return NextResponse.redirect(new URL('/subscription', request.url));
+      }
+      if (!token.includes('premium') && !token.includes('monthly') && !token.includes('yearly')) {
+        return NextResponse.redirect(new URL('/subscription', request.url));
+      }
+      return NextResponse.next();
+    }
+    
     return NextResponse.next();
   } catch (error) {
     // Invalid token, redirect to login page
     const response = NextResponse.redirect(new URL('/login', request.url));
     response.cookies.delete('token');
     return response;
-  }
-
-  if (pathname.startsWith('/report')) {
-    const slug = pathname.split('/').pop() || '';
-    const isFreeSlug = slug.startsWith('annual-basic-');
-    if (isFreeSlug) return NextResponse.next();
-    // 非免费 slug 需登录并订阅
-    const token = request.cookies.get('token')?.value;
-    if (!token) {
-      return NextResponse.redirect(new URL('/subscription', request.url));
-    }
-    // 简化：检查token中包含 "premium" 字样即可
-    if (!token.includes('premium') && !token.includes('monthly') && !token.includes('yearly')) {
-      return NextResponse.redirect(new URL('/subscription', request.url));
-    }
-    return NextResponse.next();
   }
 }
 
