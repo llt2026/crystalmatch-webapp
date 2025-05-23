@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
@@ -11,6 +11,29 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [codeSent, setCodeSent] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+
+  useEffect(() => {
+    // 自动检测登录
+    (async () => {
+      try {
+        const res = await fetch('/api/user/profile', { credentials: 'include', cache: 'no-store' });
+        if (res.ok) {
+          router.replace('/profile');
+          return;
+        }
+      } catch {}
+      setCheckingAuth(false);
+    })();
+  }, []);
+
+  if (checkingAuth) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-900 to-black">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-purple-500"></div>
+      </div>
+    );
+  }
 
   const handleSendCode = async () => {
     try {

@@ -91,6 +91,12 @@ export default function ProfilePage() {
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-purple-900 to-black px-4 py-6 sm:p-8">
+      <Link href="/" className="inline-flex items-center text-purple-300 hover:text-white transition-colors mb-4">
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+          <path fillRule="evenodd" d="M9.707 14.707a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 1.414L7.414 9H15a1 1 0 110 2H7.414l2.293 2.293a1 1 0 010 1.414z" clipRule="evenodd" />
+        </svg>
+        Home
+      </Link>
       <div className="max-w-xs sm:max-w-sm mx-auto space-y-6">
         {/* Header */}
         <div className="bg-black/30 backdrop-blur-xl rounded-2xl p-5 shadow-xl flex flex-col items-center text-center space-y-2">
