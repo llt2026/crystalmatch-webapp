@@ -25,11 +25,12 @@ export async function GET(request: NextRequest, { params }: { params: { slug: st
     if (slug.startsWith('annual-basic-')) {
       // 免费年度简化版，调用年度生成 API，订阅层 free
       const year = parseInt(slug.split('-').pop() || '0');
+      const birthDate = request.nextUrl.searchParams.get('birthDate') || '1990-01-01';
       const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || ''}/api/generate-energy-report`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          birthDate: request.nextUrl.searchParams.get('birthDate'),
+          birthDate,
           currentDate: new Date(`${year}-01-01`).toISOString(),
           tier: 'free',
           userId: 'anonymous'
@@ -45,11 +46,12 @@ export async function GET(request: NextRequest, { params }: { params: { slug: st
       const [yearStr, monthStr] = slug.split('-');
       const year = parseInt(yearStr);
       const month = parseInt(monthStr);
+      const birthDate = request.nextUrl.searchParams.get('birthDate') || '1990-01-01';
       const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || ''}/api/generate-monthly-report`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          birthDate: request.nextUrl.searchParams.get('birthDate'),
+          birthDate,
           year,
           month,
           tier: request.headers.get('x-tier') || 'free',

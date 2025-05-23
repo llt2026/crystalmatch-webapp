@@ -43,16 +43,30 @@ function PaymentContent() {
   });
 
   useEffect(() => {
+    // 如果 URL 中没有 orderId，但包含订阅计划(plan)，则生成一个临时订单
+    if (!orderIdParam && planParam) {
+      const tempId = `temp_${Date.now()}`;
+      setOrder({
+        id: tempId,
+        planId: planParam,
+        amount: planParam === 'yearly' ? 49.99 : 4.99,
+        currency: 'USD',
+        status: OrderStatus.PENDING,
+      });
+      setIsLoading(false);
+      return;
+    }
+
     if (!orderIdParam) {
       setError('Invalid order ID');
       setIsLoading(false);
       return;
     }
 
-    fetchOrderDetails();
-  }, [orderIdParam]);
+    fetchOrderDetails(orderIdParam);
+  }, [orderIdParam, planParam]);
 
-  const fetchOrderDetails = async () => {
+  const fetchOrderDetails = async (orderId: string) => {
     setIsLoading(true);
     setError('');
 
@@ -60,7 +74,7 @@ function PaymentContent() {
       // In a real application, we would fetch the order details from the server
       // For this demo, we'll use a mock order
       setOrder({
-        id: orderIdParam || 'order_123',
+        id: orderId || 'order_123',
         planId: 'premium',
         amount: 99,
         currency: 'USD',
