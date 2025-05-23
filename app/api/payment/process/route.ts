@@ -47,14 +47,6 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // 验证信用卡信息（如果是信用卡支付）
-      if (paymentMethod === PaymentMethod.CREDIT_CARD && !cardInfo) {
-        return NextResponse.json(
-          { error: 'Credit card information is required' }, 
-          { status: 400 }
-        );
-      }
-
       // 设置回调URL
       const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
       const returnUrl = `${baseUrl}/payment/success?orderId=${orderId}`;

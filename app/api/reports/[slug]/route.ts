@@ -36,6 +36,11 @@ export async function GET(request: NextRequest, { params }: { params: { slug: st
           userId: 'anonymous'
         }),
       });
+      if (!res.ok) {
+        const placeholder = `<p>Report temporarily unavailable.</p>`;
+        reportCache.set(slug, placeholder);
+        return NextResponse.json({ slug, report: placeholder, fallback: true });
+      }
       const data = await res.json();
       reportCache.set(slug, data.report);
       return NextResponse.json({ slug, report: data.report });
@@ -58,6 +63,11 @@ export async function GET(request: NextRequest, { params }: { params: { slug: st
           userId: 'anonymous'
         }),
       });
+      if (!res.ok) {
+        const placeholder = `<p>Report temporarily unavailable.</p>`;
+        reportCache.set(slug, placeholder);
+        return NextResponse.json({ slug, report: placeholder, fallback: true });
+      }
       const data = await res.json();
       reportCache.set(slug, data.report);
       return NextResponse.json({ slug, report: data.report });

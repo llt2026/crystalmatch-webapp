@@ -6,10 +6,7 @@ let orders: Order[] = [];
 
 // 支付方式类型
 export enum PaymentMethod {
-  CREDIT_CARD = 'credit_card',
   PAYPAL = 'paypal',
-  APPLE_PAY = 'apple_pay',
-  GOOGLE_PAY = 'google_pay',
 }
 
 // 信用卡信息接口
@@ -229,7 +226,7 @@ export function createMockOrders() {
       amount: 99,
       currency: 'USD',
       status: OrderStatus.COMPLETED,
-      paymentMethod: PaymentMethod.CREDIT_CARD,
+      paymentMethod: PaymentMethod.PAYPAL,
       createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
       updatedAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
       metadata: { transactionId: 'txn_00123456' }
@@ -274,7 +271,7 @@ export function createMockOrders() {
       amount: 99,
       currency: 'USD',
       status: OrderStatus.REFUNDED,
-      paymentMethod: PaymentMethod.CREDIT_CARD,
+      paymentMethod: PaymentMethod.PAYPAL,
       createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
       updatedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
       metadata: { 

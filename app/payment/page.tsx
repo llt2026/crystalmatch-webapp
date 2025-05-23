@@ -33,7 +33,7 @@ function PaymentContent() {
   const [order, setOrder] = useState<Order | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
-  const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>(PaymentMethod.CREDIT_CARD);
+  const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>(PaymentMethod.PAYPAL);
   const [isProcessing, setIsProcessing] = useState(false);
   const [cardInfo, setCardInfo] = useState<CardInfo>({
     cardNumber: '',
@@ -43,13 +43,17 @@ function PaymentContent() {
   });
 
   useEffect(() => {
-    // 如果 URL 中没有 orderId，但包含订阅计划(plan)，则生成一个临时订单
-    if (!orderIdParam && planParam) {
-      const tempId = `temp_${Date.now()}`;
+    if (orderIdParam) {
+      fetchOrderDetails();
+      return;
+    }
+
+    if (planParam) {
+      const amount = planParam === 'yearly' ? 49.99 : planParam === 'monthly' ? 4.99 : 0;
       setOrder({
-        id: tempId,
+        id: `temp_${Date.now()}`,
         planId: planParam,
-        amount: planParam === 'yearly' ? 49.99 : 4.99,
+        amount,
         currency: 'USD',
         status: OrderStatus.PENDING,
       });
@@ -57,16 +61,11 @@ function PaymentContent() {
       return;
     }
 
-    if (!orderIdParam) {
-      setError('Invalid order ID');
-      setIsLoading(false);
-      return;
-    }
-
-    fetchOrderDetails(orderIdParam);
+    setError('Invalid order ID');
+    setIsLoading(false);
   }, [orderIdParam, planParam]);
 
-  const fetchOrderDetails = async (orderId: string) => {
+  const fetchOrderDetails = async () => {
     setIsLoading(true);
     setError('');
 
@@ -74,7 +73,7 @@ function PaymentContent() {
       // In a real application, we would fetch the order details from the server
       // For this demo, we'll use a mock order
       setOrder({
-        id: orderId || 'order_123',
+        id: orderIdParam || 'order_123',
         planId: 'premium',
         amount: 99,
         currency: 'USD',
@@ -126,32 +125,7 @@ function PaymentContent() {
     setCardInfo({ ...cardInfo, [name]: value });
   };
 
-  const validateCardInfo = () => {
-    if (selectedMethod !== PaymentMethod.CREDIT_CARD) return true;
-    
-    if (cardInfo.cardNumber.replace(/\s/g, '').length < 16) {
-      setError('Please enter a valid card number');
-      return false;
-    }
-    
-    if (!cardInfo.cardholderName) {
-      setError('Please enter the cardholder name');
-      return false;
-    }
-    
-    const expiryRegex = /^(0[1-9]|1[0-2])\/\d{2}$/;
-    if (!expiryRegex.test(cardInfo.expiryDate)) {
-      setError('Please enter a valid expiry date (MM/YY)');
-      return false;
-    }
-    
-    if (cardInfo.cvv.length < 3) {
-      setError('Please enter a valid CVV');
-      return false;
-    }
-    
-    return true;
-  };
+  const validateCardInfo = () => true;
 
   const handlePayment = async () => {
     if (!order) return;
@@ -182,7 +156,7 @@ function PaymentContent() {
         body: JSON.stringify({
           orderId: order.id,
           paymentMethod: selectedMethod,
-          cardInfo: selectedMethod === PaymentMethod.CREDIT_CARD ? cardInfo : undefined,
+          cardInfo: undefined,
           amount: order.amount,
           currency: order.currency,
         }),
@@ -270,7 +244,7 @@ function PaymentContent() {
               <h2 className="text-xl font-semibold text-white mb-4">Payment Method</h2>
               
               <div className="space-y-3">
-                {Object.values(PaymentMethod).map((method) => (
+                {[PaymentMethod.PAYPAL].map((method) => (
                   <div 
                     key={method}
                     className={`p-4 rounded-lg cursor-pointer transition-colors border ${
@@ -297,75 +271,7 @@ function PaymentContent() {
               </div>
             </div>
 
-            {/* Credit Card Form */}
-            {selectedMethod === PaymentMethod.CREDIT_CARD && (
-              <div className="glass-card p-6 rounded-2xl">
-                <h2 className="text-xl font-semibold text-white mb-4">Card Details</h2>
-                
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-purple-200 mb-2">
-                      Card Number
-                    </label>
-                    <input
-                      type="text"
-                      name="cardNumber"
-                      value={cardInfo.cardNumber}
-                      onChange={handleCardInfoChange}
-                      placeholder="•••• •••• •••• ••••"
-                      className="w-full p-3 bg-black/30 border border-purple-500/30 rounded-lg text-white focus:border-purple-500 focus:outline-none"
-                      maxLength={19}
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-purple-200 mb-2">
-                      Cardholder Name
-                    </label>
-                    <input
-                      type="text"
-                      name="cardholderName"
-                      value={cardInfo.cardholderName}
-                      onChange={handleCardInfoChange}
-                      placeholder="Name on card"
-                      className="w-full p-3 bg-black/30 border border-purple-500/30 rounded-lg text-white focus:border-purple-500 focus:outline-none"
-                    />
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-purple-200 mb-2">
-                        Expiry Date
-                      </label>
-                      <input
-                        type="text"
-                        name="expiryDate"
-                        value={cardInfo.expiryDate}
-                        onChange={handleCardInfoChange}
-                        placeholder="MM/YY"
-                        className="w-full p-3 bg-black/30 border border-purple-500/30 rounded-lg text-white focus:border-purple-500 focus:outline-none"
-                        maxLength={5}
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-purple-200 mb-2">
-                        CVV
-                      </label>
-                      <input
-                        type="password"
-                        name="cvv"
-                        value={cardInfo.cvv}
-                        onChange={handleCardInfoChange}
-                        placeholder="•••"
-                        className="w-full p-3 bg-black/30 border border-purple-500/30 rounded-lg text-white focus:border-purple-500 focus:outline-none"
-                        maxLength={4}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
+            {/* No credit card form */}
             
             {error && (
               <div className="bg-red-500/20 text-red-300 p-4 rounded-lg">
@@ -412,61 +318,39 @@ function PaymentContent() {
                   </span>
                 </div>
                 
-                {selectedMethod !== PaymentMethod.PAYPAL && (
-                  <button
-                    onClick={handlePayment}
-                    disabled={isProcessing}
-                    className="w-full py-3 px-4 mt-6 bg-gradient-to-r from-purple-600 to-purple-800 text-white rounded-lg hover:from-purple-700 hover:to-purple-900 font-medium disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center"
+                <div className="mt-6">
+                  <PayPalScriptProvider
+                    options={{
+                      clientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || '',
+                      currency: order.currency,
+                    }}
                   >
-                    {isProcessing ? (
-                      <>
-                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        Processing...
-                      </>
-                    ) : (
-                      `Pay ${formatCurrency(order.amount, order.currency)}`
-                    )}
-                  </button>
-                )}
-                
-                {selectedMethod === PaymentMethod.PAYPAL && (
-                  <div className="mt-6">
-                    <PayPalScriptProvider
-                      options={{
-                        clientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || '',
-                        currency: order.currency,
+                    <PayPalButtons
+                      style={{ layout: 'vertical' }}
+                      createOrder={async () => {
+                        const res = await fetch('/api/paypal/create-order', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            orderId: order.id,
+                            amount: order.amount,
+                            currency: order.currency,
+                          }),
+                        });
+                        const data = await res.json();
+                        return data.id;
                       }}
-                    >
-                      <PayPalButtons
-                        style={{ layout: 'vertical' }}
-                        createOrder={async () => {
-                          const res = await fetch('/api/paypal/create-order', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                              orderId: order.id,
-                              amount: order.amount,
-                              currency: order.currency,
-                            }),
-                          });
-                          const data = await res.json();
-                          return data.id;
-                        }}
-                        onApprove={async (data) => {
-                          await fetch('/api/paypal/capture-order', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ orderID: data.orderID }),
-                          });
-                          router.push('/payment/success?orderId=' + order.id);
-                        }}
-                      />
-                    </PayPalScriptProvider>
-                  </div>
-                )}
+                      onApprove={async (data) => {
+                        await fetch('/api/paypal/capture-order', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ orderID: data.orderID }),
+                        });
+                        router.push('/payment/success?orderId=' + order.id);
+                      }}
+                    />
+                  </PayPalScriptProvider>
+                </div>
                 
                 <p className="text-purple-300 text-xs text-center mt-4">
                   Your payment information is encrypted and secure.
