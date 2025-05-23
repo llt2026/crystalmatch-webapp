@@ -48,7 +48,7 @@
     "tailwindcss": "^3.3.0",
     "marked": "^15.0.11",
     "@paypal/react-paypal-js": "^7.11.1",
-    "@paypal/checkout-server-sdk": "^1.0.4"
+    "@paypal/checkout-server-sdk": "1.0.3"
   },
   "devDependencies": {
     "@types/marked": "^5.0.2",
