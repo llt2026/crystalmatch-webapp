@@ -27,7 +27,8 @@ interface CardInfo {
 function PaymentContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const orderId = searchParams?.get('orderId') || '';
+  const orderIdParam = searchParams?.get('orderId') || '';
+  const planParam = searchParams?.get('plan') || '';
   
   const [order, setOrder] = useState<Order | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -42,14 +43,14 @@ function PaymentContent() {
   });
 
   useEffect(() => {
-    if (!orderId) {
+    if (!orderIdParam) {
       setError('Invalid order ID');
       setIsLoading(false);
       return;
     }
 
     fetchOrderDetails();
-  }, [orderId]);
+  }, [orderIdParam]);
 
   const fetchOrderDetails = async () => {
     setIsLoading(true);
@@ -59,7 +60,7 @@ function PaymentContent() {
       // In a real application, we would fetch the order details from the server
       // For this demo, we'll use a mock order
       setOrder({
-        id: orderId || 'order_123',
+        id: orderIdParam || 'order_123',
         planId: 'premium',
         amount: 99,
         currency: 'USD',
@@ -419,8 +420,11 @@ function PaymentContent() {
                 
                 {selectedMethod === PaymentMethod.PAYPAL && (
                   <div className="mt-6">
-                    <PayPalScriptProvider 
-                      options={{ clientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || '', currency: order.currency }}
+                    <PayPalScriptProvider
+                      options={{
+                        clientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || '',
+                        currency: order.currency,
+                      }}
                     >
                       <PayPalButtons
                         style={{ layout: 'vertical' }}
@@ -428,7 +432,11 @@ function PaymentContent() {
                           const res = await fetch('/api/paypal/create-order', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ orderId: order.id, amount: order.amount, currency: order.currency })
+                            body: JSON.stringify({
+                              orderId: order.id,
+                              amount: order.amount,
+                              currency: order.currency,
+                            }),
                           });
                           const data = await res.json();
                           return data.id;
@@ -437,7 +445,7 @@ function PaymentContent() {
                           await fetch('/api/paypal/capture-order', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ orderID: data.orderID })
+                            body: JSON.stringify({ orderID: data.orderID }),
                           });
                           router.push('/payment/success?orderId=' + order.id);
                         }}
