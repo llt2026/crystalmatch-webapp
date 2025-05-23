@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { PaymentMethod } from '@/app/lib/payment/service';
 import { OrderStatus } from '@/app/lib/subscription/types';
 import Image from 'next/image';
+import { PayPalScriptProvider, PayPalButtons } from '@paypal/react-paypal-js';
 
 interface Order {
   id: string;
@@ -396,23 +397,54 @@ function PaymentContent() {
                   </span>
                 </div>
                 
-                <button
-                  onClick={handlePayment}
-                  disabled={isProcessing}
-                  className="w-full py-3 px-4 mt-6 bg-gradient-to-r from-purple-600 to-purple-800 text-white rounded-lg hover:from-purple-700 hover:to-purple-900 font-medium disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center"
-                >
-                  {isProcessing ? (
-                    <>
-                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Processing...
-                    </>
-                  ) : (
-                    `Pay ${formatCurrency(order.amount, order.currency)}`
-                  )}
-                </button>
+                {selectedMethod !== PaymentMethod.PAYPAL && (
+                  <button
+                    onClick={handlePayment}
+                    disabled={isProcessing}
+                    className="w-full py-3 px-4 mt-6 bg-gradient-to-r from-purple-600 to-purple-800 text-white rounded-lg hover:from-purple-700 hover:to-purple-900 font-medium disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center"
+                  >
+                    {isProcessing ? (
+                      <>
+                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Processing...
+                      </>
+                    ) : (
+                      `Pay ${formatCurrency(order.amount, order.currency)}`
+                    )}
+                  </button>
+                )}
+                
+                {selectedMethod === PaymentMethod.PAYPAL && (
+                  <div className="mt-6">
+                    <PayPalScriptProvider 
+                      options={{ clientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || '', currency: order.currency }}
+                    >
+                      <PayPalButtons
+                        style={{ layout: 'vertical' }}
+                        createOrder={async () => {
+                          const res = await fetch('/api/paypal/create-order', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ orderId: order.id, amount: order.amount, currency: order.currency })
+                          });
+                          const data = await res.json();
+                          return data.id;
+                        }}
+                        onApprove={async (data) => {
+                          await fetch('/api/paypal/capture-order', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ orderID: data.orderID })
+                          });
+                          router.push('/payment/success?orderId=' + order.id);
+                        }}
+                      />
+                    </PayPalScriptProvider>
+                  </div>
+                )}
                 
                 <p className="text-purple-300 text-xs text-center mt-4">
                   Your payment information is encrypted and secure.
