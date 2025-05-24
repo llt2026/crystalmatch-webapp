@@ -9,11 +9,41 @@ const openai = new OpenAI({
 
 // 能量类型映射表（从中国传统五行到西化能量类型）
 const energyTypes = {
-  wood: { type: 'growth', name: '生长能量', description: '激发创造力，推动行动力' },
-  fire: { type: 'passion', name: '热情能量', description: '点燃自信与勇气' },
-  earth: { type: 'stability', name: '稳固能量', description: '帮助你脚踏实地，增强安全感' },
-  metal: { type: 'clarity', name: '清晰能量', description: '理清思路，提高决策力' },
-  water: { type: 'fluid', name: '流动能量', description: '助你灵活应对，情绪顺畅' },
+  wood: { 
+    type: 'growth', 
+    name: '生长能量', 
+    description: '激发创造力，推动行动力',
+    traits: ['创造力', '行动力', '进取心', '活力'],
+    color: '#22c55e'
+  },
+  fire: { 
+    type: 'passion', 
+    name: '热情能量', 
+    description: '点燃自信与勇气',
+    traits: ['热情', '自信', '勇气', '表现力'],
+    color: '#ef4444'
+  },
+  earth: { 
+    type: 'stability', 
+    name: '稳固能量', 
+    description: '帮助你脚踏实地，增强安全感',
+    traits: ['稳定', '踏实', '安全感', '耐心'],
+    color: '#eab308'
+  },
+  metal: { 
+    type: 'clarity', 
+    name: '清晰能量', 
+    description: '理清思路，提高决策力',
+    traits: ['理性', '决策力', '组织能力', '精确'],
+    color: '#6b7280'
+  },
+  water: { 
+    type: 'fluid', 
+    name: '流动能量', 
+    description: '助你灵活应对，情绪顺畅',
+    traits: ['灵活性', '适应力', '直觉', '情感流动'],
+    color: '#3b82f6'
+  },
 };
 
 // 生肖映射
@@ -103,71 +133,81 @@ function getCrystalRecommendations(elements: { [key: string]: number }): any[] {
   const weakestElement = sortedElements[4][0];
   
   // 水晶数据库
-  const crystalDb: { [key: string]: Array<{ name: string; reason: string; tip: string }> } = {
+  const crystalDb: { [key: string]: Array<{ name: string; description: string; benefits: string[]; usage: string }> } = {
     wood: [
       { 
         name: '绿幽灵水晶', 
-        reason: '增强生长能量，激发创造力', 
-        tip: '放在工作区域，每天触摸3-5分钟，有助于激发创新思维' 
+        description: '增强生长能量，激发创造力', 
+        benefits: ['创造力', '行动力', '财富'],
+        usage: '放在工作区域，每天触摸3-5分钟，有助于激发创新思维' 
       },
       { 
         name: '绿色碧玺', 
-        reason: '补充生长能量，增强生命力', 
-        tip: '佩戴在项链或手链上，靠近心脏位置，增强活力' 
+        description: '补充生长能量，增强生命力', 
+        benefits: ['活力', '健康', '成长'],
+        usage: '佩戴在项链或手链上，靠近心脏位置，增强活力' 
       }
     ],
     fire: [
       { 
         name: '红纹石', 
-        reason: '提升热情能量，增强自信心', 
-        tip: '早晨冥想时握住它，设定积极的日常目标' 
+        description: '提升热情能量，增强自信心', 
+        benefits: ['自信', '热情', '爱情'],
+        usage: '早晨冥想时握住它，设定积极的日常目标' 
       },
       { 
         name: '太阳石', 
-        reason: '激活热情能量，促进乐观思维', 
-        tip: '放在阳光充足的窗台，每天吸收10分钟的阳光' 
+        description: '激活热情能量，促进乐观思维', 
+        benefits: ['乐观', '领导力', '正能量'],
+        usage: '放在阳光充足的窗台，每天吸收10分钟的阳光' 
       }
     ],
     earth: [
       { 
         name: '黄水晶', 
-        reason: '强化稳固能量，增强安全感', 
-        tip: '放在家中或办公室的中央位置，创造稳定的环境' 
+        description: '强化稳固能量，增强安全感', 
+        benefits: ['财富', '稳定', '自信'],
+        usage: '放在家中或办公室的中央位置，创造稳定的环境' 
       },
       { 
         name: '虎眼石', 
-        reason: '平衡稳固能量，增强决策力', 
-        tip: '重要决策前，将它放在左手掌心，深呼吸5次' 
+        description: '平衡稳固能量，增强决策力', 
+        benefits: ['勇气', '保护', '洞察力'],
+        usage: '重要决策前，将它放在左手掌心，深呼吸5次' 
       }
     ],
     metal: [
       { 
         name: '白水晶', 
-        reason: '提升清晰能量，增强思维能力', 
-        tip: '在思考或冥想时，将它放在额头前方，帮助理清思路' 
+        description: '提升清晰能量，增强思维能力', 
+        benefits: ['清晰', '净化', '专注'],
+        usage: '在思考或冥想时，将它放在额头前方，帮助理清思路' 
       },
       { 
         name: '月光石', 
-        reason: '增强清晰能量，提高直觉', 
-        tip: '入睡前放在枕边，有助于解决梦中的问题' 
+        description: '增强清晰能量，提高直觉', 
+        benefits: ['直觉', '情感平衡', '新开始'],
+        usage: '入睡前放在枕边，有助于解决梦中的问题' 
       }
     ],
     water: [
       { 
         name: '海蓝宝', 
-        reason: '增强流动能量，促进情绪顺畅', 
-        tip: '洗澡时，将它放在浴室，帮助释放压力和情绪' 
+        description: '增强流动能量，促进情绪顺畅', 
+        benefits: ['沟通', '平静', '清晰'],
+        usage: '洗澡时，将它放在浴室，帮助释放压力和情绪' 
       },
       { 
         name: '蓝碧玺', 
-        reason: '活化流动能量，增强沟通能力', 
-        tip: '在沟通困难时，将它轻握在手中，帮助表达流畅' 
+        description: '活化流动能量，增强沟通能力', 
+        benefits: ['表达', '治疗', '智慧'],
+        usage: '在沟通困难时，将它轻握在手中，帮助表达流畅' 
       }
     ]
   };
   
   // 选择2-3颗水晶
-  const recommendations: Array<{ name: string; reason: string; tip: string }> = [];
+  const recommendations: Array<{ name: string; description: string; benefits: string[]; usage: string }> = [];
   
   // 选择一颗强化主导能量的水晶
   const dominantCrystal = crystalDb[dominantElement][0];
@@ -202,7 +242,9 @@ async function generateEnergyReport(
         type: element, 
         name: energyTypes[element as keyof typeof energyTypes].name,
         description: energyTypes[element as keyof typeof energyTypes].description,
-        strength: value 
+        strength: value,
+        traits: energyTypes[element as keyof typeof energyTypes].traits,
+        color: energyTypes[element as keyof typeof energyTypes].color
       }));
       
     const primaryEnergy = sortedElements[0];
@@ -367,7 +409,9 @@ function createDefaultReport(birthInfo: any, elementProportions: { [key: string]
       type: element, 
       name: energyTypes[element as keyof typeof energyTypes].name,
       description: energyTypes[element as keyof typeof energyTypes].description,
-      strength: value 
+      strength: value,
+      traits: energyTypes[element as keyof typeof energyTypes].traits,
+      color: energyTypes[element as keyof typeof energyTypes].color
     }));
     
   const primaryEnergy = sortedElements[0];
