@@ -66,7 +66,7 @@ const PairShareCard: React.FC<Props> = ({ percent, quote }) => {
         </div>
         
         <div className="absolute bottom-10 right-10 opacity-30">
-          <img src="/icons/logo-watermark.svg" alt="CrystalMatch" className="w-48" />
+          <div className="text-white text-xl font-bold">CrystalMatch</div>
         </div>
       </div>
       <button 

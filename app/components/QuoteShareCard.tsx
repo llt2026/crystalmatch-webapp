@@ -58,7 +58,7 @@ const QuoteShareCard: React.FC<Props> = ({ quote }) => {
           {quote}
         </div>
         <div className="absolute bottom-10 right-10 opacity-30">
-          <img src="/icons/logo-watermark.svg" alt="CrystalMatch" className="w-60" />
+          <div className="text-white text-2xl font-bold">CrystalMatch</div>
         </div>
       </div>
       <button 
