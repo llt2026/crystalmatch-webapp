@@ -4,7 +4,7 @@ import Image from 'next/image';
 interface CrystalCardProps {
   crystal: {
     name: string;
-    image: string;
+    image?: string;
     description: string;
     benefits: string[];
     usage: string;
@@ -12,12 +12,15 @@ interface CrystalCardProps {
 }
 
 export default function CrystalCard({ crystal }: CrystalCardProps) {
+  // 若后端未提供图片，则使用本地占位图片，避免 Next/Image 抛错
+  const imageSrc = crystal.image || '/images/logo.png';
+
   return (
     <div className="glass-card p-6 rounded-2xl relative overflow-hidden group hover:border-purple-500/30 transition-all duration-300">
       {/* Crystal Image */}
       <div className="relative h-48 mb-4 rounded-lg overflow-hidden group-hover:scale-105 transition-transform duration-300">
         <Image
-          src={crystal.image}
+          src={imageSrc}
           alt={crystal.name}
           fill
           className="object-cover"
