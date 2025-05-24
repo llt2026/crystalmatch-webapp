@@ -98,6 +98,24 @@ export default function EnergyReading() {
     actionSteps
   } = report;
 
+  // 添加安全检查
+  if (!primaryEnergy || !secondaryEnergy || !energyRanking || !zodiac || !westernAstrology || !crystalRecommendations || !actionSteps) {
+    console.error('报告数据不完整:', report);
+    return (
+      <main className="flex min-h-screen flex-col items-center justify-center p-4 bg-gradient-to-br from-purple-900 to-black">
+        <div className="glass-card max-w-md w-full p-8 text-center rounded-2xl">
+          <h2 className="text-xl font-bold mb-4">数据加载不完整，请稍后重试</h2>
+          <Link 
+            href="/birth-info" 
+            className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-800 text-white rounded-lg font-medium hover:from-purple-700 hover:to-purple-900 transform hover:scale-105 transition-all duration-300"
+          >
+            重新生成
+          </Link>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="min-h-screen p-4 sm:p-8 md:p-12 bg-gradient-to-br from-purple-900 to-black">
       <div className="max-w-4xl mx-auto">
@@ -226,7 +244,12 @@ export default function EnergyReading() {
         {/* Daily Rituals */}
         <div className="glass-card p-8 rounded-2xl mb-8">
           <h3 className="text-2xl font-bold mb-6">Daily Energy Rituals</h3>
-          <ActionSteps steps={actionSteps} />
+          <ActionSteps steps={actionSteps.map((step: string, index: number) => ({
+            title: `步骤 ${index + 1}`,
+            description: step,
+            time: '5分钟',
+            icon: index === 0 ? 'meditation' : index === 1 ? 'nature' : index === 2 ? 'crystal' : 'ritual'
+          }))} />
         </div>
         
         {/* Action Buttons */}
