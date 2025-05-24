@@ -7,13 +7,15 @@ interface EnergyCardProps {
     name: string;
     description: string;
     strength: number;
-    traits: string[];
-    color: string;
+    traits?: string[];
+    color?: string;
+    tip?: string;
   };
   isPrimary?: boolean;
 }
 
 export default function EnergyCard({ title, energy, isPrimary = false }: EnergyCardProps) {
+  const traits = energy.traits || [];
   return (
     <div className={`glass-card p-6 rounded-2xl relative overflow-hidden ${
       isPrimary ? 'border-2 border-purple-500/30' : 'border border-purple-500/20'
@@ -45,7 +47,7 @@ export default function EnergyCard({ title, energy, isPrimary = false }: EnergyC
       <div className="space-y-2">
         <div className="text-sm font-medium text-purple-300">Key Traits:</div>
         <div className="flex flex-wrap gap-2">
-          {energy.traits.map((trait, index) => (
+          {traits.map((trait, index) => (
             <span
               key={index}
               className={`px-3 py-1 rounded-full text-sm
