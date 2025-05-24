@@ -1,83 +1,56 @@
 import { NextRequest, NextResponse } from 'next/server';
-import nodemailer from 'nodemailer';
-import { saveCode, checkCode } from '@/utils/verify-code';
+import type { Transporter } from 'nodemailer';
+import { saveCode, checkCode, checkRateLimit } from '@/utils/upstash';
 
-export const dynamic = 'force-dynamic'; // Mark as dynamic route
+export const dynamic = 'force-dynamic'; // 明确标记为动态路由
 
-// 启用详细日志
-const DEBUG = true;
+// nodemailer 仅在需要发送邮件时动态导入，避免在Serverless只读文件系统触发写操作
+let transporter: Transporter | null = null;
 
-// 使用内存Map存储频率限制信息
-const RATE_LIMIT_MAP = new Map<string, number>();
-const RATE_LIMIT_SECONDS = 60; // 60秒内只能发送一次
+async function getTransporter() {
+  if (transporter) return transporter;
+  const nodemailer = await import('nodemailer');
+  transporter = nodemailer.default.createTransport({
+    host: process.env.MAIL_HOST,
+    port: Number(process.env.MAIL_PORT || 587),
+    secure: Number(process.env.MAIL_PORT) === 465, // true for 465, false for other ports
+    auth: {
+      user: process.env.MAIL_USER,
+      pass: process.env.MAIL_PASS,
+    },
+  });
+  return transporter;
+}
 
-// Create email transporter
-const transporter = nodemailer.createTransport({
-  host: process.env.MAIL_HOST,
-  port: Number(process.env.MAIL_PORT) || 587,
-  secure: Number(process.env.MAIL_PORT) === 465, // true for 465, false for other ports
-  auth: {
-    user: process.env.MAIL_USER,
-    pass: process.env.MAIL_PASS,
-  },
-});
-
-// Generate 6-digit verification code
+// 生成6位数字验证码
 function generateCode(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
-// 检查频率限制
-function checkRateLimit(email: string): { allowed: boolean; remainingTime?: number } {
-  const now = Date.now();
-  const lastSent = RATE_LIMIT_MAP.get(email) || 0;
-  const elapsedSeconds = Math.floor((now - lastSent) / 1000);
-  
-  if (lastSent && elapsedSeconds < RATE_LIMIT_SECONDS) {
-    return {
-      allowed: false,
-      remainingTime: RATE_LIMIT_SECONDS - elapsedSeconds
-    };
-  }
-  
-  // 更新最后发送时间
-  RATE_LIMIT_MAP.set(email, now);
-  return { allowed: true };
-}
-
 export async function POST(request: NextRequest) {
   try {
-    console.log('Processing verification code request');
-    console.log('SKIP_REDIS is set to:', process.env.SKIP_REDIS);
-    
+    console.log('开始处理发送验证码请求');
     const { email } = await request.json();
 
     if (!email) {
-      console.log('Error: Email address is empty');
+      console.log('错误: 邮箱地址为空');
       return NextResponse.json(
         { error: 'Email is required' },
         { status: 400 }
       );
     }
 
-    // 标准化邮箱地址
+    // 规范化邮箱地址
     const normalizedEmail = email.toLowerCase().trim();
-    
-    if (DEBUG) {
-      console.log(`处理邮箱: ${normalizedEmail}`);
-    }
+    console.log(`处理邮箱: ${normalizedEmail}`);
 
-    // Log mail configuration for debugging
-    console.log(`Mail configuration: ${process.env.MAIL_HOST}:${process.env.MAIL_PORT}`);
-    console.log(`From: ${process.env.MAIL_FROM || process.env.MAIL_USER}`);
-    
-    // Check if environment variables exist
+    // 检查环境变量是否存在
     const skipMailSending = process.env.SKIP_MAIL_SENDING === 'true';
     const hasMailConfig = process.env.MAIL_HOST && process.env.MAIL_PORT && 
                          process.env.MAIL_USER && process.env.MAIL_PASS;
     
     if (!hasMailConfig && !skipMailSending) {
-      console.error('Mail environment variables incomplete', {
+      console.error('邮件环境变量不完整', {
         host: !!process.env.MAIL_HOST,
         port: !!process.env.MAIL_PORT,
         user: !!process.env.MAIL_USER,
@@ -86,8 +59,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Mail configuration incomplete' }, { status: 500 });
     }
 
-    // 检查频率限制
-    const rateLimit = checkRateLimit(normalizedEmail);
+    // 检查是否在60秒内发送过验证码
+    const rateLimit = await checkRateLimit(normalizedEmail, 60);
     
     if (!rateLimit.allowed) {
       return NextResponse.json(
@@ -99,20 +72,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate verification code
+    // 生成验证码
     const code = generateCode();
-    let codeExpirySeconds = 600; // 10 minutes (与verify-code.ts中的TTL一致)
+    const codeExpirySeconds = 600; // 10分钟过期
 
     try {
-      console.log(`Preparing to send verification code ${code} to ${normalizedEmail}`);
+      console.log(`准备发送验证码 ${code} 到 ${normalizedEmail}`);
       
-      // Store code using the new unified storage system (Redis or memory)
-      await saveCode(normalizedEmail, code);
+      // 存储验证码到Redis或内存
+      await saveCode(normalizedEmail, code, codeExpirySeconds);
       
-      // Send verification code email
+      // 发送验证码邮件
       if (!skipMailSending) {
         try {
-          await transporter.sendMail({
+          // 延迟获取 transporter
+          const tx = await getTransporter();
+          await tx.sendMail({
             from: process.env.MAIL_FROM || process.env.MAIL_USER,
             to: normalizedEmail,
             subject: 'CrystalMatch Verification Code',
@@ -126,22 +101,22 @@ export async function POST(request: NextRequest) {
               </div>
             `
           });
-          console.log('Email sent successfully');
+          console.log('邮件发送成功');
         } catch (mailError: any) {
-          // Email sending failed but code was stored, log error but don't interrupt
-          console.error('Email sending failed, but verification code was saved:', mailError);
-          console.log(`======== Test mode: Code = ${code} ========`);
+          // 邮件发送失败但验证码已存储，记录错误但不中断
+          console.error('邮件发送失败，但验证码已保存:', mailError);
+          console.log(`======== 测试模式: 验证码 = ${code} ========`);
         }
       } else {
-        // Skip email sending, output code for testing
-        console.log(`======== Test mode: Code = ${code} ========`);
+        // 跳过邮件发送，输出验证码用于测试
+        console.log(`======== 测试模式: 验证码 = ${code} ========`);
       }
       
     } catch (error: any) {
-      console.error('Verification code processing error:', error);
-      // Return code in test mode even if error occurs
+      console.error('验证码处理错误:', error);
+      // 测试模式下即使出错也返回验证码
       if (skipMailSending || !hasMailConfig) {
-        console.log(`======== Test mode (error): Code = ${code} ========`);
+        console.log(`======== 测试模式(错误): 验证码 = ${code} ========`);
         return NextResponse.json({ 
           success: true,
           expirySeconds: codeExpirySeconds,
@@ -159,10 +134,10 @@ export async function POST(request: NextRequest) {
       success: true,
       expirySeconds: codeExpirySeconds,
       testMode: skipMailSending || !hasMailConfig,
-      code: process.env.NODE_ENV !== 'production' ? code : undefined // 仅在非生产环境返回验证码
+      code: process.env.NODE_ENV !== 'production' && (skipMailSending || !hasMailConfig) ? code : undefined
     });
   } catch (error: any) {
-    console.error('Verification code processing error:', error);
+    console.error('验证码处理错误:', error);
     return NextResponse.json(
       { error: `Processing error: ${error.message}` },
       { status: 500 }
@@ -170,8 +145,6 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Legacy verification code validation method, kept for compatibility
-// but it's recommended to use /api/auth/verify-code instead
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const email = searchParams.get('email');
@@ -184,18 +157,15 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // 标准化邮箱
+  // 规范化邮箱
   const normalizedEmail = email.toLowerCase().trim();
   
-  // 使用新的统一验证接口
+  // 使用Upstash验证验证码
   const isValid = await checkCode(normalizedEmail, code);
   
   if (!isValid) {
     return NextResponse.json(
-      { 
-        error: 'Verification code not found or expired',
-        reason: 'invalid_code' 
-      },
+      { error: 'Verification code not found or expired' },
       { status: 400 }
     );
   }

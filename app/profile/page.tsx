@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import Image from 'next/image';
 import { useTranslation } from '../utils/useTranslation';
 
@@ -20,6 +21,21 @@ interface UserProfile {
   };
   reportsCount: number;
   joinedAt: string;
+  birthInfo?: {
+    date: string; // ISO date string
+  };
+}
+
+interface BasicReport {
+  title: string;
+  year: number;
+  type: 'basic' | 'premium';
+  statusLabel?: string; // 如 FREE
+}
+
+interface MonthlyReport {
+  monthLabel: string; // e.g. 'May 2025 Energy Report'
+  isNew?: boolean;
 }
 
 export default function ProfilePage() {
@@ -75,84 +91,88 @@ export default function ProfilePage() {
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-purple-900 to-black px-4 py-6 sm:p-8">
-      <div className="max-w-4xl mx-auto">
-        {/* Profile Header */}
-        <div className="bg-black/30 backdrop-blur-xl rounded-2xl p-4 sm:p-6 mb-6 sm:mb-8 shadow-xl">
-          <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-8">
-            <div className="relative w-24 h-24 sm:w-32 sm:h-32">
-              {profile.avatar ? (
-                <Image
-                  src={profile.avatar}
-                  alt={t('profile.title')}
-                  fill
-                  className="rounded-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full rounded-full bg-purple-500/20 flex items-center justify-center">
-                  <span className="text-3xl sm:text-4xl text-purple-300">
-                    {profile.name.charAt(0).toUpperCase()}
-                  </span>
-                </div>
-              )}
-            </div>
-            <div className="text-center sm:text-left flex-1">
-              <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">{profile.name}</h1>
-              <p className="text-gray-300 text-sm sm:text-base mb-3">{profile.email}</p>
-              <div className="flex flex-wrap justify-center sm:justify-start gap-2">
-                <span className={`px-3 py-1 rounded-full text-xs sm:text-sm ${
-                  profile.subscription.status === 'premium'
-                    ? 'bg-purple-500/20 text-purple-300'
-                    : 'bg-gray-500/20 text-gray-300'
-                }`}>
-                  {profile.subscription.status === 'premium' ? t('subscription.premium') : t('subscription.basic')}
-                </span>
-                <span className="px-3 py-1 rounded-full bg-white/10 text-gray-300 text-xs sm:text-sm">
-                  {`${t('profile.joinedAt')} ${new Date(profile.joinedAt).toLocaleDateString()}`}
+      <Link href="/" className="inline-flex items-center text-purple-300 hover:text-white transition-colors mb-4">
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+          <path fillRule="evenodd" d="M9.707 14.707a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 1.414L7.414 9H15a1 1 0 110 2H7.414l2.293 2.293a1 1 0 010 1.414z" clipRule="evenodd" />
+        </svg>
+        Home
+      </Link>
+      <div className="max-w-xs sm:max-w-sm mx-auto space-y-6">
+        {/* Header */}
+        <div className="bg-black/30 backdrop-blur-xl rounded-2xl p-5 shadow-xl flex flex-col items-center text-center space-y-2">
+          {/* Avatar */}
+          <div className="relative w-20 h-20">
+            {profile.avatar ? (
+              <Image src={profile.avatar} alt={`${profile.name} avatar`} fill className="rounded-full object-cover" />
+            ) : (
+              <div className="w-full h-full rounded-full bg-purple-500/30 flex items-center justify-center">
+                <span className="text-3xl text-purple-200 font-semibold">
+                  {profile.name.charAt(0).toUpperCase()}
                 </span>
               </div>
+            )}
+          </div>
+          {/* Name & Email */}
+          <div>
+            <p className="text-lg font-semibold text-white leading-tight">{profile.name}</p>
+            <p className="text-xs text-purple-200">{profile.email}</p>
+          </div>
+          {/* Birth date */}
+          {profile.birthInfo?.date && (
+            <div className="flex items-center gap-1 text-xs text-purple-300">
+              <span className="material-symbols-rounded text-base">calendar_today</span>
+              {new Date(profile.birthInfo.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
             </div>
-          </div>
-        </div>
-
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6 sm:mb-8">
-          <div className="bg-black/30 backdrop-blur-xl p-4 rounded-xl text-center">
-            <h3 className="text-sm sm:text-base text-purple-300 mb-2">{t('profile.energyReadings')}</h3>
-            <p className="text-xl sm:text-2xl font-bold text-white">{profile.reportsCount}</p>
-          </div>
-          <div className="bg-black/30 backdrop-blur-xl p-4 rounded-xl text-center">
-            <h3 className="text-sm sm:text-base text-purple-300 mb-2">{t('profile.location')}</h3>
-            <p className="text-sm sm:text-base text-white">{profile.location.city}, {profile.location.state}</p>
-          </div>
+          )}
+          {/* Subscription badge */}
           {profile.subscription.status === 'premium' && (
-            <div className="bg-black/30 backdrop-blur-xl p-4 rounded-xl text-center sm:col-span-2 lg:col-span-1">
-              <h3 className="text-sm sm:text-base text-purple-300 mb-2">{t('subscription.expiresAt')}</h3>
-              <p className="text-sm sm:text-base text-white">
-                {profile.subscription.expiresAt
-                  ? new Date(profile.subscription.expiresAt).toLocaleDateString()
-                  : t('subscription.never')}
-              </p>
-            </div>
+            <span className="px-2 py-0.5 rounded-full text-[10px] bg-purple-700 text-white">PREMIUM</span>
           )}
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row gap-3">
-          <button
-            onClick={() => router.push('/profile/edit')}
-            className="w-full sm:flex-1 px-4 py-3 bg-gradient-to-r from-purple-600 to-purple-800 text-white rounded-lg text-sm sm:text-base font-medium hover:from-purple-700 hover:to-purple-900 transition-all"
-          >
-            {t('profile.updateProfile')}
-          </button>
+        {/* UPGRADE Button */}
+        {profile.subscription.status === 'free' && (
           <button
             onClick={() => router.push('/subscription')}
-            className="w-full sm:flex-1 px-4 py-3 bg-black/30 backdrop-blur-xl text-white rounded-lg text-sm sm:text-base font-medium hover:bg-white/10 transition-all"
+            className="w-full py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-semibold uppercase tracking-wide transition-colors"
           >
-            {profile.subscription.status === 'premium' 
-              ? t('subscription.manage')
-              : t('subscription.upgrade')}
+            UPGRADE
           </button>
-        </div>
+        )}
+
+        {/* Reports */}
+        <section className="text-white space-y-4">
+          {/* Section Title */}
+          <h2 className="text-sm font-semibold">Reports</h2>
+
+          {/* Annual Basic Report */}
+          <Link href={`/report/annual-basic-${new Date().getFullYear()}${profile.birthInfo?.date ? `?birthDate=${encodeURIComponent(profile.birthInfo.date)}` : ''}`} className="bg-gradient-to-br from-purple-600/30 to-purple-800/30 p-4 rounded-xl flex justify-between items-start no-underline">
+            <div className="leading-tight">
+              <p className="text-sm font-medium">Annual Basic Report</p>
+              <p className="text-[11px] text-purple-200">2025</p>
+            </div>
+            <span className="text-[10px] px-2 py-0.5 h-fit rounded-full bg-white/10 text-purple-200 border border-purple-400/50 self-center">FREE</span>
+          </Link>
+
+          {/* Annual Premium Report */}
+          <Link href={`/report/annual-premium-${new Date().getFullYear()}${profile.birthInfo?.date ? `?birthDate=${encodeURIComponent(profile.birthInfo.date)}` : ''}`} className="bg-gradient-to-br from-purple-600/30 to-purple-800/30 p-4 rounded-xl flex justify-between items-center no-underline">
+            <p className="text-sm font-medium">Annual Premium Report 2025</p>
+          </Link>
+
+          {/* Monthly Deep Reports */}
+          <div className="space-y-2">
+            <h3 className="text-xs font-semibold tracking-wide uppercase text-purple-200 mb-1">Monthly Deep Reports</h3>
+            {[
+              { label: 'May 2025 Energy Report', isNew: true },
+              { label: 'Apr 2025 Energy Report', isNew: false },
+            ].map((r) => (
+              <Link key={r.label} href={`/report/${r.label.startsWith('May') ? `${new Date().getFullYear()}-05` : `${new Date().getFullYear()}-04`}${profile.birthInfo?.date ? `?birthDate=${encodeURIComponent(profile.birthInfo.date)}` : ''}`} className="bg-black/40 p-3 rounded-lg flex justify-between items-center no-underline">
+                <span className="text-xs">{r.label}</span>
+                {r.isNew && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-purple-600 text-white">NEW</span>}
+              </Link>
+            ))}
+          </div>
+        </section>
       </div>
     </main>
   );

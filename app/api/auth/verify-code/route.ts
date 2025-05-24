@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 import { prisma } from '@/app/lib/prisma';
-import { checkCode } from '@/utils/verify-code';
+import { checkCode } from '@/utils/upstash';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
@@ -11,8 +11,8 @@ export async function POST(request: NextRequest) {
   try {
     const { email, code } = await request.json();
     
-    // Log request info for debugging
-    console.log(`Verification request: email=${email}, code=${code}, time=${new Date().toISOString()}`);
+    // 记录请求信息用于调试
+    console.log(`验证请求: email=${email}, code=${code}, time=${new Date().toISOString()}`);
     
     if (!email || !code) {
       return NextResponse.json(
@@ -21,16 +21,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 标准化邮箱
+    // 规范化邮箱
     const normalizedEmail = email.toLowerCase().trim();
     console.log(`验证码验证请求: ${normalizedEmail}, code=${code}`);
 
-    // Verify verification code using the new system
+    // 使用Upstash验证验证码
     const isValid = await checkCode(normalizedEmail, code);
     
-    // If verification fails, return error
+    // 如果验证失败，返回错误
     if (!isValid) {
-      console.log(`Verification failed: email=${normalizedEmail}, reason=invalid_code`);
+      console.log(`验证失败: email=${normalizedEmail}, reason=invalid_code`);
       
       return NextResponse.json(
         { 
@@ -41,9 +41,9 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    console.log(`Verification successful: email=${normalizedEmail}`);
+    console.log(`验证成功: email=${normalizedEmail}`);
     
-    // Verification successful, find or create user
+    // 验证成功，查找或创建用户
     let user;
     try {
       user = await prisma.user.findUnique({
@@ -51,29 +51,28 @@ export async function POST(request: NextRequest) {
       });
       
       if (!user) {
-        // Create new user if doesn't exist
+        // 如果用户不存在则创建
         user = await prisma.user.create({
           data: {
             email: normalizedEmail,
             emailVerified: new Date(),
           },
         });
-        console.log(`New user created: ${normalizedEmail}`);
+        console.log(`新用户创建: ${normalizedEmail}`);
       } else {
-        // Update existing user's emailVerified field
+        // 更新现有用户的emailVerified字段
         user = await prisma.user.update({
           where: { email: normalizedEmail },
           data: { emailVerified: new Date() },
         });
-        console.log(`Existing user updated: ${normalizedEmail}`);
+        console.log(`现有用户更新: ${normalizedEmail}`);
       }
     } catch (error) {
-      console.error('Error accessing database:', error);
-      // Continue even if database operations fail - this allows login to work 
-      // even if Prisma/database is not available
+      console.error('访问数据库错误:', error);
+      // 即使数据库操作失败也继续 - 允许登录即使Prisma/数据库不可用
     }
     
-    // Generate JWT token for authentication
+    // 生成JWT令牌用于身份验证
     const token = jwt.sign(
       { 
         email: normalizedEmail,
@@ -84,7 +83,7 @@ export async function POST(request: NextRequest) {
       { expiresIn: '30d' }
     );
     
-    // Return success response
+    // 返回成功响应
     return NextResponse.json({
       success: true,
       token,
@@ -99,7 +98,7 @@ export async function POST(request: NextRequest) {
       }
     });
   } catch (error: any) {
-    console.error('Verification process error:', error);
+    console.error('验证过程错误:', error);
     return NextResponse.json(
       { error: `Verification failed: ${error.message}` },
       { status: 500 }

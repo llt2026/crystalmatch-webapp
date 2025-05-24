@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
@@ -11,6 +11,29 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [codeSent, setCodeSent] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+
+  useEffect(() => {
+    // 自动检测登录
+    (async () => {
+      try {
+        const res = await fetch('/api/user/profile', { credentials: 'include', cache: 'no-store' });
+        if (res.ok) {
+          router.replace('/profile');
+          return;
+        }
+      } catch {}
+      setCheckingAuth(false);
+    })();
+  }, []);
+
+  if (checkingAuth) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-900 to-black">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-purple-500"></div>
+      </div>
+    );
+  }
 
   const handleSendCode = async () => {
     try {
@@ -20,7 +43,9 @@ export default function LoginPage() {
       const response = await fetch('/api/auth/send-code', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email })
+        body: JSON.stringify({ email }),
+        cache: 'no-store',
+        credentials: 'include',
       });
 
       const data = await response.json();
@@ -42,20 +67,26 @@ export default function LoginPage() {
       setIsLoading(true);
       setError('');
       
-      const response = await fetch('/api/auth/verify-code', {
+      const response = await fetch('/api/auth/token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, code })
+        body: JSON.stringify({ email, code }),
+        cache: 'no-store',
+        credentials: 'include',
       });
 
       const data = await response.json();
       
-      if (!response.ok) {
-        throw new Error(data.error);
+      if (response.status === 404 && data?.unregistered) {
+        router.push('/birth-info?email=' + encodeURIComponent(email));
+        return;
       }
 
-      // Login successful, redirect to dashboard
-      router.push('/dashboard');
+      if (!response.ok) {
+        throw new Error(data.error || 'Login failed');
+      }
+
+      router.push('/profile');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to verify code');
     } finally {

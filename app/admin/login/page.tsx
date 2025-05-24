@@ -44,7 +44,7 @@ export default function AdminLoginPage() {
         <div className="flex flex-col items-center mb-8">
           <div className="flex items-center mb-4 space-x-2">
             <Image 
-              src="/crystal-logo.svg" 
+              src="/images/crystal-logo-v3.svg" 
               alt="Crystal Logo" 
               width={30} 
               height={30}

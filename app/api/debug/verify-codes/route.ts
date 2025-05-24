@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAllLocalCodes, saveCode, checkCode } from '@/utils/verify-code';
-import { redis } from '@/utils/redis';
+import { redis, getAllCodes, saveCode, checkCode } from '@/utils/upstash';
 
 export const dynamic = 'force-dynamic';
 
+/**
+ * 调试端点 - 获取当前存储的所有验证码
+ * 仅在开发环境可用
+ */
 export async function GET(request: NextRequest) {
-  // For security, only allow in development
+  // 生产环境不可用
   if (process.env.NODE_ENV === 'production') {
     return NextResponse.json({ error: 'Not allowed in production' }, { status: 403 });
   }
@@ -16,8 +19,8 @@ export async function GET(request: NextRequest) {
   // 检查Redis配置
   const redisEnabled = !!redis;
   
-  // 获取内存中的验证码
-  const localCodes = getAllLocalCodes();
+  // 获取所有验证码
+  const allCodes = getAllCodes();
   
   return NextResponse.json({
     now: new Date().toISOString(),
@@ -29,13 +32,15 @@ export async function GET(request: NextRequest) {
     } : null,
     skipRedis: process.env.SKIP_REDIS === 'true',
     storage: redisEnabled ? 'Upstash Redis' : 'Local Memory',
-    memoryCodes: localCodes
+    codes: allCodes
   });
 }
 
-// Test API to save a verification code
+/**
+ * 测试API - 保存验证码
+ */
 export async function POST(request: NextRequest) {
-  // For security, only allow in development
+  // 生产环境不可用
   if (process.env.NODE_ENV === 'production') {
     return NextResponse.json({ error: 'Not allowed in production' }, { status: 403 });
   }
@@ -64,9 +69,11 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Test API to verify a code
+/**
+ * 测试API - 验证验证码
+ */
 export async function PUT(request: NextRequest) {
-  // For security, only allow in development
+  // 生产环境不可用
   if (process.env.NODE_ENV === 'production') {
     return NextResponse.json({ error: 'Not allowed in production' }, { status: 403 });
   }

@@ -66,7 +66,7 @@ export default function NavBar() {
             <div className="flex items-center">
               <Link href="/admin/dashboard" className="flex items-center">
                 <Image 
-                  src="/crystal-logo.svg" 
+                  src="/images/crystal-logo-v3.svg" 
                   alt="Crystal Logo" 
                   width={30} 
                   height={30}
@@ -105,7 +105,7 @@ export default function NavBar() {
           <div className="flex items-center">
             <Link href="/" className="flex items-center">
               <Image 
-                src="/crystal-logo.svg" 
+                src="/images/crystal-logo-v3.svg" 
                 alt="Crystal Logo" 
                 width={30} 
                 height={30}

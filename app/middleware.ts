@@ -75,7 +75,17 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Regular user authentication
+  // Special handling for report pages to allow public annual-basic slugs
+  if (pathname.startsWith('/report')) {
+    const slug = pathname.split('/').pop() || '';
+    const isFreeSlug = slug.startsWith('annual-basic-');
+    if (isFreeSlug) {
+      return NextResponse.next();
+    }
+    // For premium/monthly slug, require token later; fall through
+  }
+
+  // Regular user authentication (for non-public & non-free report)
   const token = request.cookies.get('token')?.value;
 
   if (!token) {
@@ -88,6 +98,19 @@ export async function middleware(request: NextRequest) {
       token,
       new TextEncoder().encode(process.env.JWT_SECRET || 'crystalmatch-secure-jwt-secret-key')
     );
+    
+    // After verifying token exists, additional subscription check for paid reports
+    if (pathname.startsWith('/report')) {
+      const slug = pathname.split('/').pop() || '';
+      // free slug already returned earlier
+      if (!token) {
+        return NextResponse.redirect(new URL('/subscription', request.url));
+      }
+      if (!token.includes('premium') && !token.includes('monthly') && !token.includes('yearly')) {
+        return NextResponse.redirect(new URL('/subscription', request.url));
+      }
+      return NextResponse.next();
+    }
     
     return NextResponse.next();
   } catch (error) {

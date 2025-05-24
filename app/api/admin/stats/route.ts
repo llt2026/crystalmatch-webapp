@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { validateAdminToken } from '../../../middleware/adminAuth';
+import { prisma } from '@/app/lib/prisma';
 
 // Mock online users data store
 // In a real application, this would be stored in a database or Redis
@@ -11,6 +12,9 @@ setInterval(() => {
   const change = Math.floor(Math.random() * 10) - 5;
   onlineUsers = Math.max(20, Math.min(100, onlineUsers + change)); // Keep between 20-100
 }, 30000); // Update every 30 seconds
+
+// 强制动态，避免被 Next.js 预渲染时执行
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
@@ -31,15 +35,42 @@ export async function GET(request: NextRequest) {
       return date.toLocaleDateString('en-US', { month: 'short' });
     });
 
-    // User statistics
-    // In a real application, these would be queried from the database
-    const totalUsers = 1254;
-    const activeUsers = 876; // Users active in the last 30 days
-    const subscribedUsers = 312; // Users with active subscriptions
-    
-    // Subscription breakdown
-    const monthlySubscribers = 198;
-    const yearlySubscribers = 114;
+    // ===== 使用真实数据库统计，如果查询失败则回退到0 =====
+    let totalUsers = 0;
+    let activeUsers = 0;
+    let subscribedUsers = 0;
+
+    try {
+      totalUsers = await prisma.user.count();
+
+      activeUsers = await prisma.user.count({
+        where: {
+          lastLoginAt: {
+            gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // 最近30天登录
+          },
+        },
+      });
+
+      // 订阅用户：至少有一个状态为 active 的订阅
+      subscribedUsers = await prisma.user.count({
+        where: {
+          subscriptions: {
+            some: {
+              status: {
+                in: ['active', 'premium', 'paid'],
+              },
+            },
+          },
+        },
+      });
+    } catch (e) {
+      console.error('[admin/stats] 查询数据库失败:', e);
+      // 可选：针对开发或空库给出占位 0
+    }
+
+    // Subscription breakdown (示例 - 以后可改为实际聚合)
+    const monthlySubscribers = 0; // 暂时设为0
+    const yearlySubscribers = 0;
     
     // Calculate conversion rate
     const conversionRate = (subscribedUsers / totalUsers * 100).toFixed(2);
@@ -66,11 +97,7 @@ export async function GET(request: NextRequest) {
       
       // Financial metrics
       conversionRate: `${conversionRate}%`,
-      revenue: {
-        total: parseFloat((mrr * 12).toFixed(2)),
-        mrr: parseFloat(mrr.toFixed(2)),
-        arpu: parseFloat(arpu)
-      },
+      revenue: parseFloat((mrr * 12).toFixed(2)),
       
       // Growth metrics
       userGrowth: {

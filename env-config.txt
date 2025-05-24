@@ -1,0 +1,12 @@
+# 数据库配置
+DATABASE_URL="mongodb://localhost:27017/crystalmatch"
+
+# JWT密钥
+JWT_SECRET="your-secret-key-should-be-very-long-and-random"
+
+# 邮件服务器配置
+MAIL_HOST="smtp.example.com"  # 您的SMTP服务器地址
+MAIL_PORT="587"               # SMTP端口 (通常是587或465)
+MAIL_USER="your-email@example.com"  # 您的邮箱账号
+MAIL_PASS="your-email-password"     # 您的邮箱密码
+MAIL_FROM="noreply@crystalmatch.com"  # 发件人地址 

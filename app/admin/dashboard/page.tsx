@@ -186,7 +186,7 @@ export default function AdminDashboard() {
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <div className="flex items-center">
             <Image 
-              src="/crystal-logo.svg" 
+              src="/images/crystal-logo-v3.svg" 
               alt="Crystal Logo" 
               width={30} 
               height={30}

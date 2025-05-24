@@ -1,22 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
+import { checkCode } from '@/utils/upstash';
+import { prisma } from '@/app/lib/prisma';
 // import { PrismaClient } from '@prisma/client';
 
 // 暂时注释掉Prisma数据库操作，以允许构建通过
 // const prisma = new PrismaClient();
-
-// 声明全局类型
-declare global {
-  var registrationCodes: Map<string, {
-    code: string;
-    timestamp: number;
-  }>;
-}
-
-// 初始化验证码存储（在实际应用中应使用Redis或数据库）
-if (!global.registrationCodes) {
-  global.registrationCodes = new Map();
-}
 
 const JWT_SECRET = process.env.JWT_SECRET || 'crystalmatch-secure-jwt-secret-key';
 
@@ -42,77 +31,44 @@ export async function POST(request: NextRequest) {
     }
 
     // 检查邮箱是否已注册
-    // 暂时模拟此操作
-    // const existingUser = await prisma.user.findUnique({
-    //   where: { email }
-    // });
-    
-    // if (existingUser) {
-    //   return NextResponse.json({ error: 'User already exists' }, { status: 409 });
-    // }
+    const normalizedEmail = email.toLowerCase().trim();
 
-    // 验证码检查
-    const storedData = global.registrationCodes?.get(email);
-    
-    if (!storedData) {
+    const existingUser = await prisma.user.findUnique({
+      where: { email: normalizedEmail }
+    });
+
+    if (existingUser) {
+      return NextResponse.json({ error: 'User already exists' }, { status: 409 });
+    }
+
+    // 统一使用Upstash Redis验证验证码
+    const isValid = await checkCode(normalizedEmail, code);
+
+    if (!isValid) {
       return NextResponse.json(
-        { error: 'Verification code not found' },
+        { error: 'Verification code not found or expired' },
         { status: 400 }
       );
     }
-
-    // 验证码5分钟有效期
-    const isExpired = Date.now() - storedData.timestamp > 5 * 60 * 1000;
-    
-    if (isExpired) {
-      global.registrationCodes.delete(email);
-      return NextResponse.json(
-        { error: 'Verification code expired' },
-        { status: 400 }
-      );
-    }
-
-    if (storedData.code !== code) {
-      return NextResponse.json(
-        { error: 'Invalid verification code' },
-        { status: 400 }
-      );
-    }
-
-    // 验证成功，删除验证码
-    global.registrationCodes.delete(email);
 
     // 解析出生日期信息
     const birthDate = new Date(birthdate);
     
     // 创建新用户
-    // 暂时模拟此操作
-    // const user = await prisma.user.create({
-    //   data: {
-    //     email,
-    //     name,
-    //     birthInfo: {
-    //       date: birthDate.toISOString(),
-    //       time: birthDate.toTimeString(),
-    //     },
-    //     preferences: {
-    //       notifications: true,
-    //       newsletter: true,
-    //       language: 'zh'
-    //     }
-    //   }
-    // });
-    
-    const mockUser = {
-      id: 'user-id-123',
-      email,
-      name,
-      createdAt: new Date()
-    };
+    const user = await prisma.user.create({
+      data: {
+        email: normalizedEmail,
+        name,
+        emailVerified: new Date(),
+        birthInfo: {
+          date: birthDate.toISOString(),
+        },
+      },
+    });
 
     // 生成JWT令牌
     const token = jwt.sign(
-      { userId: mockUser.id, email },
+      { userId: user.id, email },
       JWT_SECRET,
       { expiresIn: '7d' }
     );
@@ -121,9 +77,9 @@ export async function POST(request: NextRequest) {
     const response = NextResponse.json({ 
       message: 'User registered successfully',
       user: {
-        id: mockUser.id,
-        email: mockUser.email,
-        name: mockUser.name
+        id: user.id,
+        email: user.email,
+        name: user.name
       }
     });
     

@@ -6,7 +6,6 @@
 
 generator client {
   provider        = "prisma-client-js"
-  output          = "../generated/prisma"
   previewFeatures = ["metrics", "fullTextSearchPostgres", "postgresqlExtensions"]
   engineType      = "binary"
 }
@@ -21,6 +20,7 @@ model User {
   id            String         @id @default(uuid())
   email         String         @unique
   name          String?
+  emailVerified DateTime?
   avatar        String?
   location      Json?
   birthInfo     Json?

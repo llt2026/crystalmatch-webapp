@@ -6,6 +6,8 @@ import { getUserOrders } from '@/app/lib/payment/service';
  * 获取用户订单历史
  * GET /api/user/orders
  */
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     // 验证用户身份
