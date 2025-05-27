@@ -149,7 +149,8 @@ const EnergyCalendar: React.FC<EnergyCalendarProps> = ({
             </tr>
           </thead>
           <tbody>
-            {monthlyData.slice(0, visibleMonths).map((month, index) => (
+            {/* 始终显示所有12个月 */}
+            {monthlyData.slice(0, 12).map((month, index) => (
               <tr key={month.month} className={index % 2 === 0 ? 'bg-purple-900/60' : 'bg-purple-800/40'}>
                 <td className="py-3 px-4 border-b border-purple-700 text-white">{month.month}</td>
                 <td className="py-3 px-4 border-b border-purple-700">
@@ -162,7 +163,7 @@ const EnergyCalendar: React.FC<EnergyCalendarProps> = ({
                   )}
                 </td>
                 <td className="py-3 px-4 border-b border-purple-700 text-white">
-                  {/* 水晶显示逻辑 - 免费用户不显示月度水晶 */}
+                  {/* 水晶显示逻辑 - 免费用户只显示锁定图标 */}
                   {(subscriptionTier === 'monthly' && index === 0) || 
                    subscriptionTier === 'yearly' ? (
                     <div className="flex items-center">
@@ -177,13 +178,9 @@ const EnergyCalendar: React.FC<EnergyCalendarProps> = ({
                       </span>
                       {month.crystal}
                     </div>
-                  ) : subscriptionTier === 'free' ? (
-                    <span className="text-gray-400">
-                      <span className="mr-1">🔒</span> Upgrade for monthly crystal
-                    </span>
                   ) : (
                     <span className="text-gray-400">
-                      <span className="mr-1">🔒</span> Locked
+                      <span className="mr-1">🔒</span> Upgrade for monthly crystal
                     </span>
                   )}
                 </td>
@@ -207,32 +204,11 @@ const EnergyCalendar: React.FC<EnergyCalendarProps> = ({
                 </td>
               </tr>
             ))}
-            
-            {/* If free user, show locked rows indicator */}
-            {subscriptionTier === 'free' && (
-              <tr className="bg-purple-800/40">
-                <td colSpan={4} className="py-3 px-4 border-b border-purple-700 text-center text-gray-400">
-                  <span className="mr-1">🔒</span> Remaining 11 months locked
-                </td>
-              </tr>
-            )}
           </tbody>
         </table>
       </div>
       
-      {/* Monthly subscription info */}
-      {subscriptionTier === 'monthly' && (
-        <div className="mt-4 text-sm text-gray-300">
-          <p>Your monthly subscription includes access to the current month's detailed reports and crystal recommendations.</p>
-        </div>
-      )}
-      
-      {/* Yearly subscription info */}
-      {subscriptionTier === 'yearly' && (
-        <div className="mt-4 text-sm text-gray-300">
-          <p>Your annual subscription includes access to all 12 months of detailed reports and crystal recommendations.</p>
-        </div>
-      )}
+      {/* Subscription tier info - removed */}
     </div>
   );
 };
