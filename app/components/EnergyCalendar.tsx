@@ -59,6 +59,8 @@ const EnergyCalendar: React.FC<EnergyCalendarProps> = ({
     let weakestOverallElement: { elem: Elem, score: number } = { elem: 'earth', score: 100 };
     let baseScores: ElementRecord | null = null; // 存储八字基础分数
 
+    console.log("开始计算能量日历，生日:", birthday);
+
     // Always calculate all 12 months data, but display according to subscription tier
     for (let i = 0; i < 12; i++) {
       const currentDate = addMonths(today, i);
@@ -71,10 +73,12 @@ const EnergyCalendar: React.FC<EnergyCalendarProps> = ({
           dateRef: currentDate,
           prevMonthScores
         });
-        
+
         // 保存八字基础分数(首月)
         if (i === 0) {
           baseScores = { ...energyData.baseScores };
+          console.log("首月八字基础分数:", baseScores);
+          console.log("首月当前分数:", energyData.monthScores);
         }
         
         // Find the lowest element for this month
@@ -110,12 +114,37 @@ const EnergyCalendar: React.FC<EnergyCalendarProps> = ({
         if (i === 0) {
           // 首月：与八字基础值比较
           // 计算当月分数与八字基础分数的平均差异
-          const avgDiff = Object.keys(energyData.monthScores).reduce((sum, elemKey) => {
+          const diffs = Object.keys(energyData.monthScores).map(elemKey => {
             const elem = elemKey as Elem;
-            return sum + (energyData.monthScores[elem] - energyData.baseScores[elem]);
-          }, 0) / 5;
+            const diff = energyData.monthScores[elem] - energyData.baseScores[elem];
+            return { elem, diff };
+          });
+          
+          console.log("首月各元素差异:", diffs);
+          
+          const avgDiff = diffs.reduce((sum, item) => sum + item.diff, 0) / 5;
+          console.log("首月平均差异:", avgDiff);
           
           roundedChange = Math.round(avgDiff);
+
+          // 防止首月显示为0，确保有可见的变化
+          if (roundedChange === 0) {
+            // 查找变化最大的元素
+            const maxDiff = diffs.reduce((max, item) => 
+              Math.abs(item.diff) > Math.abs(max.diff) ? item : max, 
+              { elem: 'earth', diff: 0 }
+            );
+            
+            // 如果有任何元素有非零变化，使用该变化的符号
+            if (maxDiff.diff !== 0) {
+              roundedChange = maxDiff.diff > 0 ? 1 : -1;
+            } else {
+              // 如果所有元素变化都是0，使用最弱元素决定方向
+              roundedChange = weakestOverallElement.score < 50 ? -1 : 1;
+            }
+            
+            console.log("首月修正后变化值:", roundedChange);
+          }
         } else {
           // 非首月：与上月比较(使用diffScores)
           const avgChange = Object.values(energyData.diffScores).reduce((sum, val) => sum + val, 0) / 5;
@@ -139,7 +168,7 @@ const EnergyCalendar: React.FC<EnergyCalendarProps> = ({
         console.error(`Error calculating energy for ${monthName}:`, error);
         months.push({
           month: monthName,
-          energyChange: 0,
+          energyChange: i === 0 ? 1 : 0, // 确保首月有值
           trend: 'stable' as const,
           crystal: 'Unknown',
           lowestElement: 'earth'
