@@ -4,217 +4,160 @@ import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import './styles.css';
+import { SUBSCRIPTION_FEATURES, SUBSCRIPTION_TIERS } from '@/app/lib/subscription-config';
 
 export default function SubscriptionPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-purple-900 to-purple-700 text-white bg-gradient-animate">
-      <Link href="/profile" className="inline-flex items-center text-purple-300 hover:text-white transition-colors ml-4 mt-4">
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
-          <path fillRule="evenodd" d="M9.707 14.707a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 1.414L7.414 9H15a1 1 0 110 2H7.414l2.293 2.293a1 1 0 010 1.414z" clipRule="evenodd" />
-        </svg>
-        Back
-      </Link>
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <div className="flex justify-center mb-4">
-            <span className="text-yellow-300 text-4xl mr-2 star-twinkle">✨</span>
-            <h1 className="text-4xl md:text-5xl font-bold text-shadow">CrystalMatch Plans</h1>
-          </div>
-          <p className="text-xl md:text-2xl mt-2 text-shadow">Discover your energy. Transform your life.</p>
-        </div>
-
-        {/* Subscription Plans */}
-        <div className="space-y-6 md:space-y-8">
-          {/* Free Plan */}
-          <div className="bg-purple-800/70 rounded-xl p-6 md:p-8 shadow-lg border border-purple-600/30 backdrop-blur-sm subscription-card">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-shadow">Free</h2>
-            <ul className="space-y-3 mb-6">
-              <li className="flex items-start">
-                <span className="text-yellow-300 mr-2 mt-1">•</span>
-                <span>Recommended crystal for 2025</span>
-              </li>
-              <li className="flex items-start">
-                <span className="text-yellow-300 mr-2 mt-1">•</span>
-                <span>Main energy type for 2025</span>
-              </li>
-              <li className="flex items-start">
-                <span className="text-yellow-300 mr-2 mt-1">•</span>
-                <span>Energy types & levels for next 12 months</span>
-              </li>
-              <li className="flex items-start">
-                <span className="text-yellow-300 mr-2 mt-1">•</span>
-                <span>Report saved for 1 month</span>
-              </li>
-              <li className="flex items-start">
-                <span className="text-yellow-300 mr-2 mt-1">•</span>
-                <span>Shareable report link</span>
-              </li>
-            </ul>
-            <Link 
-              href="/birth-info"
-              className="block w-full py-3 bg-purple-600 hover:bg-purple-500 transition-colors rounded-lg text-center font-medium btn-subscribe"
-            >
-              Start Free
-            </Link>
-          </div>
-
-          {/* Monthly Plan */}
-          <div className="bg-purple-800/70 rounded-xl p-6 md:p-8 shadow-lg border border-purple-500/50 backdrop-blur-sm relative overflow-hidden subscription-card">
-            <div className="absolute -right-12 top-6 rotate-45 bg-yellow-500 text-purple-900 px-12 py-1 font-medium text-sm">
-              POPULAR
-            </div>
-            <div className="flex justify-between items-start mb-4">
-              <h2 className="text-3xl md:text-4xl font-bold text-shadow">Monthly</h2>
-              <div className="text-right">
-                <div className="text-3xl md:text-4xl font-bold">$4.99</div>
-                <div className="text-sm opacity-80">per month</div>
+    <div className="container mx-auto px-4 py-8 max-w-5xl">
+      <h1 className="text-2xl md:text-3xl font-bold text-center mb-2">Choose Your Plan</h1>
+      <p className="text-center text-gray-600 mb-8">Unlock personalized energy insights and crystal recommendations</p>
+      
+      {/* Subscription tiers */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+        {SUBSCRIPTION_TIERS.map((tier) => (
+          <div 
+            key={tier.id}
+            className={`rounded-lg overflow-hidden border ${
+              tier.recommended 
+                ? 'border-indigo-500 shadow-lg' 
+                : 'border-gray-200'
+            }`}
+          >
+            {tier.recommended && (
+              <div className="bg-indigo-500 text-white text-center py-1 text-sm font-medium">
+                BEST VALUE
               </div>
-            </div>
-            <ul className="space-y-3 mb-6">
-              <li className="flex items-start">
-                <span className="text-yellow-300 mr-2 mt-1">•</span>
-                <span>All Free plan features</span>
-              </li>
-              <li className="flex items-start">
-                <span className="text-yellow-300 mr-2 mt-1">•</span>
-                <span>Current month deep insights</span>
-              </li>
-              <li className="flex items-start">
-                <span className="text-yellow-300 mr-2 mt-1">•</span>
-                <span>Energy-boosting tips</span>
-              </li>
-              <li className="flex items-start">
-                <span className="text-yellow-300 mr-2 mt-1">•</span>
-                <span>Personalized action steps</span>
-              </li>
-              <li className="flex items-start">
-                <span className="text-yellow-300 mr-2 mt-1">•</span>
-                <span>Monthly crystal recommendations</span>
-              </li>
-              <li className="flex items-start">
-                <span className="text-yellow-300 mr-2 mt-1">•</span>
-                <span>Daily energy insights</span>
-              </li>
-              <li className="flex items-start">
-                <span className="text-yellow-300 mr-2 mt-1">•</span>
-                <span>Monthly style guidance</span>
-              </li>
-            </ul>
-            <Link 
-              href="/payment?plan=monthly"
-              className="block w-full py-3 bg-yellow-500 hover:bg-yellow-400 transition-colors rounded-lg text-center font-medium text-purple-900 btn-subscribe"
-            >
-              Subscribe Monthly
-            </Link>
-          </div>
-
-          {/* Yearly Plan */}
-          <div className="bg-purple-800/70 rounded-xl p-6 md:p-8 shadow-lg border border-yellow-500/30 backdrop-blur-sm subscription-card">
-            <div className="flex justify-between items-start mb-4">
-              <h2 className="text-3xl md:text-4xl font-bold text-shadow">Annual</h2>
-              <div className="text-right">
-                <div className="text-3xl md:text-4xl font-bold">$49.99</div>
-                <div className="text-sm opacity-80">per year</div>
-                <div className="text-sm bg-green-500/20 text-green-300 px-2 py-0.5 rounded mt-1">Save 17%</div>
+            )}
+            
+            <div className="p-6">
+              <h2 className="text-xl font-bold mb-2">{tier.name}</h2>
+              
+              <div className="mb-4">
+                <span className="text-3xl font-bold">{tier.price}</span>
+                {tier.period && <span className="text-gray-500 ml-1">{tier.period}</span>}
               </div>
-            </div>
-            <ul className="space-y-3 mb-6">
-              <li className="flex items-start">
-                <span className="text-yellow-300 mr-2 mt-1">•</span>
-                <span>All Monthly plan features</span>
-              </li>
-              <li className="flex items-start">
-                <span className="text-yellow-300 mr-2 mt-1">•</span>
-                <span>Full year energy overview</span>
-              </li>
-              <li className="flex items-start">
-                <span className="text-yellow-300 mr-2 mt-1">•</span>
-                <span>Quarterly energy snapshots</span>
-              </li>
-              <li className="flex items-start">
-                <span className="text-yellow-300 mr-2 mt-1">•</span>
-                <span>Month-to-month transition guides</span>
-              </li>
-              <li className="flex items-start">
-                <span className="text-yellow-300 mr-2 mt-1">•</span>
-                <span>Key energy days for the year</span>
-              </li>
-              <li className="flex items-start">
-                <span className="text-yellow-300 mr-2 mt-1">•</span>
-                <span>Advanced crystal combinations</span>
-              </li>
-              <li className="flex items-start">
-                <span className="text-yellow-300 mr-2 mt-1">•</span>
-                <span>Long-term energy balancing strategies</span>
-              </li>
-              <li className="flex items-start">
-                <span className="text-yellow-300 mr-2 mt-1">•</span>
-                <span>PDF download option</span>
-              </li>
-            </ul>
-            <Link 
-              href="/payment?plan=yearly"
-              className="block w-full py-3 bg-yellow-500 hover:bg-yellow-400 transition-colors rounded-lg text-center font-medium text-purple-900 btn-subscribe"
-            >
-              Best Value - Subscribe Annually
-            </Link>
-          </div>
-        </div>
-
-        {/* User Testimonials */}
-        <div className="mt-16 mb-8">
-          <h2 className="text-2xl font-bold mb-6 text-center text-shadow">What Our Users Say</h2>
-          <div className="grid md:grid-cols-2 gap-6">
-            <div className="bg-purple-800/50 p-4 rounded-lg">
-              <div className="flex items-center mb-3">
-                <div className="text-yellow-300 mr-2">★★★★★</div>
-                <div className="font-medium">Sarah T.</div>
-              </div>
-              <p className="opacity-90">"CrystalMatch has completely transformed my approach to daily challenges. The monthly insights are spot-on!"</p>
-            </div>
-            <div className="bg-purple-800/50 p-4 rounded-lg">
-              <div className="flex items-center mb-3">
-                <div className="text-yellow-300 mr-2">★★★★★</div>
-                <div className="font-medium">Michael R.</div>
-              </div>
-              <p className="opacity-90">"The annual plan is worth every penny. The quarterly snapshots help me prepare for upcoming energy shifts."</p>
+              
+              <ul className="mb-6 space-y-2">
+                {tier.features.map((feature, index) => (
+                  <li key={index} className="flex items-start">
+                    <span className="text-green-500 mr-2">✓</span>
+                    <span>{feature}</span>
+                  </li>
+                ))}
+              </ul>
+              
+              {tier.limitations && tier.limitations.length > 0 && (
+                <div className="mb-6">
+                  <p className="text-sm text-gray-500 mb-1">Limitations:</p>
+                  <ul className="space-y-1">
+                    {tier.limitations.map((limitation, index) => (
+                      <li key={index} className="text-sm text-gray-500 flex items-start">
+                        <span className="mr-2">•</span>
+                        <span>{limitation}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              
+              <button 
+                className={`w-full py-2 px-4 rounded-md font-medium ${
+                  tier.id === 'free' 
+                    ? 'bg-gray-100 text-gray-700' 
+                    : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                }`}
+                disabled={tier.id === 'free'}
+              >
+                {tier.buttonText}
+              </button>
             </div>
           </div>
-        </div>
-
-        {/* FAQ Section */}
-        <div className="mt-16 mb-8">
-          <h2 className="text-2xl font-bold mb-6 text-center text-shadow">Frequently Asked Questions</h2>
-          <div className="space-y-4">
-            <div className="bg-purple-800/50 p-4 rounded-lg">
-              <h3 className="font-medium text-lg">How accurate are the energy readings?</h3>
-              <p className="mt-2 opacity-80">Our readings combine traditional Chinese Five Elements theory and Western astrological principles to provide personalized insights based on your birth information.</p>
-            </div>
-            <div className="bg-purple-800/50 p-4 rounded-lg">
-              <h3 className="font-medium text-lg">Can I change my subscription plan later?</h3>
-              <p className="mt-2 opacity-80">Yes, you can upgrade or downgrade your subscription at any time. Changes will take effect at the start of your next billing cycle.</p>
-            </div>
-            <div className="bg-purple-800/50 p-4 rounded-lg">
-              <h3 className="font-medium text-lg">How do I cancel my subscription?</h3>
-              <p className="mt-2 opacity-80">You can cancel your subscription anytime from your account settings. You'll continue to have access until the end of your current billing period.</p>
-            </div>
-            <div className="bg-purple-800/50 p-4 rounded-lg">
-              <h3 className="font-medium text-lg">Is my payment information secure?</h3>
-              <p className="mt-2 opacity-80">Absolutely. We use industry-standard encryption and secure payment processors to ensure your payment information is always protected.</p>
-            </div>
+        ))}
+      </div>
+      
+      {/* Feature comparison table */}
+      <h2 className="text-xl font-bold text-center mb-6">Feature Comparison</h2>
+      
+      <div className="overflow-x-auto mb-12">
+        <table className="min-w-full bg-white border border-gray-200">
+          <thead>
+            <tr className="bg-gray-100">
+              <th className="py-3 px-4 text-left border-b">Feature</th>
+              <th className="py-3 px-4 text-center border-b">Free Snapshot</th>
+              <th className="py-3 px-4 text-center border-b">Monthly Plan $4.99</th>
+              <th className="py-3 px-4 text-center border-b">Annual Plan</th>
+            </tr>
+          </thead>
+          <tbody>
+            {Object.entries(SUBSCRIPTION_FEATURES).map(([key, feature]) => (
+              <tr key={key} className="hover:bg-gray-50">
+                <td className="py-3 px-4 border-b">{feature.description}</td>
+                <td className="py-3 px-4 text-center border-b">
+                  {typeof feature.free === 'boolean' ? (
+                    feature.free ? (
+                      <span className="text-green-500">✓</span>
+                    ) : (
+                      <span className="text-gray-300">—</span>
+                    )
+                  ) : (
+                    <span className="text-sm">{feature.free}</span>
+                  )}
+                </td>
+                <td className="py-3 px-4 text-center border-b">
+                  {typeof feature.monthly === 'boolean' ? (
+                    feature.monthly ? (
+                      <span className="text-green-500">✓</span>
+                    ) : (
+                      <span className="text-gray-300">—</span>
+                    )
+                  ) : (
+                    <span className="text-sm">{feature.monthly}</span>
+                  )}
+                </td>
+                <td className="py-3 px-4 text-center border-b">
+                  {typeof feature.yearly === 'boolean' ? (
+                    feature.yearly ? (
+                      <span className="text-green-500">✓</span>
+                    ) : (
+                      <span className="text-gray-300">—</span>
+                    )
+                  ) : (
+                    <span className="text-sm">{feature.yearly}</span>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      
+      {/* FAQ Section */}
+      <div className="mb-12">
+        <h2 className="text-xl font-bold text-center mb-6">Frequently Asked Questions</h2>
+        
+        <div className="space-y-4 max-w-3xl mx-auto">
+          <div className="border border-gray-200 rounded-lg p-4">
+            <h3 className="font-medium mb-2">How do the subscription plans work?</h3>
+            <p className="text-gray-600">Monthly plans are charged every 30 days, while annual plans offer a discounted rate and are charged once per year. Both plans include automatic renewal, which you can cancel anytime.</p>
+          </div>
+          
+          <div className="border border-gray-200 rounded-lg p-4">
+            <h3 className="font-medium mb-2">Can I cancel my subscription?</h3>
+            <p className="text-gray-600">Yes, you can cancel your subscription at any time. Monthly plans have a 14-day refund window. Annual plans have a 14-day refund window, but you can't request a refund after monthly reports have been generated.</p>
+          </div>
+          
+          <div className="border border-gray-200 rounded-lg p-4">
+            <h3 className="font-medium mb-2">What's the difference between monthly and annual plans?</h3>
+            <p className="text-gray-600">Annual plans provide access to all 12 months of crystal recommendations and save over 16% compared to paying monthly. Monthly plans only provide current month crystal recommendations but still give you access to the full energy calendar.</p>
           </div>
         </div>
-
-        {/* Footer Info */}
-        <div className="mt-12 text-center">
-          <p className="text-lg opacity-90">Join thousands of users who have transformed their lives with CrystalMatch</p>
-          <div className="flex justify-center items-center mt-3 space-x-2">
-            <span className="text-yellow-300 text-xl">✨</span>
-            <p className="text-sm opacity-70">Cancel anytime. No hidden fees. 100% satisfaction guaranteed.</p>
-            <span className="text-yellow-300 text-xl">✨</span>
-          </div>
-        </div>
+      </div>
+      
+      {/* Back to app link */}
+      <div className="text-center">
+        <Link href="/" className="text-indigo-600 hover:text-indigo-800">
+          ← Back to Energy Dashboard
+        </Link>
       </div>
     </div>
   );
