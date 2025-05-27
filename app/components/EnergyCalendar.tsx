@@ -133,66 +133,35 @@ const EnergyCalendar: React.FC<EnergyCalendarProps> = ({
   return (
     <div className="w-full mt-6 mb-12">
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-bold text-gray-800">Energy Calendar</h2>
-        
-        {!isPremium && (
-          <Link 
-            href="/subscription" 
-            className="text-sm text-indigo-600 hover:text-indigo-800 font-medium"
-          >
-            Upgrade for Full Calendar
-          </Link>
-        )}
+        <h2 className="text-xl font-bold text-white">Energy Calendar</h2>
       </div>
       
-      {/* 免费用户的总体水晶推荐 */}
-      {subscriptionTier === 'free' && (
-        <div className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-          <h3 className="text-md font-medium mb-2">Your Overall Crystal Recommendation</h3>
-          <div className="flex items-center">
-            <span className="mr-2">
-              <Image 
-                src={`/images/crystals/${overallCrystal.element}.png`} 
-                alt={overallCrystal.name}
-                width={24}
-                height={24}
-                className="inline-block"
-              />
-            </span>
-            <span>
-              <strong>{overallCrystal.name}</strong> - Based on your birth chart's five elements balance
-            </span>
-          </div>
-          <p className="text-sm text-gray-600 mt-2">
-            Upgrade to premium to get monthly crystal recommendations based on your changing energy.
-          </p>
-        </div>
-      )}
+      {/* 免费用户的总体水晶推荐 - 已移除 */}
       
       <div className="overflow-x-auto">
-        <table className="min-w-full bg-white border border-gray-200 rounded-lg">
+        <table className="min-w-full bg-purple-900/60 border border-purple-800 rounded-lg">
           <thead>
-            <tr className="bg-gray-100">
-              <th className="py-3 px-4 text-left text-gray-700 font-medium">Month</th>
-              <th className="py-3 px-4 text-left text-gray-700 font-medium">Energy Change</th>
-              <th className="py-3 px-4 text-left text-gray-700 font-medium">Crystal</th>
-              <th className="py-3 px-4 text-left text-gray-700 font-medium">Action</th>
+            <tr className="bg-purple-800/80">
+              <th className="py-3 px-4 text-left text-white font-medium">Month</th>
+              <th className="py-3 px-4 text-left text-white font-medium">Energy Change</th>
+              <th className="py-3 px-4 text-left text-white font-medium">Crystal</th>
+              <th className="py-3 px-4 text-left text-white font-medium">Action</th>
             </tr>
           </thead>
           <tbody>
             {monthlyData.slice(0, visibleMonths).map((month, index) => (
-              <tr key={month.month} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                <td className="py-3 px-4 border-b border-gray-200">{month.month}</td>
-                <td className="py-3 px-4 border-b border-gray-200">
+              <tr key={month.month} className={index % 2 === 0 ? 'bg-purple-900/60' : 'bg-purple-800/40'}>
+                <td className="py-3 px-4 border-b border-purple-700 text-white">{month.month}</td>
+                <td className="py-3 px-4 border-b border-purple-700">
                   {month.energyChange === 0 ? (
-                    <span className="text-gray-500">—</span>
+                    <span className="text-gray-300">—</span>
                   ) : month.energyChange > 0 ? (
-                    <span className="text-green-500 font-medium">▲ +{month.energyChange}</span>
+                    <span className="text-green-300 font-medium">▲ +{month.energyChange}</span>
                   ) : (
-                    <span className="text-rose-500 font-medium">▼ {month.energyChange}</span>
+                    <span className="text-rose-300 font-medium">▼ {month.energyChange}</span>
                   )}
                 </td>
-                <td className="py-3 px-4 border-b border-gray-200">
+                <td className="py-3 px-4 border-b border-purple-700 text-white">
                   {/* 水晶显示逻辑 - 免费用户不显示月度水晶 */}
                   {(subscriptionTier === 'monthly' && index === 0) || 
                    subscriptionTier === 'yearly' ? (
@@ -218,18 +187,18 @@ const EnergyCalendar: React.FC<EnergyCalendarProps> = ({
                     </span>
                   )}
                 </td>
-                <td className="py-3 px-4 border-b border-gray-200">
+                <td className="py-3 px-4 border-b border-purple-700">
                   {/* Action button logic based on subscription tier */}
                   {(index === 0 || isPremium) ? (
                     <Link 
                       href={`/monthly-rituals/${month.month.toLowerCase()}`}
-                      className="text-indigo-600 hover:text-indigo-800 font-medium"
+                      className="text-purple-300 hover:text-purple-100 font-medium"
                     >
                       ✓ View Rituals
                     </Link>
                   ) : (
                     <button 
-                      className="text-gray-400 hover:text-gray-600 font-medium flex items-center"
+                      className="text-gray-400 hover:text-gray-300 font-medium flex items-center"
                       onClick={() => window.location.href = '/subscription'}
                     >
                       <span className="mr-1">🔒</span> Tap to unlock
@@ -241,8 +210,8 @@ const EnergyCalendar: React.FC<EnergyCalendarProps> = ({
             
             {/* If free user, show locked rows indicator */}
             {subscriptionTier === 'free' && (
-              <tr className="bg-gray-50">
-                <td colSpan={4} className="py-3 px-4 border-b border-gray-200 text-center text-gray-400">
+              <tr className="bg-purple-800/40">
+                <td colSpan={4} className="py-3 px-4 border-b border-purple-700 text-center text-gray-400">
                   <span className="mr-1">🔒</span> Remaining 11 months locked
                 </td>
               </tr>
@@ -251,39 +220,16 @@ const EnergyCalendar: React.FC<EnergyCalendarProps> = ({
         </table>
       </div>
       
-      {/* Subscription upgrade CTA */}
-      {!isYearly && (
-        <div className="mt-6 p-4 bg-indigo-50 rounded-lg border border-indigo-100">
-          <p className="text-indigo-800 text-sm">
-            {subscriptionTier === 'free' ? (
-              <>
-                <span className="font-medium">Unlock your full Energy Calendar</span> - Get personalized monthly crystal recommendations and energy rituals for every month with a premium subscription.
-              </>
-            ) : (
-              <>
-                <span className="font-medium">Upgrade to Annual Plan</span> - Access all 12 months of crystal recommendations and save over 16% compared to monthly payments.
-              </>
-            )}
-          </p>
-          <Link 
-            href="/subscription" 
-            className="mt-2 inline-block px-4 py-2 bg-indigo-600 text-white rounded-md text-sm font-medium hover:bg-indigo-700"
-          >
-            {subscriptionTier === 'free' ? 'Upgrade Now' : 'Switch to Annual Plan'}
-          </Link>
-        </div>
-      )}
-      
       {/* Monthly subscription info */}
       {subscriptionTier === 'monthly' && (
-        <div className="mt-4 text-sm text-gray-500">
+        <div className="mt-4 text-sm text-gray-300">
           <p>Your monthly subscription includes access to the current month's detailed reports and crystal recommendations.</p>
         </div>
       )}
       
       {/* Yearly subscription info */}
       {subscriptionTier === 'yearly' && (
-        <div className="mt-4 text-sm text-gray-500">
+        <div className="mt-4 text-sm text-gray-300">
           <p>Your annual subscription includes access to all 12 months of detailed reports and crystal recommendations.</p>
         </div>
       )}

@@ -15,10 +15,19 @@ export type ElementData = {
   fullName: string;
 };
 
+// 映射元素简写到完整名称
+const elementFullNames: Record<string, string> = {
+  'S': 'Stability Energy',
+  'F': 'Fluid Energy',
+  'G': 'Growth Energy',
+  'C': 'Clarity Energy',
+  'P': 'Passion Energy'
+};
+
 // Convert element data to recharts format
 const formatDataForChart = (data: ElementData[]) => {
   return data.map(item => ({
-    subject: item.element,
+    subject: elementFullNames[item.element] || item.fullName,
     A: item.value,
     fullMark: 100,
     fullName: item.fullName
@@ -36,7 +45,7 @@ const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
     const data = payload[0].payload;
     return (
       <div className="bg-purple-800 p-3 rounded-lg shadow-lg border border-purple-500">
-        <p className="font-medium text-white">{`${data.fullName}: ${data.A}%`}</p>
+        <p className="font-medium text-white">{`${data.subject}: ${data.A}%`}</p>
       </div>
     );
   }
@@ -51,28 +60,31 @@ const ElementRadarChart: React.FC<ElementRadarChartProps> = ({ data }) => {
   const chartData = formatDataForChart(data);
   
   return (
-    <div className="w-full h-72">
+    <div className="w-full h-80 flex flex-col items-center mb-8">
       <ResponsiveContainer width="100%" height="100%">
         <RadarChart cx="50%" cy="50%" outerRadius="80%" data={chartData}>
-          <PolarGrid stroke="#a78bfa" />
+          <PolarGrid stroke="#6b46c1" strokeOpacity={0.3} />
           <PolarAngleAxis 
             dataKey="subject" 
-            tick={{ fill: 'white', fontSize: 14 }} 
-            axisLine={{ stroke: '#a78bfa' }}
+            tick={{ fill: 'white', fontSize: 14, fontWeight: 500 }} 
+            axisLine={{ stroke: '#6b46c1', strokeOpacity: 0.3 }}
+            tickLine={false}
           />
           <PolarRadiusAxis 
             angle={30} 
             domain={[0, 100]} 
             tick={{ fill: 'white' }} 
-            stroke="#a78bfa" 
+            stroke="#6b46c1" 
+            strokeOpacity={0.3}
             axisLine={false} 
+            tickCount={4}
           />
           <Tooltip content={<CustomTooltip />} />
           <Radar 
             name="Element Strength" 
             dataKey="A" 
-            stroke="#6366f1" 
-            fill="#6366f1" 
+            stroke="#8884d8" 
+            fill="#8884d8" 
             fillOpacity={0.6} 
             activeDot={{ r: 8, fill: '#c4b5fd' }}
           />

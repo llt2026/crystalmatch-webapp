@@ -50,6 +50,26 @@ function transformElementDataToDistribution(data: ElementData[]): { element: any
   });
 }
 
+// 找出用户最弱的元素
+function findWeakestElement(data: ElementData[]): string {
+  if (!data || data.length === 0) return 'earth';
+  
+  // 找出值最小的元素
+  const weakest = data.reduce((min, item) => 
+    item.value < min.value ? item : min, data[0]);
+  
+  // 映射到完整元素名称
+  const elementMap: Record<string, string> = {
+    'S': 'Earth',
+    'F': 'Water',
+    'G': 'Wood',
+    'C': 'Metal',
+    'P': 'Fire'
+  };
+  
+  return elementMap[weakest.element] || weakest.element;
+}
+
 // Sample data - in production this would come from API
 const basicUserData = {
   id: "user-12345",
@@ -126,18 +146,18 @@ export default function EnergyReportPage() {
   }
   
   return (
-    <main className="min-h-screen bg-purple-900 text-white p-4 md:p-8">
+    <main className="min-h-screen bg-gradient-to-b from-purple-950 to-purple-900 text-white p-4 md:p-8">
       {/* User Profile */}
-      <div className="rounded-lg bg-purple-800/60 p-6 mb-6 flex flex-col items-center">
+      <div className="rounded-lg bg-purple-900/60 p-6 mb-8 flex flex-col items-center backdrop-blur-sm border border-purple-800/50">
         <div className="flex flex-col items-center mb-4">
           {userData.avatar && (
-            <div className="w-24 h-24 rounded-full overflow-hidden mb-4 bg-gray-300">
-              <div className="w-full h-full flex items-center justify-center text-gray-500">
+            <div className="w-24 h-24 rounded-full overflow-hidden mb-4 bg-purple-800 border-2 border-purple-600">
+              <div className="w-full h-full flex items-center justify-center text-white text-2xl font-bold">
                 {userData.name?.charAt(0) || '?'}
               </div>
             </div>
           )}
-          <h1 className="text-3xl font-bold mb-2">{userData.name}</h1>
+          <h1 className="text-3xl font-bold mb-2 text-center">{userData.name}</h1>
         </div>
         
         <div className="bg-purple-800/80 rounded-lg p-4 w-full max-w-2xl text-center">
@@ -149,29 +169,32 @@ export default function EnergyReportPage() {
       </div>
       
       {/* Elements Radar Chart */}
-      <div className="rounded-lg bg-purple-800/60 p-6 mb-6">
+      <div className="rounded-lg bg-purple-900/60 p-6 mb-8 backdrop-blur-sm border border-purple-800/50">
+        <h2 className="text-2xl font-bold mb-4 text-center">Your Energy Profile</h2>
         <ElementRadarChart data={userData.elementValues} />
       </div>
       
       {/* Strength & Weakness */}
-      <div className="mb-6">
-        <ElementTraits strength={userData.strength} weakness={userData.weakness} />
-      </div>
+      <ElementTraits strength={userData.strength} weakness={userData.weakness} />
       
       {/* Yearly Crystal */}
-      <div className="mb-6">
-        <YearlyCrystal crystal={{
-          name: userData.yearCrystal.name,
-          description: userData.yearCrystal.description,
-          imageUrl: `/images/crystals/default-crystal.png`,
-          effect: userData.yearCrystal.effect,
-          planetAssociation: userData.yearCrystal.planet,
-          year: userData.yearCrystal.year
-        }} />
+      <div className="mb-8">
+        <YearlyCrystal 
+          crystal={{
+            name: userData.yearCrystal.name,
+            description: userData.yearCrystal.description,
+            imageUrl: `/images/crystals/default-crystal.png`,
+            effect: userData.yearCrystal.effect,
+            planetAssociation: userData.yearCrystal.planet,
+            year: userData.yearCrystal.year
+          }} 
+          isFreeUser={userData.subscriptionTier === 'free'}
+          userElement={findWeakestElement(userData.elementValues)}
+        />
       </div>
       
       {/* Energy Calendar */}
-      <div className="mb-6">
+      <div className="mb-8">
         <EnergyCalendar 
           birthday={userData.birthDate}
           subscriptionTier={userData.subscriptionTier}
@@ -179,22 +202,11 @@ export default function EnergyReportPage() {
         />
       </div>
       
-      {/* Note box */}
-      <div className="rounded-lg bg-purple-800/60 p-6 mb-6">
-        <p className="italic">
-          Note:<br />
-          Each person's core energy is influenced by the yearly and monthly elemental changes.<br />
-          Your energy may rise or dip depending on how these cycles interact with your birth chart.<br />
-          <br />
-          That's why it's essential to adjust monthly—with the right focus, crystals, and small rituals—to stay balanced and empowered.
-        </p>
-      </div>
-      
       {/* Call to action */}
-      <div className="rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 p-6 text-center">
+      <div className="rounded-lg bg-gradient-to-r from-purple-700 to-indigo-700 p-6 text-center backdrop-blur-sm border border-purple-600/50">
         <h2 className="text-2xl font-semibold mb-4">Unlock Your Full Potential</h2>
         <p className="mb-6">Get detailed monthly guidance and personalized crystal recommendations</p>
-        <Link href="/subscription" className="bg-white text-purple-900 px-6 py-2 rounded-lg font-semibold hover:bg-gray-100">
+        <Link href="/subscription" className="bg-white text-purple-900 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
           Upgrade Now
         </Link>
       </div>
