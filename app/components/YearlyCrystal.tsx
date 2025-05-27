@@ -18,7 +18,7 @@ interface YearlyCrystalProps {
 
 const YearlyCrystal: React.FC<YearlyCrystalProps> = ({ crystal, isFreeUser = false, userElement = '' }) => {
   return (
-    <div className="rounded-lg bg-purple-900/60 text-white p-5 mb-8">
+    <div className="rounded-lg bg-purple-800 text-white p-5 mb-8">
       <div className="flex items-center">
         <div className="w-16 h-16 relative mr-4 flex-shrink-0">
           <Image 
@@ -37,7 +37,7 @@ const YearlyCrystal: React.FC<YearlyCrystalProps> = ({ crystal, isFreeUser = fal
           <p className="text-xl font-bold flex items-center">
             {crystal.name} <span className="text-green-300 ml-1">🌿</span>
           </p>
-          <p className="text-sm text-gray-300 mt-1">
+          <p className="text-sm text-gray-200 mt-1">
             {crystal.effect || crystal.description} • {crystal.planetAssociation ? `Planet ${crystal.planetAssociation}` : ''}
           </p>
         </div>
