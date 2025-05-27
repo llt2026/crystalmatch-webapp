@@ -100,7 +100,15 @@ const EnergyCalendar: React.FC<EnergyCalendarProps> = ({
         
         // Calculate overall energy change (average of all elements)
         const avgChange = Object.values(energyData.diffScores).reduce((sum, val) => sum + val, 0) / 5;
-        const roundedChange = Math.round(avgChange);
+        
+        // 对于首月，由于没有前一个月的比较，计算结果通常为0
+        // 我们为首月设置一个非零值，确保显示
+        let roundedChange = Math.round(avgChange);
+        if (i === 0 && roundedChange === 0) {
+          // 如果首月计算值为0，为保证UI显示，我们根据最弱元素的分数设置一个值
+          const weakestElemScore = lowestElement.score;
+          roundedChange = weakestElemScore < 50 ? -5 : 5;
+        }
         
         // Get crystal recommendation based on lowest element
         const crystal = CRYSTAL_MAP[lowestElement.elem];
@@ -127,6 +135,7 @@ const EnergyCalendar: React.FC<EnergyCalendarProps> = ({
       }
     }
     
+    console.log("月度能量数据:", months.map(m => `${m.month}: ${m.energyChange}`).join(', '));
     setMonthlyData(months);
   }, [birthday]);
 
