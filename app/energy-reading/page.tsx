@@ -119,6 +119,23 @@ export default function EnergyReading() {
   return (
     <main className="min-h-screen p-4 sm:p-8 md:p-12 bg-gradient-to-br from-purple-900 to-black">
       <div className="max-w-4xl mx-auto">
+        {/* 新报告页面链接 */}
+        <div className="mb-6 p-4 rounded-lg bg-indigo-600/20 border border-indigo-500/30 text-center">
+          <p className="text-white mb-3">
+            <span className="inline-block animate-pulse text-yellow-300 mr-2">✨</span>
+            <strong>升级体验!</strong> 查看我们全新的五行雷达图能量报告，了解更深入的个性分析
+          </p>
+          <Link 
+            href="/energy-report" 
+            className="inline-flex items-center px-6 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-medium hover:from-indigo-700 hover:to-purple-700 transform hover:scale-105 transition-all duration-300"
+          >
+            查看新版报告
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-1" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
+            </svg>
+          </Link>
+        </div>
+
         <div className="flex justify-between items-center mb-8">
           <Link href="/" className="inline-flex items-center text-purple-300 hover:text-white transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
