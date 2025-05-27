@@ -57,6 +57,7 @@ const EnergyCalendar: React.FC<EnergyCalendarProps> = ({
     }> = [];
     let prevMonthScores: ElementRecord | null = null;
     let weakestOverallElement: { elem: Elem, score: number } = { elem: 'earth', score: 100 };
+    let baseScores: ElementRecord | null = null; // 存储八字基础分数
 
     // Always calculate all 12 months data, but display according to subscription tier
     for (let i = 0; i < 12; i++) {
@@ -70,6 +71,11 @@ const EnergyCalendar: React.FC<EnergyCalendarProps> = ({
           dateRef: currentDate,
           prevMonthScores
         });
+        
+        // 保存八字基础分数(首月)
+        if (i === 0) {
+          baseScores = { ...energyData.baseScores };
+        }
         
         // Find the lowest element for this month
         const lowestElement = Object.entries(energyData.monthScores).reduce(
@@ -98,16 +104,22 @@ const EnergyCalendar: React.FC<EnergyCalendarProps> = ({
           });
         }
         
-        // Calculate overall energy change (average of all elements)
-        const avgChange = Object.values(energyData.diffScores).reduce((sum, val) => sum + val, 0) / 5;
+        // 计算能量变化值
+        let roundedChange: number;
         
-        // 对于首月，由于没有前一个月的比较，计算结果通常为0
-        // 我们为首月设置一个非零值，确保显示
-        let roundedChange = Math.round(avgChange);
-        if (i === 0 && roundedChange === 0) {
-          // 如果首月计算值为0，为保证UI显示，我们根据最弱元素的分数设置一个值
-          const weakestElemScore = lowestElement.score;
-          roundedChange = weakestElemScore < 50 ? -5 : 5;
+        if (i === 0) {
+          // 首月：与八字基础值比较
+          // 计算当月分数与八字基础分数的平均差异
+          const avgDiff = Object.keys(energyData.monthScores).reduce((sum, elemKey) => {
+            const elem = elemKey as Elem;
+            return sum + (energyData.monthScores[elem] - energyData.baseScores[elem]);
+          }, 0) / 5;
+          
+          roundedChange = Math.round(avgDiff);
+        } else {
+          // 非首月：与上月比较(使用diffScores)
+          const avgChange = Object.values(energyData.diffScores).reduce((sum, val) => sum + val, 0) / 5;
+          roundedChange = Math.round(avgChange);
         }
         
         // Get crystal recommendation based on lowest element
