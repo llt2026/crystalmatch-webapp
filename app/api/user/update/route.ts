@@ -49,13 +49,27 @@ export async function POST(request: NextRequest) {
     }
 
     // 更新用户信息
+    const updateData: any = { name };
+    
+    // 将birthdate存入birthInfo JSON字段
+    if (birthdate) {
+      updateData.birthInfo = {
+        birthdate: birthdate,
+        birthDateObject: new Date(birthdate)
+      };
+    }
+    
+    // 添加性别信息
+    if (gender) {
+      updateData.birthInfo = {
+        ...(updateData.birthInfo || {}),
+        gender
+      };
+    }
+
     const updatedUser = await prisma.user.update({
       where: { id: user.id },
-      data: {
-        name,
-        ...(birthdate && { birthdate: new Date(birthdate) }),
-        ...(gender && { gender })
-      }
+      data: updateData
     });
 
     return NextResponse.json({
@@ -63,13 +77,14 @@ export async function POST(request: NextRequest) {
       user: {
         id: updatedUser.id,
         email: updatedUser.email,
-        name: updatedUser.name
+        name: updatedUser.name,
+        birthInfo: updatedUser.birthInfo
       }
     });
   } catch (error) {
     console.error('用户信息更新失败:', error);
     return NextResponse.json(
-      { error: 'Failed to update user information' },
+      { error: '用户信息更新失败: ' + (error instanceof Error ? error.message : String(error)) },
       { status: 500 }
     );
   }
