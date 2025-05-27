@@ -1,0 +1,203 @@
+"use client";
+
+import React, { useEffect, useState } from 'react';
+import Image from 'next/image';
+import Link from 'next/link';
+import ElementRadarChart, { ElementData } from '../components/ElementRadarChart';
+import YearlyCrystal from '../components/YearlyCrystal';
+import EnergyCalendar from '../components/EnergyCalendar';
+import ElementTraits from '../components/ElementTraits';
+import { getUserElementTraits } from '../lib/getUserElementTraits';
+import { getUserCrystal, CrystalRecommendation } from '../lib/getUserCrystal';
+import { useRouter } from 'next/navigation';
+import LoadingScreen from '../components/LoadingScreen';
+
+// Types for our data
+type UserData = {
+  id: string;
+  name: string;
+  avatar?: string;
+  elementValues: ElementData[];
+  strength: {
+    element: string;
+    traits: string[];
+  };
+  weakness: {
+    element: string;
+    traits: string[];
+  };
+  yearCrystal: CrystalRecommendation;
+  birthDate: string;
+  subscriptionTier: 'free' | 'monthly' | 'yearly';
+};
+
+// Transform element data to element distribution for traits calculation
+function transformElementDataToDistribution(data: ElementData[]): { element: any; value: number }[] {
+  return data.map(item => {
+    // Convert short element names to full element names for trait mapping
+    const elementMap: Record<string, string> = {
+      'S': 'earth',
+      'F': 'water',
+      'G': 'wood',
+      'C': 'metal',
+      'P': 'fire'
+    };
+    
+    return {
+      element: elementMap[item.element] || item.element.toLowerCase(),
+      value: item.value
+    };
+  });
+}
+
+// Sample data - in production this would come from API
+const basicUserData = {
+  id: "user-12345",
+  name: "Olivia",
+  avatar: "/images/profile-avatar.jpg",
+  birthDate: "1990-01-01T00:00:00.000Z",
+  subscriptionTier: "free" as const,
+  elementValues: [
+    { element: "S", value: 75, fullName: "Stability Energy" },
+    { element: "F", value: 85, fullName: "Fluid Energy" },
+    { element: "G", value: 45, fullName: "Growth Energy" },
+    { element: "C", value: 35, fullName: "Clarity Energy" },
+    { element: "P", value: 65, fullName: "Passion Energy" },
+  ]
+};
+
+export default function EnergyReportPage() {
+  const router = useRouter();
+  const [userData, setUserData] = useState<UserData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    async function prepareUserData() {
+      try {
+        setLoading(true);
+        
+        // 在实际应用中，这里会从API获取真实用户数据
+        // 现在使用示例数据模拟
+
+        // Convert the element values to the format needed for trait calculation
+        const elementDistribution = transformElementDataToDistribution(basicUserData.elementValues);
+        
+        // Get user's personalized strength and weakness traits
+        const userTraits = getUserElementTraits(basicUserData.id, elementDistribution);
+        
+        // Get user's recommended crystal
+        const userCrystal = getUserCrystal(basicUserData.id, elementDistribution, 2025);
+        
+        // Return combined user data
+        setUserData({
+          ...basicUserData,
+          strength: userTraits.strength,
+          weakness: userTraits.weakness,
+          yearCrystal: userCrystal
+        });
+      } catch (err) {
+        console.error("Error preparing user data:", err);
+        setError('Failed to load your energy report. Please try again later.');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    prepareUserData();
+  }, []);
+
+  if (loading) {
+    return <LoadingScreen />;
+  }
+
+  if (error || !userData) {
+    return (
+      <main className="min-h-screen bg-purple-900 text-white p-4 md:p-8 flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Oops! Something went wrong</h1>
+          <p className="mb-6">{error || "Unable to load your energy report"}</p>
+          <Link href="/" className="bg-white text-purple-900 px-6 py-2 rounded-lg font-semibold hover:bg-gray-100">
+            Return Home
+          </Link>
+        </div>
+      </main>
+    );
+  }
+  
+  return (
+    <main className="min-h-screen bg-purple-900 text-white p-4 md:p-8">
+      {/* User Profile */}
+      <div className="rounded-lg bg-purple-800/60 p-6 mb-6 flex flex-col items-center">
+        <div className="flex flex-col items-center mb-4">
+          {userData.avatar && (
+            <div className="w-24 h-24 rounded-full overflow-hidden mb-4 bg-gray-300">
+              <div className="w-full h-full flex items-center justify-center text-gray-500">
+                {userData.name?.charAt(0) || '?'}
+              </div>
+            </div>
+          )}
+          <h1 className="text-3xl font-bold mb-2">{userData.name}</h1>
+        </div>
+        
+        <div className="bg-purple-800/80 rounded-lg p-4 w-full max-w-2xl text-center">
+          <p className="text-lg">
+            Powered by 2,500-year Five-Element wisdom{" "}
+            <span className="text-yellow-300">⚡</span> &amp; GPT insight
+          </p>
+        </div>
+      </div>
+      
+      {/* Elements Radar Chart */}
+      <div className="rounded-lg bg-purple-800/60 p-6 mb-6">
+        <ElementRadarChart data={userData.elementValues} />
+      </div>
+      
+      {/* Strength & Weakness */}
+      <div className="mb-6">
+        <ElementTraits strength={userData.strength} weakness={userData.weakness} />
+      </div>
+      
+      {/* Yearly Crystal */}
+      <div className="mb-6">
+        <YearlyCrystal crystal={{
+          name: userData.yearCrystal.name,
+          description: userData.yearCrystal.description,
+          imageUrl: `/images/crystals/default-crystal.png`,
+          effect: userData.yearCrystal.effect,
+          planetAssociation: userData.yearCrystal.planet,
+          year: userData.yearCrystal.year
+        }} />
+      </div>
+      
+      {/* Energy Calendar */}
+      <div className="mb-6">
+        <EnergyCalendar 
+          birthday={userData.birthDate}
+          subscriptionTier={userData.subscriptionTier}
+          userId={userData.id}
+        />
+      </div>
+      
+      {/* Note box */}
+      <div className="rounded-lg bg-purple-800/60 p-6 mb-6">
+        <p className="italic">
+          Note:<br />
+          Each person's core energy is influenced by the yearly and monthly elemental changes.<br />
+          Your energy may rise or dip depending on how these cycles interact with your birth chart.<br />
+          <br />
+          That's why it's essential to adjust monthly—with the right focus, crystals, and small rituals—to stay balanced and empowered.
+        </p>
+      </div>
+      
+      {/* Call to action */}
+      <div className="rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 p-6 text-center">
+        <h2 className="text-2xl font-semibold mb-4">Unlock Your Full Potential</h2>
+        <p className="mb-6">Get detailed monthly guidance and personalized crystal recommendations</p>
+        <Link href="/subscription" className="bg-white text-purple-900 px-6 py-2 rounded-lg font-semibold hover:bg-gray-100">
+          Upgrade Now
+        </Link>
+      </div>
+    </main>
+  );
+} 
