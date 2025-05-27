@@ -127,23 +127,17 @@ const EnergyCalendar: React.FC<EnergyCalendarProps> = ({
           
           roundedChange = Math.round(avgDiff);
 
-          // 防止首月显示为0，确保有可见的变化
+          // 如果计算结果为0，尝试使用最大的元素变化
           if (roundedChange === 0) {
-            // 查找变化最大的元素
             const maxDiff = diffs.reduce((max, item) => 
               Math.abs(item.diff) > Math.abs(max.diff) ? item : max, 
               { elem: 'earth', diff: 0 }
             );
             
-            // 如果有任何元素有非零变化，使用该变化的符号
             if (maxDiff.diff !== 0) {
               roundedChange = maxDiff.diff > 0 ? 1 : -1;
-            } else {
-              // 如果所有元素变化都是0，使用最弱元素决定方向
-              roundedChange = weakestOverallElement.score < 50 ? -1 : 1;
+              console.log(`首月总变化为0，使用最大变化元素(${maxDiff.elem})的方向: ${roundedChange}`);
             }
-            
-            console.log("首月修正后变化值:", roundedChange);
           }
         } else {
           // 非首月：与上月比较(使用diffScores)
@@ -166,9 +160,24 @@ const EnergyCalendar: React.FC<EnergyCalendarProps> = ({
         prevMonthScores = energyData.monthScores;
       } catch (error) {
         console.error(`Error calculating energy for ${monthName}:`, error);
+        // 尝试使用部分数据恢复而不是设置硬编码值
+        let fallbackEnergyChange = 0;
+        
+        // 如果是首月出错，尝试根据生日信息计算一个粗略值
+        if (i === 0 && birthday) {
+          try {
+            // 使用生日的月份数值作为种子生成一个-5到5的数值
+            const birthMonth = new Date(birthday).getMonth() + 1;
+            fallbackEnergyChange = ((birthMonth % 5) - 2);
+            console.log(`首月计算错误，基于生日月份(${birthMonth})生成粗略变化值: ${fallbackEnergyChange}`);
+          } catch (e) {
+            console.error("生成粗略值失败:", e);
+          }
+        }
+        
         months.push({
           month: monthName,
-          energyChange: i === 0 ? 1 : 0, // 确保首月有值
+          energyChange: fallbackEnergyChange,
           trend: 'stable' as const,
           crystal: 'Unknown',
           lowestElement: 'earth'

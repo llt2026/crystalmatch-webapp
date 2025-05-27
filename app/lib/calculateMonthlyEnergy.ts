@@ -43,10 +43,19 @@ export interface MonthlyEnergyOutput {
 export function calculateMonthlyEnergy(params: MonthlyEnergyInput): MonthlyEnergyOutput {
   const { birthday, dateRef = new Date(), prevMonthScores = null } = params;
   
-  // 1. Get base eight characters five elements distribution
+  // 验证生日格式
   const birthdayDate = new Date(birthday);
+  if (isNaN(birthdayDate.getTime())) {
+    console.error("无效的生日日期格式:", birthday);
+    throw new Error('Invalid birthday format. Expected YYYY-MM-DD format.');
+  }
+  
+  console.log(`计算月度能量: 生日=${formatDate(birthdayDate)}, 参考日期=${formatDate(dateRef)}`);
+  
+  // 1. Get base eight characters five elements distribution
   const baseResult = getBaziFromLunar(birthdayDate);
   if (!baseResult || !baseResult.fiveElements) {
+    console.error("无法计算八字基础数据:", birthday);
     throw new Error('Failed to calculate base eight characters data');
   }
   
@@ -67,9 +76,12 @@ export function calculateMonthlyEnergy(params: MonthlyEnergyInput): MonthlyEnerg
     });
   });
   
+  console.log("八字基础五行分布:", JSON.stringify(base));
+  
   // 2. Get current year and month's heavenly stems and earthly branches
   const nowResult = getBaziFromLunar(dateRef);
   if (!nowResult || !nowResult.fiveElements) {
+    console.error("无法计算当前日期八字数据:", formatDate(dateRef));
     throw new Error('Failed to calculate current date eight characters data');
   }
   
@@ -90,6 +102,8 @@ export function calculateMonthlyEnergy(params: MonthlyEnergyInput): MonthlyEnerg
     });
   });
   
+  console.log("当前年月五行分布:", JSON.stringify(yearMonthElements));
+  
   // 3. Combine to calculate total five elements distribution
   const totalCounts: ElementRecord = {
     wood: base.wood + yearMonthElements.wood,
@@ -98,6 +112,8 @@ export function calculateMonthlyEnergy(params: MonthlyEnergyInput): MonthlyEnerg
     metal: base.metal + yearMonthElements.metal,
     water: base.water + yearMonthElements.water
   };
+  
+  console.log("总五行分布:", JSON.stringify(totalCounts));
   
   // 4. Calculate the difference between ideal and actual distributions, convert to scores
   const ideal = 12 / 5; // 12 characters, 5 elements, ideally 2.4 elements each
@@ -121,6 +137,9 @@ export function calculateMonthlyEnergy(params: MonthlyEnergyInput): MonthlyEnerg
     water: calculateScore(base.water, baseIdeal)
   };
   
+  console.log("月度分数:", JSON.stringify(monthScores));
+  console.log("基础分数:", JSON.stringify(baseScores));
+  
   // 5. Calculate differences from previous month
   const diffScores: ElementRecord = {
     wood: 0, fire: 0, earth: 0, metal: 0, water: 0
@@ -131,6 +150,14 @@ export function calculateMonthlyEnergy(params: MonthlyEnergyInput): MonthlyEnerg
       const elem = key as Elem;
       diffScores[elem] = monthScores[elem] - prevMonthScores[elem];
     });
+    console.log("与上月差异:", JSON.stringify(diffScores));
+  } else {
+    // 首月比较与基础八字的差异
+    Object.keys(monthScores).forEach(key => {
+      const elem = key as Elem;
+      diffScores[elem] = monthScores[elem] - baseScores[elem];
+    });
+    console.log("与基础八字差异:", JSON.stringify(diffScores));
   }
   
   // 6. Calculate overall trend
@@ -196,4 +223,11 @@ function generateTrendMessage(trend: 'up' | 'down' | 'stable', diffScores: Eleme
     default:
       return `Your five elements energy remains relatively stable this month.`;
   }
+}
+
+/**
+ * 格式化日期为YYYY-MM-DD格式
+ */
+function formatDate(date: Date): string {
+  return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
 } 
