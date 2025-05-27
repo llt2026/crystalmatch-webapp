@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState, useEffect } from 'react';
 import { format, addMonths } from 'date-fns';
 import Link from 'next/link';
