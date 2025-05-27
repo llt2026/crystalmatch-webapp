@@ -149,23 +149,37 @@ const EnergyCalendar: React.FC<EnergyCalendarProps> = ({
             </tr>
           </thead>
           <tbody>
-            {/* 始终显示所有12个月 */}
+            {/* 显示所有12个月 */}
             {monthlyData.slice(0, 12).map((month, index) => (
               <tr key={month.month} className={index % 2 === 0 ? 'bg-purple-900/60' : 'bg-purple-800/40'}>
                 <td className="py-3 px-4 border-b border-purple-700 text-white">{month.month}</td>
                 <td className="py-3 px-4 border-b border-purple-700">
-                  {month.energyChange === 0 ? (
-                    <span className="text-gray-300">—</span>
-                  ) : month.energyChange > 0 ? (
-                    <span className="text-green-300 font-medium">▲ +{month.energyChange}</span>
+                  {/* 能量值显示逻辑: 
+                    - 免费用户: 只有首月可见
+                    - 月订阅: 能量值全年可见
+                    - 年订阅: 能量值全年可见
+                  */}
+                  {(index === 0 || subscriptionTier === 'monthly' || subscriptionTier === 'yearly') ? (
+                    month.energyChange === 0 ? (
+                      <span className="text-gray-300">—</span>
+                    ) : month.energyChange > 0 ? (
+                      <span className="text-green-300 font-medium">▲ +{month.energyChange}</span>
+                    ) : (
+                      <span className="text-rose-300 font-medium">▼ {month.energyChange}</span>
+                    )
                   ) : (
-                    <span className="text-rose-300 font-medium">▼ {month.energyChange}</span>
+                    <span className="text-gray-400">
+                      <span className="mr-1">🔒</span>
+                    </span>
                   )}
                 </td>
                 <td className="py-3 px-4 border-b border-purple-700 text-white">
-                  {/* 水晶显示逻辑 - 免费用户只显示锁定图标 */}
-                  {(subscriptionTier === 'monthly' && index === 0) || 
-                   subscriptionTier === 'yearly' ? (
+                  {/* 水晶显示逻辑: 
+                    - 免费用户: 所有月份锁定
+                    - 月订阅: 当月可见，其他锁定
+                    - 年订阅: 所有月份可见
+                  */}
+                  {(subscriptionTier === 'yearly' || (subscriptionTier === 'monthly' && index === 0)) ? (
                     <div className="flex items-center">
                       <span className="mr-1">
                         <Image 
@@ -180,13 +194,17 @@ const EnergyCalendar: React.FC<EnergyCalendarProps> = ({
                     </div>
                   ) : (
                     <span className="text-gray-400">
-                      <span className="mr-1">🔒</span> Upgrade for monthly crystal
+                      <span className="mr-1">🔒</span>
                     </span>
                   )}
                 </td>
                 <td className="py-3 px-4 border-b border-purple-700">
-                  {/* Action button logic based on subscription tier */}
-                  {(index === 0 || isPremium) ? (
+                  {/* 操作显示逻辑: 
+                    - 免费用户: 只有当月可用
+                    - 月订阅: 只有当月可用
+                    - 年订阅: 所有月份可用
+                  */}
+                  {(index === 0 || subscriptionTier === 'yearly') ? (
                     <Link 
                       href={`/monthly-rituals/${month.month.toLowerCase()}`}
                       className="text-purple-300 hover:text-purple-100 font-medium"
@@ -194,12 +212,9 @@ const EnergyCalendar: React.FC<EnergyCalendarProps> = ({
                       ✓ View Rituals
                     </Link>
                   ) : (
-                    <button 
-                      className="text-gray-400 hover:text-gray-300 font-medium flex items-center"
-                      onClick={() => window.location.href = '/subscription'}
-                    >
-                      <span className="mr-1">🔒</span> Tap to unlock
-                    </button>
+                    <span className="text-gray-400">
+                      <span className="mr-1">🔒</span>
+                    </span>
                   )}
                 </td>
               </tr>
@@ -208,7 +223,12 @@ const EnergyCalendar: React.FC<EnergyCalendarProps> = ({
         </table>
       </div>
       
-      {/* Subscription tier info - removed */}
+      {/* Remaining months locked indicator */}
+      {subscriptionTier === 'free' && (
+        <div className="mt-3 text-center text-gray-400">
+          <span className="mr-1">🔒</span> Remaining 11 months locked
+        </div>
+      )}
     </div>
   );
 };

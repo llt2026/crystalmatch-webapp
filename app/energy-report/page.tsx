@@ -147,30 +147,33 @@ export default function EnergyReportPage() {
   
   return (
     <main className="min-h-screen bg-gradient-to-b from-purple-950 to-purple-900 text-white p-4">
-      {/* User Profile */}
-      <div className="rounded-lg bg-purple-900/60 p-6 mb-8 flex flex-col items-center backdrop-blur-sm border border-purple-800/50">
-        {userData.avatar ? (
-          <div className="w-24 h-24 rounded-full overflow-hidden mb-4 bg-purple-800 border-2 border-purple-600 relative">
-            <Image 
-              src={userData.avatar}
-              alt={userData.name}
-              fill
-              className="object-cover"
-            />
-          </div>
-        ) : (
-          <div className="w-24 h-24 rounded-full mb-4 bg-purple-800 border-2 border-purple-600 flex items-center justify-center">
-            <span className="text-white text-3xl font-bold">
-              {userData.name?.charAt(0) || '?'}
-            </span>
-          </div>
-        )}
+      {/* User Profile - 重新设计为水平布局 */}
+      <div className="rounded-lg bg-purple-900/60 p-6 mb-8 backdrop-blur-sm border border-purple-800/50">
+        <div className="flex flex-row items-center mb-6">
+          {userData.avatar ? (
+            <div className="w-24 h-24 rounded-full overflow-hidden mr-6 bg-purple-800 border-2 border-purple-600 relative flex-shrink-0">
+              <Image 
+                src={userData.avatar}
+                alt={userData.name}
+                fill
+                className="object-cover"
+              />
+            </div>
+          ) : (
+            <div className="w-24 h-24 rounded-full mr-6 bg-purple-800 border-2 border-purple-600 flex items-center justify-center flex-shrink-0">
+              <span className="text-white text-3xl font-bold">
+                {userData.name?.charAt(0) || '?'}
+              </span>
+            </div>
+          )}
+          
+          <h1 className="text-5xl font-bold text-white">{userData.name}</h1>
+        </div>
         
-        <h1 className="text-2xl md:text-3xl font-bold mb-2 text-center">{userData.name}</h1>
-        
-        <div className="bg-purple-800/80 rounded-lg p-3 w-full max-w-md text-center mt-2">
-          <p className="text-base md:text-lg">
-            <span className="text-yellow-300">✧</span> Five-Element Reading <span className="text-yellow-300">✧</span>
+        <div className="bg-purple-800/80 rounded-lg p-4 w-full text-center">
+          <p className="text-lg">
+            Powered by 2,500-year Five-Element wisdom{" "}
+            <span className="text-yellow-300">⚡</span> &amp; GPT insight
           </p>
         </div>
       </div>
