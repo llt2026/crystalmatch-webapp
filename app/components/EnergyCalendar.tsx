@@ -210,7 +210,7 @@ const EnergyCalendar: React.FC<EnergyCalendarProps> = ({
                     */}
                     {(index === 0 || subscriptionTier === 'monthly' || subscriptionTier === 'yearly') ? (
                       <>
-                        {month.energyChange === 0 ? (
+                        {month.energyChange === 0 && index !== 0 ? (
                           <span className="text-gray-300">—</span>
                         ) : month.energyChange > 0 ? (
                           <span className="text-green-300 font-medium">▲ +{month.energyChange}</span>
