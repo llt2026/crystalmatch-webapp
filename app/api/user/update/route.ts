@@ -17,8 +17,20 @@ async function getUserFromCookie(request: NextRequest) {
   }
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as { id: string; email: string };
-    return decoded;
+    // 解码JWT并尝试获取用户ID（可能以不同字段名存储）
+    const decoded = jwt.verify(token, JWT_SECRET) as any;
+    
+    // 尝试各种可能的ID字段名
+    const userId = decoded.id || decoded.userId || decoded.sub;
+    const email = decoded.email;
+    
+    if (!userId && !email) {
+      console.error('Token中未找到用户ID或邮箱:', decoded);
+      return null;
+    }
+    
+    // 返回包含id和email的对象
+    return { id: userId, email };
   } catch (error) {
     console.error('Token验证失败:', error);
     return null;
@@ -28,14 +40,17 @@ async function getUserFromCookie(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     // 获取当前登录用户
-    const user = await getUserFromCookie(request);
+    const userToken = await getUserFromCookie(request);
 
-    if (!user) {
+    if (!userToken) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
       );
     }
+    
+    // 记录获取到的用户信息
+    console.log('获取到的用户信息:', userToken);
 
     // 解析请求体
     const data = await request.json();
@@ -47,6 +62,22 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // 构建查询条件
+    const whereCondition: any = {};
+    if (userToken.id) {
+      whereCondition.id = userToken.id;
+    } else if (userToken.email) {
+      whereCondition.email = userToken.email;
+    } else {
+      return NextResponse.json(
+        { error: '无法确定要更新的用户' },
+        { status: 400 }
+      );
+    }
+    
+    // 打印查询条件
+    console.log('更新条件:', whereCondition);
 
     // 更新用户信息
     const updateData: any = { name };
@@ -66,9 +97,12 @@ export async function POST(request: NextRequest) {
         gender
       };
     }
+    
+    // 打印更新数据
+    console.log('更新数据:', updateData);
 
     const updatedUser = await prisma.user.update({
-      where: { id: user.id },
+      where: whereCondition,
       data: updateData
     });
 
