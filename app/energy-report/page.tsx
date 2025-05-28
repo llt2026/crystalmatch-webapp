@@ -192,8 +192,8 @@ export default function EnergyReportPage() {
         crystal={{
           name: userData.yearCrystal.name,
           description: "Focus · Clarity · Structure",
-          imageUrl: `https://via.placeholder.com/200x200/9c27b0/ffffff?text=${userData.yearCrystal.name}`,
-          effect: "Amplifies intentions and mental clarity",
+          imageUrl: `/images/crystals/${userData.yearCrystal.name.toLowerCase().replace(/\s+/g, '-')}.jpg`,
+          effect: "Brainstorm booster",
           planetAssociation: "Sun/Moon",
           year: 2025
         }} 

@@ -17,14 +17,11 @@ interface YearlyCrystalProps {
 }
 
 const YearlyCrystal: React.FC<YearlyCrystalProps> = ({ crystal, isFreeUser = false, userElement = '' }) => {
-  // 解析描述字符串，通常格式为 "Focus · Clarity · Structure"
-  const descriptionParts = crystal.description.split('·').map(part => part.trim());
-  
   // 将effect转换为简短描述
   const shortEffect = crystal.effect?.replace('Amplifies intentions and mental clarity', 'Brainstorm booster');
   
   return (
-    <div className="rounded-xl bg-green-50 backdrop-blur-sm border border-green-100 text-gray-800 p-5 mb-8 flex flex-row items-center">
+    <div className="rounded-xl bg-purple-900/60 backdrop-blur-sm border border-purple-800/50 text-white p-5 mb-8 flex flex-row items-center">
       {/* 水晶图片 - 左侧 */}
       <div className="w-20 h-20 relative flex-shrink-0 mr-4">
         <Image 
@@ -38,16 +35,16 @@ const YearlyCrystal: React.FC<YearlyCrystalProps> = ({ crystal, isFreeUser = fal
       
       {/* 水晶信息 - 右侧 */}
       <div className="flex-1">
-        <h2 className="text-xl font-bold text-gray-800">
+        <h2 className="text-xl font-bold text-white">
           Your {crystal.year} Guiding Crystal:
         </h2>
         
-        <p className="text-xl font-bold mb-1 flex items-center">
-          {crystal.name} <span className="ml-2 text-green-600">🌿</span>
+        <p className="text-xl font-bold mb-1">
+          {crystal.name}
         </p>
         
-        <p className="text-gray-700 text-sm">
-          {shortEffect || descriptionParts[0]} • Planet {crystal.planetAssociation}
+        <p className="text-gray-300 text-sm">
+          {shortEffect || crystal.description} • Planet {crystal.planetAssociation}
         </p>
       </div>
     </div>
