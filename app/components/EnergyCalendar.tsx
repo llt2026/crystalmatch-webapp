@@ -15,29 +15,11 @@ interface MonthData {
   date: Date;
 }
 
-// 生成12个月的模拟数据
-const generateMockData = (): MonthData[] => {
-  const today = new Date();
-  const mockData: MonthData[] = [];
-  
-  for (let i = 0; i < 12; i++) {
-    const currentDate = addMonths(today, i);
-    const monthName = format(currentDate, 'MMM');
-    
-    // 生成-25到+25之间的随机能量变化值
-    const randomChange = Math.floor(Math.random() * 51) - 25;
-    const trendValue: 'up' | 'down' | 'stable' = randomChange > 0 ? 'up' : randomChange < 0 ? 'down' : 'stable';
-    
-    mockData.push({
-      month: monthName,
-      energyChange: randomChange,
-      trend: trendValue,
-      crystal: ['Clear Quartz', 'Amethyst', 'Rose Quartz', 'Citrine', 'Tiger\'s Eye'][Math.floor(Math.random() * 5)],
-      date: currentDate
-    });
-  }
-  
-  return mockData;
+// 常用水晶列表，根据月份和元素特性分配
+const CRYSTALS_BY_TREND: Record<string, string[]> = {
+  'up': ['Clear Quartz', 'Citrine', 'Tiger\'s Eye', 'Pyrite', 'Carnelian'],
+  'down': ['Amethyst', 'Rose Quartz', 'Blue Lace Agate', 'Smoky Quartz', 'Labradorite'],
+  'stable': ['Green Aventurine', 'Amazonite', 'Malachite', 'Moss Agate', 'Jade']
 };
 
 interface EnergyCalendarProps {
@@ -51,13 +33,12 @@ const EnergyCalendar: React.FC<EnergyCalendarProps> = ({
   subscriptionTier,
   userId 
 }) => {
-  const [monthlyData, setMonthlyData] = useState<MonthData[]>(generateMockData());
-  const [isLoading, setIsLoading] = useState(false);
+  const [monthlyData, setMonthlyData] = useState<MonthData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [useMockData, setUseMockData] = useState(true);
   
   useEffect(() => {
-    // 尝试计算真实的能量变化
+    // 计算真实的能量变化
     const calculateRealEnergyChanges = async () => {
       try {
         setIsLoading(true);
@@ -90,110 +71,147 @@ const EnergyCalendar: React.FC<EnergyCalendarProps> = ({
             const avgChange = Object.values(result.diffScores).reduce((sum, val) => sum + val, 0) / 5;
             const scaledChange = Math.round(avgChange * 8); // 放大比例
             
+            // 根据趋势选择合适的水晶
+            const trendCrystals = CRYSTALS_BY_TREND[result.trend] || CRYSTALS_BY_TREND['stable'];
+            const recommendedCrystal = trendCrystals[Math.floor(Math.random() * trendCrystals.length)];
+            
             realData.push({
               month: monthName,
               energyChange: scaledChange,
               trend: result.trend,
-              crystal: ['Clear Quartz', 'Amethyst', 'Rose Quartz', 'Citrine', 'Tiger\'s Eye'][Math.floor(Math.random() * 5)],
+              crystal: recommendedCrystal,
               date: currentDate
             });
             
             prevMonthResult = result;
-            console.log(`${monthName} 能量变化: ${scaledChange}, 趋势: ${result.trend}`);
+            console.log(`${monthName} 能量变化: ${scaledChange}, 趋势: ${result.trend}, 水晶: ${recommendedCrystal}`);
           } catch (monthError) {
             console.error(`计算 ${monthName} 能量变化失败:`, monthError);
-            throw new Error(`计算 ${monthName} 能量变化失败: ${(monthError as Error).message}`);
+            // 即使单个月份计算失败，我们也继续处理其他月份
+            realData.push({
+              month: monthName,
+              energyChange: 0,
+              trend: 'stable',
+              crystal: 'Clear Quartz', // 默认水晶
+              date: currentDate
+            });
           }
         }
         
+        if (realData.length === 0) {
+          throw new Error('无法计算任何月份的能量变化');
+        }
+        
         setMonthlyData(realData);
-        setUseMockData(false);
         console.log('能量变化计算完成', realData);
       } catch (err) {
         console.error('计算能量变化失败:', err);
         setError(`计算能量变化失败: ${(err as Error).message}`);
-        // 失败时使用模拟数据
-        setMonthlyData(generateMockData());
-        setUseMockData(true);
+        // 错误时显示空数据，而不是回退到模拟数据
+        setMonthlyData([]);
       } finally {
         setIsLoading(false);
       }
     };
     
-    // 尝试计算真实数据
+    // 计算真实数据
     calculateRealEnergyChanges();
   }, [birthday, userId]);
+  
+  // 如果加载中显示加载状态
+  if (isLoading) {
+    return (
+      <FadeInContainer className="mb-10 bg-opacity-25 backdrop-blur-md rounded-xl overflow-hidden">
+        <div className="p-5 bg-purple-900 bg-opacity-30">
+          <h3 className="text-xl font-semibold text-white">Energy Calendar</h3>
+          <p className="text-gray-200 text-sm">Loading your personal energy forecast...</p>
+        </div>
+        <div className="flex items-center justify-center p-10">
+          <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-purple-500"></div>
+          <span className="ml-3 text-purple-200">Calculating energy values...</span>
+        </div>
+      </FadeInContainer>
+    );
+  }
+  
+  // 如果出错或没有数据
+  if (error || monthlyData.length === 0) {
+    return (
+      <FadeInContainer className="mb-10 bg-opacity-25 backdrop-blur-md rounded-xl overflow-hidden">
+        <div className="p-5 bg-purple-900 bg-opacity-30">
+          <h3 className="text-xl font-semibold text-white">Energy Calendar</h3>
+          <p className="text-gray-200 text-sm">
+            <span className="text-rose-300">Unable to calculate energy values. {error}</span>
+          </p>
+        </div>
+        <div className="p-10 text-center">
+          <p className="text-lg text-purple-200 mb-4">We encountered an issue calculating your energy calendar.</p>
+          <p className="text-sm text-purple-300">Please try again later or contact support if the issue persists.</p>
+        </div>
+      </FadeInContainer>
+    );
+  }
   
   return (
     <FadeInContainer className="mb-10 bg-opacity-25 backdrop-blur-md rounded-xl overflow-hidden">
       <div className="p-5 bg-purple-900 bg-opacity-30">
         <h3 className="text-xl font-semibold text-white">Energy Calendar</h3>
         <p className="text-gray-200 text-sm">
-          {useMockData 
-            ? "These are sample energy values. Upgrade to see your personalized energy forecast."
-            : "Your personal energy forecast based on your birth chart."}
-          {error && <span className="text-rose-300 ml-2">({error})</span>}
+          Your personal energy forecast based on your birth chart ({birthday}).
         </p>
       </div>
 
-      {isLoading ? (
-        <div className="flex items-center justify-center p-10">
-          <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-purple-500"></div>
-          <span className="ml-3 text-purple-200">Loading energy values...</span>
-        </div>
-      ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead className="bg-purple-900 bg-opacity-40 text-purple-100">
-              <tr>
-                <th className="py-3 px-4 font-medium">Month</th>
-                <th className="py-3 px-4 font-medium">Energy Change</th>
-                <th className="py-3 px-4 font-medium">Crystal</th>
-                <th className="py-3 px-4 font-medium">Action</th>
+      <div className="overflow-x-auto">
+        <table className="w-full text-left">
+          <thead className="bg-purple-900 bg-opacity-40 text-purple-100">
+            <tr>
+              <th className="py-3 px-4 font-medium">Month</th>
+              <th className="py-3 px-4 font-medium">Energy Change</th>
+              <th className="py-3 px-4 font-medium">Crystal</th>
+              <th className="py-3 px-4 font-medium">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {monthlyData.map((month, index) => (
+              <tr key={month.month} className="border-t border-purple-800 bg-opacity-20 hover:bg-purple-800 hover:bg-opacity-40 transition-colors">
+                <td className="py-3 px-4 border-b border-purple-700">{month.month}</td>
+                <td className="py-3 px-4 border-b border-purple-700">
+                  {/* 根据能量变化正负值显示不同样式 */}
+                  {month.energyChange === 0 ? (
+                    <span className="text-gray-300">—</span>
+                  ) : month.energyChange > 0 ? (
+                    <span className="text-green-300 font-medium">▲ +{month.energyChange}</span>
+                  ) : (
+                    <span className="text-rose-300 font-medium">▼ {month.energyChange}</span>
+                  )}
+                </td>
+                <td className="py-3 px-4 border-b border-purple-700">
+                  {/* 根据订阅类型显示水晶推荐或锁定状态 */}
+                  {subscriptionTier === 'yearly' ? (
+                    <span className="text-white">{month.crystal}</span>
+                  ) : (
+                    <span className="text-gray-400">
+                      <span className="mr-1">🔒</span>
+                    </span>
+                  )}
+                </td>
+                <td className="py-3 px-4 border-b border-purple-700">
+                  {/* 根据订阅类型显示操作按钮或锁定状态 */}
+                  {subscriptionTier === 'yearly' ? (
+                    <button className="bg-purple-600 text-white text-sm px-3 py-1 rounded-full hover:bg-purple-500 transition-colors">
+                      View Details
+                    </button>
+                  ) : (
+                    <button disabled className="text-gray-500 cursor-not-allowed text-sm px-3 py-1 rounded-full border border-gray-700 flex items-center">
+                      <span className="mr-1">🔒</span> Locked
+                    </button>
+                  )}
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {monthlyData.map((month, index) => (
-                <tr key={month.month} className="border-t border-purple-800 bg-opacity-20 hover:bg-purple-800 hover:bg-opacity-40 transition-colors">
-                  <td className="py-3 px-4 border-b border-purple-700">{month.month}</td>
-                  <td className="py-3 px-4 border-b border-purple-700">
-                    {/* 根据能量变化正负值显示不同样式 */}
-                    {month.energyChange === 0 ? (
-                      <span className="text-gray-300">—</span>
-                    ) : month.energyChange > 0 ? (
-                      <span className="text-green-300 font-medium">▲ +{month.energyChange}</span>
-                    ) : (
-                      <span className="text-rose-300 font-medium">▼ {month.energyChange}</span>
-                    )}
-                  </td>
-                  <td className="py-3 px-4 border-b border-purple-700">
-                    {/* 根据订阅类型显示水晶推荐或锁定状态 */}
-                    {subscriptionTier === 'yearly' ? (
-                      <span className="text-white">{month.crystal}</span>
-                    ) : (
-                      <span className="text-gray-400">
-                        <span className="mr-1">🔒</span>
-                      </span>
-                    )}
-                  </td>
-                  <td className="py-3 px-4 border-b border-purple-700">
-                    {/* 根据订阅类型显示操作按钮或锁定状态 */}
-                    {subscriptionTier === 'yearly' ? (
-                      <button className="bg-purple-600 text-white text-sm px-3 py-1 rounded-full hover:bg-purple-500 transition-colors">
-                        View Details
-                      </button>
-                    ) : (
-                      <button disabled className="text-gray-500 cursor-not-allowed text-sm px-3 py-1 rounded-full border border-gray-700 flex items-center">
-                        <span className="mr-1">🔒</span> Locked
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+            ))}
+          </tbody>
+        </table>
+      </div>
     </FadeInContainer>
   );
 };
