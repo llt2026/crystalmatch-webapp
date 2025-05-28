@@ -191,11 +191,11 @@ export default function EnergyReportPage() {
       <YearlyCrystal 
         crystal={{
           name: userData.yearCrystal.name,
-          description: userData.yearCrystal.description,
+          description: "Focus · Clarity · Structure",
           imageUrl: `https://via.placeholder.com/200x200/9c27b0/ffffff?text=${userData.yearCrystal.name}`,
-          effect: userData.yearCrystal.effect,
-          planetAssociation: userData.yearCrystal.planet,
-          year: userData.yearCrystal.year
+          effect: "Amplifies intentions and mental clarity",
+          planetAssociation: "Sun/Moon",
+          year: 2025
         }} 
         isFreeUser={userData.subscriptionTier === 'free'}
         userElement={findWeakestElement(userData.elementValues)}

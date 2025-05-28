@@ -8,6 +8,9 @@ import SunCalc from 'suncalc';
 import { Solar } from 'lunar-javascript';
 import { getBaziFromLunar } from './getBaziFromLunar';
 
+// 添加suncalc模块声明
+declare module 'suncalc';
+
 // 定义五行元素类型
 export type Elem = 'wood' | 'fire' | 'earth' | 'metal' | 'water';
 export type FiveElementVector = Record<Elem, number>;
@@ -429,66 +432,95 @@ export async function calculateEnergyCalendar(birthday: string): Promise<Array<{
   const today = new Date();
   const months = [];
   
-  // 获取用户八字基础五行向量
-  const userBazi = await getUserBaziVector(birthday);
-  
-  // 水晶映射
-  const CRYSTAL_MAP: Record<Elem, string> = {
-    wood: 'Jade',
-    fire: 'Ruby',
-    earth: 'Citrine',
-    metal: 'Clear Quartz',
-    water: 'Sodalite'
-  };
-  
-  // 计算12个月的能量变化
-  for (let i = 0; i < 12; i++) {
-    const currentDate = addMonths(today, i);
-    const year = currentDate.getFullYear();
-    const month = currentDate.getMonth() + 1; // JavaScript月份从0开始
-    const monthName = format(currentDate, 'MMM');
+  try {
+    // 获取用户八字基础五行向量
+    const userBazi = await getUserBaziVector(birthday);
     
-    // 计算当月能量变化值
-    const energyChange = await getMonthlyEnergyChange(year, month, userBazi);
-    
-    // 确定趋势
-    let trend: 'up' | 'down' | 'stable' = 'stable';
-    if (energyChange >= 3) {
-      trend = 'up';
-    } else if (energyChange <= -3) {
-      trend = 'down';
-    }
-    
-    // 获取月度五行能量向量
-    const monthlyVector = await getMonthlyEnergyVector(year, month);
-    
-    // 合并用户基础五行和月度影响
-    const combinedVector = {
-      wood: userBazi.wood + monthlyVector.wood,
-      fire: userBazi.fire + monthlyVector.fire,
-      earth: userBazi.earth + monthlyVector.earth,
-      metal: userBazi.metal + monthlyVector.metal,
-      water: userBazi.water + monthlyVector.water
+    // 水晶映射
+    const CRYSTAL_MAP: Record<Elem, string> = {
+      wood: 'Jade',
+      fire: 'Ruby',
+      earth: 'Citrine',
+      metal: 'Clear Quartz',
+      water: 'Sodalite'
     };
     
-    // 找出最弱的元素
-    const lowestElement = Object.entries(combinedVector).reduce(
-      (lowest, [elem, score]) => {
-        const elemKey = elem as Elem;
-        return score < lowest.score ? { elem: elemKey, score } : lowest;
-      },
-      { elem: 'earth' as Elem, score: Number.MAX_VALUE }
-    ).elem;
-    
-    // 根据最弱元素推荐水晶
-    const crystal = CRYSTAL_MAP[lowestElement];
-    
+    // 计算12个月的能量变化
+    for (let i = 0; i < 12; i++) {
+      const currentDate = addMonths(today, i);
+      const year = currentDate.getFullYear();
+      const month = currentDate.getMonth() + 1; // JavaScript月份从0开始
+      const monthName = format(currentDate, 'MMM');
+      
+      // 计算当月能量变化值
+      let energyChange = 0;
+      try {
+        energyChange = await getMonthlyEnergyChange(year, month, userBazi);
+        // 确保energyChange是有效数值
+        if (isNaN(energyChange)) {
+          console.warn(`月度能量变化计算结果为NaN，月份: ${monthName}，使用默认值0`);
+          energyChange = 0;
+        }
+      } catch (error) {
+        console.error(`计算月度能量变化失败: ${error}`);
+        energyChange = 0;
+      }
+      
+      // 确定趋势
+      let trend: 'up' | 'down' | 'stable' = 'stable';
+      if (energyChange >= 3) {
+        trend = 'up';
+      } else if (energyChange <= -3) {
+        trend = 'down';
+      }
+      
+      // 获取月度五行能量向量
+      let monthlyVector;
+      try {
+        monthlyVector = await getMonthlyEnergyVector(year, month);
+      } catch (error) {
+        console.error(`获取月度五行向量失败: ${error}`);
+        monthlyVector = { wood: 0, fire: 0, earth: 0, metal: 0, water: 0 };
+      }
+      
+      // 合并用户基础五行和月度影响
+      const combinedVector = {
+        wood: userBazi.wood + monthlyVector.wood,
+        fire: userBazi.fire + monthlyVector.fire,
+        earth: userBazi.earth + monthlyVector.earth,
+        metal: userBazi.metal + monthlyVector.metal,
+        water: userBazi.water + monthlyVector.water
+      };
+      
+      // 找出最弱的元素
+      const lowestElement = Object.entries(combinedVector).reduce(
+        (lowest, [elem, score]) => {
+          const elemKey = elem as Elem;
+          return score < lowest.score ? { elem: elemKey, score } : lowest;
+        },
+        { elem: 'earth' as Elem, score: Number.MAX_VALUE }
+      ).elem;
+      
+      // 根据最弱元素推荐水晶
+      const crystal = CRYSTAL_MAP[lowestElement];
+      
+      months.push({
+        month: monthName,
+        energyChange,
+        trend,
+        crystal,
+        lowestElement
+      });
+    }
+  } catch (error) {
+    console.error(`能量日历计算失败: ${error}`);
+    // 返回至少一个默认月份数据，避免UI显示完全空白
     months.push({
-      month: monthName,
-      energyChange,
-      trend,
-      crystal,
-      lowestElement
+      month: format(today, 'MMM'),
+      energyChange: 0,
+      trend: 'stable' as const,
+      crystal: 'Clear Quartz',
+      lowestElement: 'metal' as Elem
     });
   }
   
