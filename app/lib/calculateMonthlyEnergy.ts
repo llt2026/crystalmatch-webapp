@@ -61,6 +61,22 @@ export function calculateMonthlyEnergy(params: MonthlyEnergyInput): MonthlyEnerg
   }
   
   // Calculate base five element counts
+  // 中文到英文五行映射
+  const CHN_TO_ENG: Record<string, Elem> = {
+    '木': 'wood',
+    '火': 'fire',
+    '土': 'earth',
+    '金': 'metal',
+    '水': 'water'
+  };
+
+  function mapToElem(raw: string): Elem | null {
+    if (!raw) return null;
+    const lower = raw.toLowerCase();
+    if (lower in base) return lower as Elem; // already英文
+    if (CHN_TO_ENG[raw]) return CHN_TO_ENG[raw]; // 中文字符
+    return null;
+  }
   const base: ElementRecord = {
     wood: 0, fire: 0, earth: 0, metal: 0, water: 0
   };
@@ -70,9 +86,9 @@ export function calculateMonthlyEnergy(params: MonthlyEnergyInput): MonthlyEnerg
   const baseFiveElements = baseResult.fiveElements as any;
   ['year', 'month', 'day'].forEach(pillar => {
     baseFiveElements[pillar].forEach((element: string) => {
-      const elemKey = element.toLowerCase() as Elem;
-      if (elemKey in base) {
-        base[elemKey]++;
+      const mapped = mapToElem(element);
+      if (mapped) {
+        base[mapped]++;
       }
     });
   });
@@ -96,9 +112,9 @@ export function calculateMonthlyEnergy(params: MonthlyEnergyInput): MonthlyEnerg
   const nowFiveElements = nowResult.fiveElements as any;
   ['year', 'month'].forEach(pillar => {
     nowFiveElements[pillar].forEach((element: string) => {
-      const elemKey = element.toLowerCase() as Elem;
-      if (elemKey in yearMonthElements) {
-        yearMonthElements[elemKey]++;
+      const mapped = mapToElem(element);
+      if (mapped) {
+        yearMonthElements[mapped]++;
       }
     });
   });
