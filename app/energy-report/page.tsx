@@ -76,7 +76,7 @@ const basicUserData = {
   name: "Olivia",
   avatar: "/images/profile-avatar.jpg",
   birthDate: "1990-06-15",
-  subscriptionTier: "free" as const,
+  subscriptionTier: "yearly" as const,
   elementValues: [
     { element: "S", value: 75, fullName: "Stability Energy" },
     { element: "F", value: 85, fullName: "Fluid Energy" },
@@ -192,7 +192,7 @@ export default function EnergyReportPage() {
         crystal={{
           name: userData.yearCrystal.name,
           description: "Focus · Clarity · Structure",
-          imageUrl: `/images/crystals/${userData.yearCrystal.name.replace(/\s+/g, '-')}.png`,
+          imageUrl: `/images/crystals/Clear Quartz.png`,
           effect: "Brainstorm booster",
           planetAssociation: "Sun/Moon",
           year: 2025
