@@ -36,9 +36,10 @@ export interface MonthlyEnergyOutput {
 }
 
 /**
- * Calculate a user's monthly energy scores
- * @param params Calculation parameters
- * @returns Energy score results
+ * @deprecated 使用fiveElementsEnergy.ts中的新函数替代
+ * 计算月度能量变化
+ * @param params 
+ * @returns 
  */
 export function calculateMonthlyEnergy(params: MonthlyEnergyInput): MonthlyEnergyOutput {
   const { birthday, dateRef = new Date(), prevMonthScores = null } = params;

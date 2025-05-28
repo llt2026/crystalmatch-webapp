@@ -6,6 +6,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { calculateMonthlyEnergy, Elem, ElementRecord } from '@/app/lib/calculateMonthlyEnergy';
 import { SubscriptionTier, getVisibleEnergyMonths } from '@/app/lib/subscription-config';
+import { getUserBaziVector, calculateEnergyCalendar } from '../lib/fiveElementsEnergy';
+import { FadeInContainer } from './animations/FadeInContainer';
 
 // Crystal mapping for lowest element
 const CRYSTAL_MAP: Record<Elem, string> = {
@@ -34,6 +36,7 @@ const EnergyCalendar: React.FC<EnergyCalendarProps> = ({
     crystal: string;
     lowestElement: Elem;
   }>>([]);
+  const [isLoading, setIsLoading] = useState(true);
   
   // 获取基于八字的总体水晶推荐（为免费用户准备）
   const [overallCrystal, setOverallCrystal] = useState<{
@@ -46,171 +49,57 @@ const EnergyCalendar: React.FC<EnergyCalendarProps> = ({
   const visibleMonths = getVisibleEnergyMonths(subscriptionTier);
 
   useEffect(() => {
-    // Calculate energy calendar data for 12 months
-    const today = new Date();
-    const months: Array<{
-      month: string;
-      energyChange: number;
-      trend: 'up' | 'down' | 'stable';
-      crystal: string;
-      lowestElement: Elem;
-    }> = [];
-    let prevMonthScores: ElementRecord | null = null;
-    let weakestOverallElement: { elem: Elem, score: number } = { elem: 'earth', score: 100 };
-    let baseScores: ElementRecord | null = null; // 存储八字基础分数
-
-    console.log("开始计算能量日历，生日:", birthday);
-
-    // Always calculate all 12 months data, but display according to subscription tier
-    for (let i = 0; i < 12; i++) {
-      const currentDate = addMonths(today, i);
-      const monthName = format(currentDate, 'MMM');
-      
+    async function loadEnergyCalendarData() {
+      setIsLoading(true);
       try {
-        // Calculate energy for this month
-        const energyData = calculateMonthlyEnergy({
-          birthday,
-          dateRef: currentDate,
-          prevMonthScores
-        });
-
-        // 保存八字基础分数(首月)
-        if (i === 0) {
-          baseScores = { ...energyData.baseScores };
-          console.log("首月八字基础分数:", baseScores);
-          console.log("首月当前分数:", energyData.monthScores);
-        }
+        console.log("开始计算能量日历，生日:", birthday);
         
-        // Find the lowest element for this month
-        const lowestElement = Object.entries(energyData.monthScores).reduce(
-          (lowest, [elem, score]) => {
-            const elemKey = elem as Elem;
-            return score < lowest.score ? { elem: elemKey, score } : lowest;
-          },
-          { elem: 'earth' as Elem, score: 100 }
-        );
+        // 使用新的五行能量计算模块
+        const calendarData = await calculateEnergyCalendar(birthday);
+        console.log("月度能量数据:", calendarData.map(m => `${m.month}: ${m.energyChange}`).join(', '));
         
-        // For the first month, also update the overall weakest element for free users
-        if (i === 0) {
-          // 使用baseScores而不是monthScores来找出基于八字的最弱元素
-          weakestOverallElement = Object.entries(energyData.baseScores).reduce(
-            (lowest, [elem, score]) => {
-              const elemKey = elem as Elem;
-              return score < lowest.score ? { elem: elemKey, score } : lowest;
-            },
-            { elem: 'earth' as Elem, score: 100 }
-          );
-          
-          // 设置总体水晶推荐
-          setOverallCrystal({
-            name: CRYSTAL_MAP[weakestOverallElement.elem],
-            element: weakestOverallElement.elem
-          });
-        }
-        
-        // 计算能量变化值
-        let roundedChange: number;
-        
-        if (i === 0) {
-          // 首月：与八字基础值比较
-          // 计算当月分数与八字基础分数的平均差异
-          const diffs = Object.keys(energyData.monthScores).map(elemKey => {
-            const elem = elemKey as Elem;
-            const diff = energyData.monthScores[elem] - energyData.baseScores[elem];
-            return { elem, diff };
-          });
-          
-          console.log("首月各元素差异:", diffs);
-          
-          const avgDiff = diffs.reduce((sum, item) => sum + item.diff, 0) / 5;
-          console.log("首月平均差异:", avgDiff);
-          
-          roundedChange = Math.round(avgDiff);
-
-          // 如果计算结果为0，尝试使用最大的元素变化
-          if (roundedChange === 0) {
-            const maxDiff = diffs.reduce((max, item) => 
-              Math.abs(item.diff) > Math.abs(max.diff) ? item : max, 
-              { elem: 'earth', diff: 0 }
-            );
-            
-            if (maxDiff.diff !== 0) {
-              roundedChange = maxDiff.diff > 0 ? 1 : -1;
-              console.log(`首月总变化为0，使用最大变化元素(${maxDiff.elem})的方向: ${roundedChange}`);
-            }
-          }
-        } else {
-          // 非首月：与上月比较(使用diffScores)
-          const avgChange = Object.values(energyData.diffScores).reduce((sum, val) => sum + val, 0) / 5;
-          roundedChange = Math.round(avgChange);
-        }
-        
-        // Get crystal recommendation based on lowest element
-        const crystal = CRYSTAL_MAP[lowestElement.elem];
-        
-        months.push({
-          month: monthName,
-          energyChange: roundedChange,
-          trend: energyData.trend,
-          crystal,
-          lowestElement: lowestElement.elem
-        });
-        
-        // Save this month's scores for the next iteration
-        prevMonthScores = energyData.monthScores;
+        setMonthlyData(calendarData);
       } catch (error) {
-        console.error(`Error calculating energy for ${monthName}:`, error);
-        // 尝试使用部分数据恢复而不是设置硬编码值
-        let fallbackEnergyChange = 0;
-        
-        // 如果是首月出错，尝试根据生日信息计算一个粗略值
-        if (i === 0 && birthday) {
-          try {
-            // 使用生日的月份数值作为种子生成一个-5到5的数值
-            const birthMonth = new Date(birthday).getMonth() + 1;
-            fallbackEnergyChange = ((birthMonth % 5) - 2);
-            console.log(`首月计算错误，基于生日月份(${birthMonth})生成粗略变化值: ${fallbackEnergyChange}`);
-          } catch (e) {
-            console.error("生成粗略值失败:", e);
-          }
-        }
-        
-        months.push({
-          month: monthName,
-          energyChange: fallbackEnergyChange,
-          trend: 'stable' as const,
-          crystal: 'Unknown',
-          lowestElement: 'earth'
-        });
+        console.error("计算能量日历失败:", error);
+        // 出错时设置空数据
+        setMonthlyData([]);
+      } finally {
+        setIsLoading(false);
       }
     }
     
-    console.log("月度能量数据:", months.map(m => `${m.month}: ${m.energyChange}`).join(', '));
-    setMonthlyData(months);
+    loadEnergyCalendarData();
   }, [birthday]);
 
   return (
-    <div className="w-full mt-6 mb-12">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-bold text-white">Energy Calendar</h2>
+    <FadeInContainer className="mb-10 bg-opacity-25 backdrop-blur-md rounded-xl overflow-hidden">
+      <div className="p-5 bg-purple-900 bg-opacity-30">
+        <h3 className="text-xl font-semibold text-white">Energy Calendar</h3>
+        <p className="text-gray-200 text-sm">
+          Monthly energy fluctuations and recommended crystals for the next 12 months
+        </p>
       </div>
-      
-      <div className="overflow-x-auto">
-        <table className="min-w-full bg-purple-900/60 border border-purple-800 rounded-lg">
-          <thead>
-            <tr className="bg-purple-800/80">
-              <th className="py-3 px-4 text-left text-white font-medium">Month</th>
-              <th className="py-3 px-4 text-left text-white font-medium">Energy Change</th>
-              <th className="py-3 px-4 text-left text-white font-medium">Crystal</th>
-              <th className="py-3 px-4 text-left text-white font-medium">Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {/* 显示所有12个月 */}
-            {monthlyData.slice(0, 12).map((month, index) => {
-              return (
-                <tr key={month.month} className={index % 2 === 0 ? 'bg-purple-900/60' : 'bg-purple-800/40'}>
-                  <td className="py-3 px-4 border-b border-purple-700 text-white">{month.month}</td>
+
+      {isLoading ? (
+        <div className="flex items-center justify-center p-10">
+          <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-purple-500"></div>
+          <span className="ml-3 text-purple-200">Calculating energy values...</span>
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-left">
+            <thead className="bg-purple-900 bg-opacity-40 text-purple-100">
+              <tr>
+                <th className="py-3 px-4 font-medium">Month</th>
+                <th className="py-3 px-4 font-medium">Energy Change</th>
+                <th className="py-3 px-4 font-medium">Crystal</th>
+                <th className="py-3 px-4 font-medium">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {monthlyData.map((month, index) => (
+                <tr key={month.month} className="border-t border-purple-800 bg-opacity-20 hover:bg-purple-800 hover:bg-opacity-40 transition-colors">
+                  <td className="py-3 px-4 border-b border-purple-700">{month.month}</td>
                   <td className="py-3 px-4 border-b border-purple-700">
                     {/* 能量值显示逻辑: 
                       - 免费用户: 只有首月可见
@@ -219,7 +108,7 @@ const EnergyCalendar: React.FC<EnergyCalendarProps> = ({
                     */}
                     {(index === 0 || subscriptionTier === 'monthly' || subscriptionTier === 'yearly') ? (
                       <>
-                        {month.energyChange === 0 && index !== 0 ? (
+                        {month.energyChange === 0 ? (
                           <span className="text-gray-300">—</span>
                         ) : month.energyChange > 0 ? (
                           <span className="text-green-300 font-medium">▲ +{month.energyChange}</span>
@@ -233,24 +122,16 @@ const EnergyCalendar: React.FC<EnergyCalendarProps> = ({
                       </span>
                     )}
                   </td>
-                  <td className="py-3 px-4 border-b border-purple-700 text-white">
-                    {/* 水晶显示逻辑: 
-                      - 免费用户: 所有月份锁定
-                      - 月订阅: 当月可见，其他锁定
-                      - 年订阅: 所有月份可见
+                  <td className="py-3 px-4 border-b border-purple-700">
+                    {/* 水晶显示逻辑:
+                      - 免费用户: 只有首月可见
+                      - 月订阅: 只有首月可见
+                      - 年订阅: 全年可见
                     */}
-                    {(subscriptionTier === 'yearly' || (subscriptionTier === 'monthly' && index === 0)) ? (
+                    {(index === 0 || subscriptionTier === 'yearly') ? (
                       <div className="flex items-center">
-                        <span className="mr-1">
-                          <Image 
-                            src={`/images/crystals/${month.lowestElement}.png`} 
-                            alt={month.crystal}
-                            width={16}
-                            height={16}
-                            className="inline-block"
-                          />
-                        </span>
-                        {month.crystal}
+                        <span className="mr-2">💎</span>
+                        <span>{month.crystal}</span>
                       </div>
                     ) : (
                       <span className="text-gray-400">
@@ -259,38 +140,37 @@ const EnergyCalendar: React.FC<EnergyCalendarProps> = ({
                     )}
                   </td>
                   <td className="py-3 px-4 border-b border-purple-700">
-                    {/* 操作显示逻辑: 
-                      - 免费用户: 只有当月可用
-                      - 月订阅: 只有当月可用
-                      - 年订阅: 所有月份可用
+                    {/* 深度报告按钮逻辑:
+                      - 免费用户: 只有首月可点击，其他显示锁定
+                      - 月订阅: 只有首月可点击，其他显示锁定
+                      - 年订阅: 全年可点击
                     */}
                     {(index === 0 || subscriptionTier === 'yearly') ? (
-                      <Link 
-                        href={`/monthly-rituals/${month.month.toLowerCase()}`}
-                        className="text-purple-300 hover:text-purple-100 font-medium"
-                      >
-                        ✓ View Rituals
-                      </Link>
+                      <button className="text-purple-300 hover:text-white transition-colors text-sm px-3 py-1 rounded-full border border-purple-400 hover:border-purple-300">
+                        View Report
+                      </button>
                     ) : (
-                      <span className="text-gray-400">
-                        <span className="mr-1">🔒</span>
-                      </span>
+                      <button disabled className="text-gray-500 cursor-not-allowed text-sm px-3 py-1 rounded-full border border-gray-700 flex items-center">
+                        <span className="mr-1">🔒</span> Locked
+                      </button>
                     )}
                   </td>
                 </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-      
-      {/* Remaining months locked indicator */}
-      {subscriptionTier === 'free' && (
-        <div className="mt-3 text-center text-gray-400">
-          <span className="mr-1">🔒</span> Remaining 11 months locked
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
-    </div>
+      
+      {!isLoading && subscriptionTier === 'free' && (
+        <div className="bg-purple-900 bg-opacity-30 p-4 text-center">
+          <p className="text-purple-200 mb-2">Upgrade to view all months energy forecasts</p>
+          <button className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-6 py-2 rounded-full font-medium hover:from-purple-600 hover:to-pink-600 transition-all">
+            Upgrade Now
+          </button>
+        </div>
+      )}
+    </FadeInContainer>
   );
 };
 
