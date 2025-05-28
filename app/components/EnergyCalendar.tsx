@@ -74,7 +74,11 @@ const EnergyCalendar: React.FC<EnergyCalendarProps> = ({
             
             // 计算平均能量变化值，放大到-25到25的范围
             const avgChange = Object.values(result.diffScores).reduce((sum, val) => sum + val, 0) / 5;
-            const scaledChange = Math.round(avgChange * 8); // 放大比例
+            // 将平均变化映射到-25~25范围：avgChange 范围大约 -100~100
+            let scaledChange = Math.round(avgChange / 4); // 约等于 -25~25
+            // clamp
+            if (scaledChange > 25) scaledChange = 25;
+            if (scaledChange < -25) scaledChange = -25;
             
             console.log(`平均变化: ${avgChange}, 放大后: ${scaledChange}`);
             
@@ -167,9 +171,7 @@ const EnergyCalendar: React.FC<EnergyCalendarProps> = ({
     <FadeInContainer className="mb-10 bg-opacity-25 backdrop-blur-md rounded-xl overflow-hidden">
       <div className="p-5 bg-purple-900 bg-opacity-30">
         <h3 className="text-xl font-semibold text-white">Energy Calendar</h3>
-        <p className="text-gray-200 text-sm">
-          Your personal energy forecast based on your birth chart ({birthday}).
-        </p>
+        <p className="text-gray-200 text-sm">Your personal energy forecast</p>
       </div>
 
       <div className="overflow-x-auto">
