@@ -60,6 +60,9 @@ const EnergyCalendar: React.FC<EnergyCalendarProps> = ({
           const monthName = format(currentDate, 'MMM');
           
           try {
+            console.log(`开始计算 ${monthName} 月的能量变化...`);
+            console.log(`参数: birthday=${birthday}, dateRef=${currentDate.toISOString()}`);
+            
             // 调用calculateMonthlyEnergy计算能量变化
             const result = calculateMonthlyEnergy({
               birthday,
@@ -67,9 +70,13 @@ const EnergyCalendar: React.FC<EnergyCalendarProps> = ({
               prevMonthScores: prevMonthResult?.monthScores || null
             });
             
+            console.log(`计算结果:`, JSON.stringify(result, null, 2));
+            
             // 计算平均能量变化值，放大到-25到25的范围
             const avgChange = Object.values(result.diffScores).reduce((sum, val) => sum + val, 0) / 5;
             const scaledChange = Math.round(avgChange * 8); // 放大比例
+            
+            console.log(`平均变化: ${avgChange}, 放大后: ${scaledChange}`);
             
             // 根据趋势选择合适的水晶
             const trendCrystals = CRYSTALS_BY_TREND[result.trend] || CRYSTALS_BY_TREND['stable'];
@@ -87,6 +94,10 @@ const EnergyCalendar: React.FC<EnergyCalendarProps> = ({
             console.log(`${monthName} 能量变化: ${scaledChange}, 趋势: ${result.trend}, 水晶: ${recommendedCrystal}`);
           } catch (monthError) {
             console.error(`计算 ${monthName} 能量变化失败:`, monthError);
+            // 记录详细错误信息
+            console.error(`错误详情:`, (monthError as Error).message);
+            console.error(`错误堆栈:`, (monthError as Error).stack);
+            
             // 即使单个月份计算失败，我们也继续处理其他月份
             realData.push({
               month: monthName,
@@ -107,7 +118,7 @@ const EnergyCalendar: React.FC<EnergyCalendarProps> = ({
       } catch (err) {
         console.error('计算能量变化失败:', err);
         setError(`计算能量变化失败: ${(err as Error).message}`);
-        // 错误时显示空数据，而不是回退到模拟数据
+        // 错误时显示空数据
         setMonthlyData([]);
       } finally {
         setIsLoading(false);

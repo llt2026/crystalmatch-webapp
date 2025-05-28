@@ -26,6 +26,8 @@ export function getBaziFromLunar(date: Date): {
       throw new Error('输入的日期无效');
     }
 
+    console.log(`开始计算八字，输入日期: ${date.toISOString()}`);
+
     // 五行对应表
     const FIVE_ELEMENTS: Record<string, string> = {
       '甲': '木', '乙': '木',
@@ -46,47 +48,69 @@ export function getBaziFromLunar(date: Date): {
     const month = date.getMonth() + 1; // JavaScript月份从0开始
     const day = date.getDate();
     
-    const solar = Solar.fromYmd(year, month, day);
-    const lunar = Lunar.fromSolar(solar);
+    console.log(`转换为阳历: ${year}年${month}月${day}日`);
     
-    // 从lunar对象获取八字信息
-    const yearPillar = lunar.getYearInGanZhi();
-    const monthPillar = lunar.getMonthInGanZhi();
-    const dayPillar = lunar.getDayInGanZhi();
-    
-    // 获取年、月、日柱的天干地支
-    const yearGan = yearPillar[0];
-    const yearZhi = yearPillar[1];
-    const monthGan = monthPillar[0];
-    const monthZhi = monthPillar[1];
-    const dayGan = dayPillar[0];
-    const dayZhi = dayPillar[1];
-    
-    // 打印调试信息
-    console.log('使用lunar-javascript库计算八字:');
-    console.log(`日期: ${year}年${month}月${day}日`);
-    console.log(`年柱: ${yearPillar}, 月柱: ${monthPillar}, 日柱: ${dayPillar}`);
-    
-    // 获取生肖信息
-    const yearZodiac = getZodiacFromDiZhi(yearZhi);
-    const monthZodiac = getZodiacFromDiZhi(monthZhi);
-    const dayZodiac = getZodiacFromDiZhi(dayZhi);
-    
-    return {
-      yearPillar,
-      monthPillar,
-      dayPillar,
-      zodiac: {
-        year: yearZodiac,
-        month: monthZodiac,
-        day: dayZodiac
-      },
-      fiveElements: {
-        year: [FIVE_ELEMENTS[yearGan] || '未知', FIVE_ELEMENTS[yearZhi] || '未知'],
-        month: [FIVE_ELEMENTS[monthGan] || '未知', FIVE_ELEMENTS[monthZhi] || '未知'],
-        day: [FIVE_ELEMENTS[dayGan] || '未知', FIVE_ELEMENTS[dayZhi] || '未知']
-      }
-    };
+    try {
+      const solar = Solar.fromYmd(year, month, day);
+      console.log(`成功创建Solar对象: ${solar.toString()}`);
+      
+      const lunar = Lunar.fromSolar(solar);
+      console.log(`成功创建Lunar对象: ${lunar.toString()}`);
+      
+      // 从lunar对象获取八字信息
+      const yearPillar = lunar.getYearInGanZhi();
+      const monthPillar = lunar.getMonthInGanZhi();
+      const dayPillar = lunar.getDayInGanZhi();
+      
+      console.log(`获取八字信息成功: 年柱=${yearPillar}, 月柱=${monthPillar}, 日柱=${dayPillar}`);
+      
+      // 获取年、月、日柱的天干地支
+      const yearGan = yearPillar[0];
+      const yearZhi = yearPillar[1];
+      const monthGan = monthPillar[0];
+      const monthZhi = monthPillar[1];
+      const dayGan = dayPillar[0];
+      const dayZhi = dayPillar[1];
+      
+      // 打印调试信息
+      console.log('使用lunar-javascript库计算八字:');
+      console.log(`日期: ${year}年${month}月${day}日`);
+      console.log(`年柱: ${yearPillar}, 月柱: ${monthPillar}, 日柱: ${dayPillar}`);
+      console.log(`天干: ${yearGan}${monthGan}${dayGan}, 地支: ${yearZhi}${monthZhi}${dayZhi}`);
+      
+      // 获取生肖信息
+      const yearZodiac = getZodiacFromDiZhi(yearZhi);
+      const monthZodiac = getZodiacFromDiZhi(monthZhi);
+      const dayZodiac = getZodiacFromDiZhi(dayZhi);
+      
+      console.log(`生肖: 年-${yearZodiac}, 月-${monthZodiac}, 日-${dayZodiac}`);
+      
+      // 获取五行信息
+      const yearElements = [FIVE_ELEMENTS[yearGan] || '未知', FIVE_ELEMENTS[yearZhi] || '未知'];
+      const monthElements = [FIVE_ELEMENTS[monthGan] || '未知', FIVE_ELEMENTS[monthZhi] || '未知'];
+      const dayElements = [FIVE_ELEMENTS[dayGan] || '未知', FIVE_ELEMENTS[dayZhi] || '未知'];
+      
+      console.log(`五行: 年-${yearElements.join(',')}, 月-${monthElements.join(',')}, 日-${dayElements.join(',')}`);
+      
+      return {
+        yearPillar,
+        monthPillar,
+        dayPillar,
+        zodiac: {
+          year: yearZodiac,
+          month: monthZodiac,
+          day: dayZodiac
+        },
+        fiveElements: {
+          year: yearElements,
+          month: monthElements,
+          day: dayElements
+        }
+      };
+    } catch (innerError) {
+      console.error(`lunar-javascript库计算出错:`, innerError);
+      throw new Error(`八字计算库错误: ${(innerError as Error).message}`);
+    }
   } catch (error) {
     console.error('八字计算错误:', error);
     return null;
