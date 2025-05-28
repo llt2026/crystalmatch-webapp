@@ -80,9 +80,9 @@ const basicUserData = {
   elementValues: [
     { element: "S", value: 75, fullName: "Stability Energy" },
     { element: "F", value: 85, fullName: "Fluid Energy" },
-    { element: "G", value: 45, fullName: "Growth Energy" },
-    { element: "C", value: 35, fullName: "Clarity Energy" },
-    { element: "P", value: 65, fullName: "Passion Energy" },
+    { element: "G", value: 65, fullName: "Growth Energy" },
+    { element: "C", value: 25, fullName: "Clarity Energy" },
+    { element: "P", value: 70, fullName: "Passion Energy" },
   ]
 };
 

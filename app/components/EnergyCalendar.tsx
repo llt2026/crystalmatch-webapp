@@ -106,7 +106,7 @@ const EnergyCalendar: React.FC<EnergyCalendarProps> = ({
                       - 月订阅: 能量值全年可见
                       - 年订阅: 能量值全年可见
                     */}
-                    {(index === 0 || subscriptionTier === 'monthly' || subscriptionTier === 'yearly') ? (
+                    {(index === 0) ? (
                       <>
                         {month.energyChange === 0 ? (
                           <span className="text-gray-300">—</span>
@@ -123,51 +123,21 @@ const EnergyCalendar: React.FC<EnergyCalendarProps> = ({
                     )}
                   </td>
                   <td className="py-3 px-4 border-b border-purple-700">
-                    {/* 水晶显示逻辑:
-                      - 免费用户: 只有首月可见
-                      - 月订阅: 只有首月可见
-                      - 年订阅: 全年可见
-                    */}
-                    {(index === 0 || subscriptionTier === 'yearly') ? (
-                      <div className="flex items-center">
-                        <span className="mr-2">💎</span>
-                        <span>{month.crystal}</span>
-                      </div>
-                    ) : (
-                      <span className="text-gray-400">
-                        <span className="mr-1">🔒</span>
-                      </span>
-                    )}
+                    {/* 水晶显示逻辑: 始终显示为锁定状态 */}
+                    <span className="text-gray-400">
+                      <span className="mr-1">🔒</span>
+                    </span>
                   </td>
                   <td className="py-3 px-4 border-b border-purple-700">
-                    {/* 深度报告按钮逻辑:
-                      - 免费用户: 只有首月可点击，其他显示锁定
-                      - 月订阅: 只有首月可点击，其他显示锁定
-                      - 年订阅: 全年可点击
-                    */}
-                    {(index === 0 || subscriptionTier === 'yearly') ? (
-                      <button className="text-purple-300 hover:text-white transition-colors text-sm px-3 py-1 rounded-full border border-purple-400 hover:border-purple-300">
-                        View Report
-                      </button>
-                    ) : (
-                      <button disabled className="text-gray-500 cursor-not-allowed text-sm px-3 py-1 rounded-full border border-gray-700 flex items-center">
-                        <span className="mr-1">🔒</span> Locked
-                      </button>
-                    )}
+                    {/* Action按钮逻辑: 始终显示为锁定状态 */}
+                    <button disabled className="text-gray-500 cursor-not-allowed text-sm px-3 py-1 rounded-full border border-gray-700 flex items-center">
+                      <span className="mr-1">🔒</span> Locked
+                    </button>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
-      )}
-      
-      {!isLoading && subscriptionTier === 'free' && (
-        <div className="bg-purple-900 bg-opacity-30 p-4 text-center">
-          <p className="text-purple-200 mb-2">Upgrade to view all months energy forecasts</p>
-          <button className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-6 py-2 rounded-full font-medium hover:from-purple-600 hover:to-pink-600 transition-all">
-            Upgrade Now
-          </button>
         </div>
       )}
     </FadeInContainer>
