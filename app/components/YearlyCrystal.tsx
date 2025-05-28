@@ -23,13 +23,13 @@ const YearlyCrystal: React.FC<YearlyCrystalProps> = ({ crystal, isFreeUser = fal
   return (
     <div className="rounded-xl bg-purple-900/60 backdrop-blur-sm border border-purple-800/50 text-white p-5 mb-8 flex flex-row items-center">
       {/* 水晶图片 - 左侧 */}
-      <div className="w-20 h-20 relative flex-shrink-0 mr-4">
+      <div className="w-24 h-24 relative flex-shrink-0 mr-5 rounded-full overflow-hidden bg-purple-800/40">
         <Image 
           src={crystal.imageUrl} 
           alt={crystal.name} 
-          width={80} 
-          height={80} 
-          className="rounded-full object-cover"
+          width={96} 
+          height={96} 
+          className="object-cover"
         />
       </div>
       

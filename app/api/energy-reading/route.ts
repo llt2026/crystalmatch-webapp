@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { getOpenAiApiKey } from '@/app/lib/db.config';
+import { calculateBazi } from '@/app/lib/bazi-service';
+import { getActiveSubscription } from '@/app/lib/repositories/subscriptionRepository';
 
 // 初始化OpenAI客户端
 const openai = new OpenAI({
@@ -86,144 +88,371 @@ function calculateChineseElements(birthDate: Date, gender: string): { [key: stri
   };
 }
 
-// 使用GPT生成完整的能量报告
-async function generateEnergyReportWithGPT(
-  birthInfo: any, 
-  elementProportions: { [key: string]: number },
-  zodiacSign: string,
-  westernSign: string
-): Promise<any> {
-  try {
-    // 检查API密钥
-    if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === 'sk-your-openai-api-key') {
-      console.log('未配置有效的OpenAI API密钥，返回错误');
-      throw new Error('OpenAI API密钥未配置');
-    }
+// 判断用户订阅等级
+function getUserTier(subscription: any): 'free' | 'monthly' | 'yearly' {
+  if (!subscription || subscription.status !== 'active') {
+    return 'free';
+  }
+  
+  const planId = subscription.planId || subscription.plan?.id;
+  if (planId?.includes('monthly') || planId?.includes('month')) {
+    return 'monthly';
+  } else if (planId?.includes('yearly') || planId?.includes('year')) {
+    return 'yearly';
+  }
+  
+  return 'free';
+}
 
-    // 获取生肖和星座信息
-    const zodiacInfo = zodiacMapping[zodiacSign as keyof typeof zodiacMapping];
-    const westernInfo = westernZodiacMapping[westernSign as keyof typeof westernZodiacMapping];
-    
-    // 排序五行强度
-    const sortedElements = Object.entries(elementProportions)
-      .sort((a, b) => b[1] - a[1])
-      .map(([element, value]) => ({ element, strength: value }));
-
-    const prompt = `
-你是一位专业的能量咨询师，擅长将中国传统五行学说与西方占星学融合，为用户提供个性化的能量分析报告。
+// 免费用户报告生成
+async function generateFreeReport(birthInfo: any, baziInfo: any, zodiacSign: string, westernSign: string): Promise<any> {
+  const zodiacInfo = zodiacMapping[zodiacSign as keyof typeof zodiacMapping];
+  const westernInfo = westernZodiacMapping[westernSign as keyof typeof westernZodiacMapping];
+  
+  const currentYear = new Date().getFullYear();
+  const nextYear = currentYear + 1;
+  
+  const prompt = `
+你是一位专业的命理师，基于用户的八字信息生成年度基础能量报告。
 
 用户信息：
 - 出生日期：${new Date(birthInfo.birthDate).toISOString().split('T')[0]}
 - 性别：${birthInfo.gender}
+- 八字：年柱${baziInfo.year.tian}${baziInfo.year.di}、月柱${baziInfo.month.tian}${baziInfo.month.di}、日柱${baziInfo.day.tian}${baziInfo.day.di}、时柱${baziInfo.hour.tian}${baziInfo.hour.di}
+- 五行分布：木${baziInfo.wuxing.wood}%，火${baziInfo.wuxing.fire}%，土${baziInfo.wuxing.earth}%，金${baziInfo.wuxing.metal}%，水${baziInfo.wuxing.water}%
 - 生肖：${zodiacInfo.name}（${zodiacInfo.personality}）
 - 星座：${westernInfo.name}（${westernInfo.traits}）
-- 五行能量分布：
-  ${sortedElements.map(e => `  ${e.element}: ${e.strength}%`).join('\n')}
 
-请生成一份完整的能量报告，必须严格按照以下JSON格式返回，所有字段都必须包含：
+请生成免费用户的年度基础报告，严格按照以下JSON格式返回：
 
 {
-  "greeting": "个性化的问候语",
-  "overview": "包含出生日期、生肖、星座的概述",
+  "reportType": "free",
+  "greeting": "欢迎来到CrystalMatch！根据您的出生信息，我们为您准备了专属的年度能量报告。",
+  "overview": "基于您${new Date(birthInfo.birthDate).toISOString().split('T')[0]}的出生信息分析，您的八字为${baziInfo.year.tian}${baziInfo.year.di} ${baziInfo.month.tian}${baziInfo.month.di} ${baziInfo.day.tian}${baziInfo.day.di} ${baziInfo.hour.tian}${baziInfo.hour.di}，生肖${zodiacInfo.name}，星座${westernInfo.name}。",
+  "bazi": {
+    "yearPillar": "${baziInfo.year.tian}${baziInfo.year.di}",
+    "monthPillar": "${baziInfo.month.tian}${baziInfo.month.di}",
+    "dayPillar": "${baziInfo.day.tian}${baziInfo.day.di}",
+    "hourPillar": "${baziInfo.hour.tian}${baziInfo.hour.di}",
+    "analysis": "基于八字的基础解读"
+  },
   "primaryEnergy": {
     "type": "主导五行元素(wood/fire/earth/metal/water)",
     "name": "中文能量名称",
-    "description": "能量描述",
-    "strength": 具体百分比数字,
-    "traits": ["特质1", "特质2", "特质3", "特质4"],
-    "color": "对应颜色hex代码",
-    "tip": "针对此能量的个性化建议"
+    "description": "基础能量描述",
+    "strength": 数字,
+    "traits": ["特质1", "特质2", "特质3"],
+    "color": "对应颜色hex代码"
   },
-  "secondaryEnergy": {
-    "type": "次要五行元素",
-    "name": "中文能量名称", 
-    "description": "能量描述",
-    "strength": 具体百分比数字,
-    "traits": ["特质1", "特质2", "特质3", "特质4"],
-    "color": "对应颜色hex代码",
-    "tip": "针对此能量的个性化建议"
+  "yearlyForecast": {
+    "year": ${nextYear},
+    "overallTrend": "整体运势概括",
+    "keyMonths": ["重点月份1", "重点月份2", "重点月份3"],
+    "advice": "年度建议"
   },
-  "energyRanking": [
-    // 按强度排序的5个能量对象，每个包含type, name, description, strength, traits, color, tip字段
-    // 只有最弱的能量(第5个)需要tip字段，其他tip可以为空字符串
-  ],
-  "zodiac": {
-    "name": "生肖名称",
-    "personality": "生肖性格特点",
-    "forecast": "2025年运势预测",
-    "tip": "生肖相关的实用建议"
-  },
-  "westernAstrology": {
-    "sign": "星座名称",
-    "traits": "星座特质",
-    "monthlyTip": "本月星象建议",
-    "tip": "星座相关的实用建议"
-  },
-  "crystalRecommendations": [
+  "monthlyEnergyTable": [
     {
-      "name": "水晶名称",
-      "description": "水晶功效描述",
-      "benefits": ["功效1", "功效2", "功效3"],
-      "usage": "使用方法建议"
+      "month": "1月",
+      "energy": "主要能量类型",
+      "level": "能量强度(强/中/弱)",
+      "focus": "本月重点"
     }
-    // 推荐2-3颗适合用户五行能量的水晶
+    // 12个月的数据
   ],
-  "actionSteps": [
-    "每日能量仪式步骤1",
-    "每日能量仪式步骤2", 
-    "每日能量仪式步骤3",
-    "每日能量仪式步骤4"
-  ]
+  "upgradePrompt": {
+    "message": "想要获得更详细的月度能量分析和个性化建议吗？",
+    "benefits": ["详细月度运势分析", "个性化水晶推荐", "专属能量仪式", "无限次查询"],
+    "cta": "升级到月度会员，解锁完整功能"
+  }
 }
 
 要求：
-1. 所有内容都要个性化，基于用户的具体五行分布、生肖、星座生成
-2. 五行对应颜色：wood:#22c55e, fire:#ef4444, earth:#eab308, metal:#6b7280, water:#3b82f6
-3. 水晶推荐要基于用户的五行强弱来选择最适合的
-4. 所有文本内容使用简体中文，简洁实用
-5. 确保JSON格式完全正确，可直接解析
+1. 基于真实八字信息生成内容，不要虚构
+2. 月度能量表要包含12个月完整信息
+3. 内容简洁实用，突出年度整体趋势
+4. 引导用户升级，但不过分营销
+5. 只返回JSON，不要其他文字
 
 只返回JSON，不要有任何其他文字。
 `;
 
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "system", 
-          content: "你是一位专业的能量咨询师。请严格按照用户要求的JSON格式返回结果，确保所有字段完整且类型正确。"
-        },
-        { 
-          role: "user", 
-          content: prompt 
-        }
-      ],
-      temperature: 0.7,
-      max_tokens: 2000,
-    });
+  const completion = await openai.chat.completions.create({
+    model: "gpt-4o-mini",
+    messages: [
+      {
+        role: "system", 
+        content: "你是一位专业的命理师。请严格按照用户要求的JSON格式返回结果，确保所有字段完整且类型正确。"
+      },
+      { role: "user", content: prompt }
+    ],
+    temperature: 0.7,
+    max_tokens: 2500,
+  });
 
-    const aiResponse = completion.choices[0].message.content || '';
-    
-    try {
-      // 尝试解析GPT返回的JSON
-      const report = JSON.parse(aiResponse);
-      return report;
-    } catch (parseError) {
-      console.error('解析GPT响应JSON失败:', parseError);
-      console.error('GPT原始响应:', aiResponse);
-      throw new Error('GPT返回的数据格式错误');
+  const aiResponse = completion.choices[0].message.content || '';
+  return JSON.parse(aiResponse);
+}
+
+// 月订阅用户报告生成
+async function generateMonthlyReport(birthInfo: any, baziInfo: any, zodiacSign: string, westernSign: string): Promise<any> {
+  const zodiacInfo = zodiacMapping[zodiacSign as keyof typeof zodiacMapping];
+  const westernInfo = westernZodiacMapping[westernSign as keyof typeof westernZodiacMapping];
+  
+  const currentDate = new Date();
+  const currentMonth = currentDate.getMonth() + 1;
+  const currentYear = currentDate.getFullYear();
+  
+  const prompt = `
+你是一位专业的命理师，基于用户的八字信息生成详细的月度能量报告。
+
+用户信息：
+- 出生日期：${new Date(birthInfo.birthDate).toISOString().split('T')[0]}
+- 性别：${birthInfo.gender}
+- 八字：年柱${baziInfo.year.tian}${baziInfo.year.di}、月柱${baziInfo.month.tian}${baziInfo.month.di}、日柱${baziInfo.day.tian}${baziInfo.day.di}、时柱${baziInfo.hour.tian}${baziInfo.hour.di}
+- 五行分布：木${baziInfo.wuxing.wood}%，火${baziInfo.wuxing.fire}%，土${baziInfo.wuxing.earth}%，金${baziInfo.wuxing.metal}%，水${baziInfo.wuxing.water}%
+- 生肖：${zodiacInfo.name}（${zodiacInfo.personality}）
+- 星座：${westernInfo.name}（${westernInfo.traits}）
+
+当前分析月份：${currentYear}年${currentMonth}月
+
+请生成月订阅用户的详细月度报告，严格按照以下JSON格式返回：
+
+{
+  "reportType": "monthly", 
+  "greeting": "您的专属月度能量报告已准备就绪！",
+  "overview": "基于您的八字与当月天象影响的深度分析",
+  "bazi": {
+    "yearPillar": "${baziInfo.year.tian}${baziInfo.year.di}",
+    "monthPillar": "${baziInfo.month.tian}${baziInfo.month.di}",
+    "dayPillar": "${baziInfo.day.tian}${baziInfo.day.di}",
+    "hourPillar": "${baziInfo.hour.tian}${baziInfo.hour.di}",
+    "analysis": "详细的八字解读，包含十神、纳音、五行旺衰分析"
+  },
+  "monthlyAnalysis": {
+    "month": "${currentYear}年${currentMonth}月",
+    "mainTheme": "本月主题",
+    "energyShift": "能量变化趋势",
+    "opportunities": ["机遇1", "机遇2", "机遇3"],
+    "challenges": ["挑战1", "挑战2"],
+    "recommendations": ["建议1", "建议2", "建议3"]
+  },
+  "detailedForecast": {
+    "career": {
+      "trend": "事业运势",
+      "advice": "事业建议",
+      "luckyDays": ["幸运日期1", "幸运日期2"]
+    },
+    "wealth": {
+      "trend": "财运分析", 
+      "advice": "理财建议",
+      "investmentTip": "投资提示"
+    },
+    "relationships": {
+      "trend": "感情运势",
+      "advice": "人际关系建议",
+      "romanticTip": "桃花运提示"
+    },
+    "health": {
+      "trend": "健康状况",
+      "advice": "养生建议",
+      "warning": "需要注意的健康问题"
     }
+  },
+  "crystalRecommendations": [
+    {
+      "name": "水晶名称",
+      "description": "功效描述",
+      "benefits": ["益处1", "益处2", "益处3"],
+      "usage": "使用方法",
+      "placement": "摆放位置"
+    }
+    // 3-4个适合本月的水晶
+  ],
+  "energyRituals": {
+    "morning": "晨间能量仪式",
+    "evening": "晚间能量仪式", 
+    "weekly": "每周特殊仪式",
+    "fullMoon": "满月能量仪式"
+  },
+  "luckyElements": {
+    "colors": ["幸运色1", "幸运色2"],
+    "numbers": [数字1, 数字2, 数字3],
+    "directions": ["方位1", "方位2"],
+    "materials": ["材质1", "材质2"]
+  },
+  "shareQuote": "适合分享的月度能量金句"
+}
 
-  } catch (error) {
-    console.error('GPT生成报告失败:', error);
-    throw error;
+要求：
+1. 结合用户八字与当月流年月令的影响
+2. 提供具体可行的建议和仪式
+3. 水晶推荐要基于当月能量需求
+4. 内容专业详细，体现月度会员价值
+5. 只返回JSON，不要其他文字
+
+只返回JSON，不要有任何其他文字。
+`;
+
+  const completion = await openai.chat.completions.create({
+    model: "gpt-4o-mini",
+    messages: [
+      {
+        role: "system", 
+        content: "你是一位专业的命理师。请严格按照用户要求的JSON格式返回结果，确保所有字段完整且类型正确。"
+      },
+      { role: "user", content: prompt }
+    ],
+    temperature: 0.7,
+    max_tokens: 3500,
+  });
+
+  const aiResponse = completion.choices[0].message.content || '';
+  return JSON.parse(aiResponse);
+}
+
+// 年订阅用户报告生成
+async function generateYearlyReport(birthInfo: any, baziInfo: any, zodiacSign: string, westernSign: string): Promise<any> {
+  const zodiacInfo = zodiacMapping[zodiacSign as keyof typeof zodiacMapping];
+  const westernInfo = westernZodiacMapping[westernSign as keyof typeof westernZodiacMapping];
+  
+  const currentYear = new Date().getFullYear();
+  const nextYear = currentYear + 1;
+  
+  const prompt = `
+你是一位顶级命理大师，基于用户的八字信息生成最详细的年度完整报告。
+
+用户信息：
+- 出生日期：${new Date(birthInfo.birthDate).toISOString().split('T')[0]}
+- 性别：${birthInfo.gender}
+- 八字：年柱${baziInfo.year.tian}${baziInfo.year.di}、月柱${baziInfo.month.tian}${baziInfo.month.di}、日柱${baziInfo.day.tian}${baziInfo.day.di}、时柱${baziInfo.hour.tian}${baziInfo.hour.di}
+- 五行分布：木${baziInfo.wuxing.wood}%，火${baziInfo.wuxing.fire}%，土${baziInfo.wuxing.earth}%，金${baziInfo.wuxing.metal}%，水${baziInfo.wuxing.water}%
+- 生肖：${zodiacInfo.name}（${zodiacInfo.personality}）
+- 星座：${westernInfo.name}（${westernInfo.traits}）
+
+分析年份：${nextYear}年
+
+请生成年订阅用户的完整年度报告，严格按照以下JSON格式返回：
+
+{
+  "reportType": "yearly",
+  "greeting": "恭喜您解锁完整的年度命理报告！这是基于您八字的最详细分析。",
+  "overview": "基于您的命盘与${nextYear}年流年运势的综合分析",
+  "bazi": {
+    "fullAnalysis": "完整的八字命盘分析，包含格局、用神、十神关系等深度解读",
+    "yearPillar": "${baziInfo.year.tian}${baziInfo.year.di}",
+    "monthPillar": "${baziInfo.month.tian}${baziInfo.month.di}",
+    "dayPillar": "${baziInfo.day.tian}${baziInfo.day.di}",
+    "hourPillar": "${baziInfo.hour.tian}${baziInfo.hour.di}",
+    "pattern": "命格类型",
+    "useGod": "用神分析",
+    "lifeStages": "人生阶段运势概览"
+  },
+  "yearlyOverview": {
+    "year": ${nextYear},
+    "theme": "年度主题",
+    "overallRating": "整体运势评分(1-10)",
+    "keyTrends": ["主要趋势1", "主要趋势2", "主要趋势3"],
+    "majorEvents": ["重要事件预测1", "重要事件预测2"],
+    "bestMonths": ["最佳月份1", "最佳月份2"],
+    "challengingMonths": ["挑战月份1", "挑战月份2"]
+  },
+  "detailedMonthlyAnalysis": [
+    {
+      "month": "1月",
+      "monthlyTheme": "月度主题",
+      "energyLevel": "能量强度(1-10)",
+      "career": "事业运势详解",
+      "wealth": "财运分析",
+      "relationships": "感情运势",
+      "health": "健康状况",
+      "opportunities": ["机会1", "机会2"],
+      "warnings": ["注意事项1"],
+      "advice": "月度建议",
+      "luckyDays": ["吉日1", "吉日2"],
+      "colors": ["幸运色1", "幸运色2"],
+      "crystals": ["推荐水晶1", "推荐水晶2"]
+    }
+    // 12个月完整数据
+  ],
+  "lifeAspects": {
+    "career": {
+      "yearlyTrend": "年度事业趋势",
+      "breakthroughPeriods": ["突破期1", "突破期2"],
+      "strategies": ["策略1", "策略2", "策略3"],
+      "networking": "人脉发展建议",
+      "skillDevelopment": "技能提升方向"
+    },
+    "wealth": {
+      "yearlyTrend": "年度财运趋势",
+      "investmentPeriods": ["投资良机1", "投资良机2"],
+      "riskPeriods": ["风险期1"],
+      "strategies": ["理财策略1", "理财策略2"],
+      "sideBusiness": "副业发展机会"
+    },
+    "relationships": {
+      "yearlyTrend": "年度感情运势",
+      "romanticPeaks": ["桃花旺期1", "桃花旺期2"],
+      "familyHarmony": "家庭关系建议",
+      "friendships": "友谊发展建议",
+      "marriageAdvice": "婚姻关系维护"
+    },
+    "health": {
+      "yearlyTrend": "年度健康趋势",
+      "preventiveCare": ["预防保健1", "预防保健2"],
+      "riskPeriods": ["健康注意期1"],
+      "exerciseRecommendations": "运动建议",
+      "mentalWellness": "心理健康维护"
+    }
+  },
+  "spiritualGuidance": {
+    "lifePhilosophy": "人生哲学指导",
+    "meditation": "冥想练习建议",
+    "energyWork": "能量修炼方法",
+    "karma": "因果业力分析",
+    "soulPurpose": "灵魂使命解读"
+  },
+  "premiumFeatures": {
+    "personalizedRituals": "定制化仪式",
+    "advancedCrystalGrid": "高级水晶阵法",
+    "astrologicalTransits": "流年行星过境影响",
+    "compatibilityAnalysis": "人际关系兼容性分析",
+    "lifePath": "生命路径指引"
   }
+}
+
+要求：
+1. 这是最高级别的报告，内容要极其详细和专业
+2. 12个月分析要具体到每月的运势起伏
+3. 结合八字学、紫微斗数、占星学等多维度分析
+4. 提供实用的生活指导和精神修行建议
+5. 体现年度会员的尊贵体验
+6. 只返回JSON，不要其他文字
+
+只返回JSON，不要有任何其他文字。
+`;
+
+  const completion = await openai.chat.completions.create({
+    model: "gpt-4o-mini",
+    messages: [
+      {
+        role: "system", 
+        content: "你是一位顶级命理大师。请严格按照用户要求的JSON格式返回结果，确保所有字段完整且类型正确。"
+      },
+      { role: "user", content: prompt }
+    ],
+    temperature: 0.8,
+    max_tokens: 4000,
+  });
+
+  const aiResponse = completion.choices[0].message.content || '';
+  return JSON.parse(aiResponse);
 }
 
 export async function POST(request: NextRequest) {
   try {
     // 获取请求数据
-    const birthInfo = await request.json();
+    const requestData = await request.json();
+    const { birthInfo, userId } = requestData;
     
     if (!birthInfo || !birthInfo.birthDate || !birthInfo.gender) {
       return NextResponse.json({ error: '缺少必要的出生信息' }, { status: 400 });
@@ -231,21 +460,53 @@ export async function POST(request: NextRequest) {
     
     // 解析出生日期
     const birthDate = new Date(birthInfo.birthDate);
-    
-    // 获取生肖
     const birthYear = birthDate.getFullYear();
-    const zodiacSign = getChineseZodiac(birthYear);
-    
-    // 获取星座
     const birthMonth = birthDate.getMonth() + 1;
     const birthDay = birthDate.getDate();
+    const birthHour = birthDate.getHours();
+    const birthMinute = birthDate.getMinutes();
+    
+    // 获取用户订阅状态
+    let userSubscription = null;
+    if (userId) {
+      try {
+        userSubscription = await getActiveSubscription(userId);
+      } catch (error) {
+        console.log('获取用户订阅状态失败，按免费用户处理');
+      }
+    }
+    
+    const userTier = getUserTier(userSubscription);
+    console.log('用户订阅等级:', userTier);
+    
+    // 计算八字信息
+    const baziInfo = calculateBazi({
+      year: birthYear,
+      month: birthMonth,
+      day: birthDay,
+      hour: birthHour,
+      minute: birthMinute,
+      gender: birthInfo.gender
+    });
+    
+    // 获取生肖和星座
+    const zodiacSign = getChineseZodiac(birthYear);
     const westernSign = getZodiacSign(birthMonth, birthDay);
     
-    // 计算五行比例
-    const elementProportions = calculateChineseElements(birthDate, birthInfo.gender);
+    // 根据用户订阅等级生成不同的报告
+    let report;
     
-    // 使用GPT生成完整报告
-    const report = await generateEnergyReportWithGPT(birthInfo, elementProportions, zodiacSign, westernSign);
+    switch (userTier) {
+      case 'monthly':
+        report = await generateMonthlyReport(birthInfo, baziInfo, zodiacSign, westernSign);
+        break;
+      case 'yearly':
+        report = await generateYearlyReport(birthInfo, baziInfo, zodiacSign, westernSign);
+        break;
+      default: // free
+        report = await generateFreeReport(birthInfo, baziInfo, zodiacSign, westernSign);
+        break;
+    }
     
     return NextResponse.json(report);
   } catch (error) {

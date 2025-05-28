@@ -192,7 +192,7 @@ export default function EnergyReportPage() {
         crystal={{
           name: userData.yearCrystal.name,
           description: "Focus · Clarity · Structure",
-          imageUrl: `/images/crystals/${userData.yearCrystal.name.toLowerCase().replace(/\s+/g, '-')}.jpg`,
+          imageUrl: `/images/crystals/${userData.yearCrystal.name.replace(/\s+/g, '-')}.png`,
           effect: "Brainstorm booster",
           planetAssociation: "Sun/Moon",
           year: 2025

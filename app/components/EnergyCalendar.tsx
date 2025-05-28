@@ -15,13 +15,14 @@ const generateMockData = () => {
     const currentDate = addMonths(today, i);
     const monthName = format(currentDate, 'MMM');
     
-    // 随机生成-10到10之间的能量变化值
-    const randomChange = Math.floor(Math.random() * 21) - 10;
+    // 生成-25到+25之间的随机能量变化值
+    const randomChange = Math.floor(Math.random() * 51) - 25;
     
     mockData.push({
       month: monthName,
       energyChange: randomChange,
-      trend: randomChange > 0 ? 'up' : randomChange < 0 ? 'down' : 'stable'
+      trend: randomChange > 0 ? 'up' : randomChange < 0 ? 'down' : 'stable',
+      crystal: ['Clear Quartz', 'Amethyst', 'Rose Quartz', 'Citrine', 'Tiger\'s Eye'][Math.floor(Math.random() * 5)]
     });
   }
   
@@ -72,21 +73,13 @@ const EnergyCalendar: React.FC<EnergyCalendarProps> = ({
                 <tr key={month.month} className="border-t border-purple-800 bg-opacity-20 hover:bg-purple-800 hover:bg-opacity-40 transition-colors">
                   <td className="py-3 px-4 border-b border-purple-700">{month.month}</td>
                   <td className="py-3 px-4 border-b border-purple-700">
-                    {/* 只显示第一个月的能量值，其他月份显示锁定状态 */}
-                    {(index === 0) ? (
-                      <>
-                        {month.energyChange === 0 ? (
-                          <span className="text-gray-300">—</span>
-                        ) : month.energyChange > 0 ? (
-                          <span className="text-green-300 font-medium">▲ +{month.energyChange}</span>
-                        ) : (
-                          <span className="text-rose-300 font-medium">▼ {month.energyChange}</span>
-                        )}
-                      </>
+                    {/* 根据能量变化正负值显示不同样式 */}
+                    {month.energyChange === 0 ? (
+                      <span className="text-gray-300">—</span>
+                    ) : month.energyChange > 0 ? (
+                      <span className="text-green-300 font-medium">▲ +{month.energyChange}</span>
                     ) : (
-                      <span className="text-gray-400">
-                        <span className="mr-1">🔒</span>
-                      </span>
+                      <span className="text-rose-300 font-medium">▼ {month.energyChange}</span>
                     )}
                   </td>
                   <td className="py-3 px-4 border-b border-purple-700">

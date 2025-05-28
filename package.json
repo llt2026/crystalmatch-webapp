@@ -62,6 +62,7 @@
     "typescript": "^5.4.3"
   },
   "devDependencies": {
+    "@types/suncalc": "^1.9.2",
     "prisma": "^6.7.0"
   },
   "prisma": {
