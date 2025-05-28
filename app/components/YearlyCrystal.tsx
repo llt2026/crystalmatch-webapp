@@ -20,66 +20,36 @@ const YearlyCrystal: React.FC<YearlyCrystalProps> = ({ crystal, isFreeUser = fal
   // 解析描述字符串，通常格式为 "Focus · Clarity · Structure"
   const descriptionParts = crystal.description.split('·').map(part => part.trim());
   
+  // 将effect转换为简短描述
+  const shortEffect = crystal.effect?.replace('Amplifies intentions and mental clarity', 'Brainstorm booster');
+  
   return (
-    <div className="rounded-xl bg-purple-900/60 backdrop-blur-sm border border-purple-800/50 text-white p-6 mb-8 flex flex-col items-center">
-      {/* 水晶图片 */}
-      <div className="w-32 h-32 relative mb-4">
-        <div className="absolute inset-0 rounded-full bg-gradient-to-br from-purple-400 to-purple-700 opacity-50"></div>
+    <div className="rounded-xl bg-green-50 backdrop-blur-sm border border-green-100 text-gray-800 p-5 mb-8 flex flex-row items-center">
+      {/* 水晶图片 - 左侧 */}
+      <div className="w-20 h-20 relative flex-shrink-0 mr-4">
         <Image 
           src={crystal.imageUrl} 
           alt={crystal.name} 
-          width={200} 
-          height={200} 
-          className="rounded-full object-cover border-2 border-purple-500/30 z-10 relative"
+          width={80} 
+          height={80} 
+          className="rounded-full object-cover"
         />
       </div>
       
-      {/* 水晶标题 */}
-      <h2 className="text-xl font-bold mb-3 text-white text-center">
-        Your {crystal.year} Guiding Crystal
-      </h2>
-      
-      {/* 水晶名称 */}
-      <p className="text-2xl font-bold text-white mb-6 flex items-center">
-        {crystal.name} <span className="ml-2">💎</span>
-      </p>
-      
-      {/* 水晶属性描述 */}
-      <div className="w-full text-center mb-4">
-        <p className="text-lg text-white">
-          {descriptionParts.join(' · ')}
+      {/* 水晶信息 - 右侧 */}
+      <div className="flex-1">
+        <h2 className="text-xl font-bold text-gray-800">
+          Your {crystal.year} Guiding Crystal:
+        </h2>
+        
+        <p className="text-xl font-bold mb-1 flex items-center">
+          {crystal.name} <span className="ml-2 text-green-600">🌿</span>
+        </p>
+        
+        <p className="text-gray-700 text-sm">
+          {shortEffect || descriptionParts[0]} • Planet {crystal.planetAssociation}
         </p>
       </div>
-      
-      {/* 水晶效果 */}
-      {crystal.effect && (
-        <div className="w-full text-center mb-4">
-          <p className="text-white flex items-center justify-center">
-            <span className="mr-2">✨</span> {crystal.effect}
-          </p>
-        </div>
-      )}
-      
-      {/* 关联行星 */}
-      {crystal.planetAssociation && (
-        <div className="w-full text-center mb-4">
-          <p className="text-sm text-gray-300">
-            Associated Planet: {crystal.planetAssociation}
-          </p>
-        </div>
-      )}
-      
-      {/* 订阅升级提示 */}
-      {isFreeUser && (
-        <div className="w-full text-center mt-4">
-          <p className="text-sm text-purple-200 mb-2">
-            Upgrade to get personalized crystal advice and monthly rituals
-          </p>
-          <button className="px-6 py-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full text-white text-sm font-medium">
-            Upgrade Now
-          </button>
-        </div>
-      )}
     </div>
   );
 };

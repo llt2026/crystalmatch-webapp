@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/app/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,4 +17,52 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   console.log(`Admin updated user ${id} subscription to ${status}`, expiresAt);
 
   return NextResponse.json({ success: true, userId: id, status, expiresAt });
+}
+
+export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const { id } = params;
+    const { subscriptionStatus } = await request.json();
+    
+    const validStatuses = ['free', 'monthly', 'yearly', 'none'];
+    if (!validStatuses.includes(subscriptionStatus)) {
+      return NextResponse.json(
+        { error: 'Invalid subscription status' }, 
+        { status: 400 }
+      );
+    }
+    
+    let expiresAt = null;
+    if (subscriptionStatus === 'monthly') {
+      expiresAt = new Date();
+      expiresAt.setMonth(expiresAt.getMonth() + 1);
+    } else if (subscriptionStatus === 'yearly') {
+      expiresAt = new Date();
+      expiresAt.setFullYear(expiresAt.getFullYear() + 1);
+    }
+    
+    const updatedUser = await prisma.user.update({
+      where: { id },
+      data: {
+        subscriptionStatus,
+        subscriptionExpiresAt: expiresAt
+      },
+    });
+    
+    console.log(`Admin updated user ${id} subscription to ${subscriptionStatus}`, expiresAt);
+    
+    return NextResponse.json({ 
+      success: true, 
+      userId: id, 
+      status: subscriptionStatus,
+      expiresAt
+    });
+    
+  } catch (error) {
+    console.error('Error updating user subscription:', error);
+    return NextResponse.json(
+      { error: 'Failed to update subscription status' }, 
+      { status: 500 }
+    );
+  }
 } 

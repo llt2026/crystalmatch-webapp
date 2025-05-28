@@ -197,7 +197,7 @@ export default function EnergyReportPage() {
           planetAssociation: "Sun/Moon",
           year: 2025
         }} 
-        isFreeUser={userData.subscriptionTier === 'free'}
+        isFreeUser={false}
         userElement={findWeakestElement(userData.elementValues)}
       />
       

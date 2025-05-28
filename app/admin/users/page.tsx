@@ -12,7 +12,7 @@ interface User {
   name: string;
   createdAt: string;
   lastLogin: string;
-  subscriptionStatus: 'free' | 'premium' | 'none';
+  subscriptionStatus: 'free' | 'monthly' | 'yearly' | 'none';
 }
 
 export default function AdminUsersPage() {
@@ -86,11 +86,44 @@ export default function AdminUsersPage() {
     return date.toLocaleDateString('zh-CN');
   };
 
+  // 处理订阅类型修改
+  const handleSubscriptionChange = async (userId: string, newStatus: string) => {
+    try {
+      const res = await fetch(`/api/admin/users/${userId}/subscription`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          subscriptionStatus: newStatus 
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error('修改订阅类型失败');
+      }
+
+      // 更新本地状态
+      setUsers(users.map(user => 
+        user.id === userId 
+          ? { ...user, subscriptionStatus: newStatus as 'free' | 'monthly' | 'yearly' | 'none' } 
+          : user
+      ));
+
+      alert('订阅类型已成功更新');
+    } catch (err) {
+      console.error(err);
+      alert('修改订阅类型失败，请重试');
+    }
+  };
+
   // 订阅状态样式
   const getStatusStyle = (status: string) => {
     switch (status) {
-      case 'premium':
+      case 'yearly':
         return 'bg-purple-100 text-purple-800';
+      case 'monthly':
+        return 'bg-blue-100 text-blue-800';
       case 'free':
         return 'bg-green-100 text-green-800';
       default:
@@ -101,8 +134,10 @@ export default function AdminUsersPage() {
   // 订阅状态文本
   const getStatusText = (status: string) => {
     switch (status) {
-      case 'premium':
-        return '高级会员';
+      case 'yearly':
+        return '年度会员';
+      case 'monthly':
+        return '月度会员';
       case 'free':
         return '免费用户';
       default:
@@ -225,9 +260,16 @@ export default function AdminUsersPage() {
                           <div className="text-sm text-gray-300">{formatDate(user.lastLogin)}</div>
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap">
-                          <span className={`px-2 py-1 text-xs rounded-full ${getStatusStyle(user.subscriptionStatus)}`}>
-                            {getStatusText(user.subscriptionStatus)}
-                          </span>
+                          <select
+                            value={user.subscriptionStatus}
+                            onChange={(e) => handleSubscriptionChange(user.id, e.target.value)}
+                            className="px-2 py-1 text-xs rounded-md bg-purple-900/50 text-white border border-purple-500/30 focus:outline-none focus:border-purple-500"
+                          >
+                            <option value="free">免费用户</option>
+                            <option value="monthly">月度会员</option>
+                            <option value="yearly">年度会员</option>
+                            <option value="none">未订阅</option>
+                          </select>
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-right text-sm">
                           <button 
