@@ -192,7 +192,7 @@ export default function EnergyReportPage() {
         crystal={{
           name: userData.yearCrystal.name,
           description: userData.yearCrystal.description,
-          imageUrl: `/images/crystals/default-crystal.png`,
+          imageUrl: `https://via.placeholder.com/200x200/9c27b0/ffffff?text=${userData.yearCrystal.name}`,
           effect: userData.yearCrystal.effect,
           planetAssociation: userData.yearCrystal.planet,
           year: userData.yearCrystal.year
