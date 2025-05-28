@@ -75,7 +75,7 @@ const basicUserData = {
   id: "user-12345",
   name: "Olivia",
   avatar: "/images/profile-avatar.jpg",
-  birthDate: "1990-06-15",
+  birthDate: "1990-06-15T12:00:00.000Z",
   subscriptionTier: "yearly" as const,
   elementValues: [
     { element: "S", value: 75, fullName: "Stability Energy" },
