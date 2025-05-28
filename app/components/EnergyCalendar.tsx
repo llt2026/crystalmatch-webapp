@@ -63,6 +63,8 @@ const EnergyCalendar: React.FC<EnergyCalendarProps> = ({
               <tr>
                 <th className="py-3 px-4 font-medium">Month</th>
                 <th className="py-3 px-4 font-medium">Energy Change</th>
+                <th className="py-3 px-4 font-medium">Crystal</th>
+                <th className="py-3 px-4 font-medium">Action</th>
               </tr>
             </thead>
             <tbody>
@@ -86,6 +88,18 @@ const EnergyCalendar: React.FC<EnergyCalendarProps> = ({
                         <span className="mr-1">🔒</span>
                       </span>
                     )}
+                  </td>
+                  <td className="py-3 px-4 border-b border-purple-700">
+                    {/* 水晶列显示锁定状态 */}
+                    <span className="text-gray-400">
+                      <span className="mr-1">🔒</span>
+                    </span>
+                  </td>
+                  <td className="py-3 px-4 border-b border-purple-700">
+                    {/* Action列显示锁定状态 */}
+                    <button disabled className="text-gray-500 cursor-not-allowed text-sm px-3 py-1 rounded-full border border-gray-700 flex items-center">
+                      <span className="mr-1">🔒</span> Locked
+                    </button>
                   </td>
                 </tr>
               ))}
