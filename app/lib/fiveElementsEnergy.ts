@@ -489,9 +489,9 @@ export async function getMonthlyEnergyChange(year: number, month: number, userBa
   const baseScore = calculateElementsScore(userBazi, baseCount);
   const combinedScore = calculateElementsScore(combinedVector, combinedCount);
   
-  // 计算变化值并映射到-25到25范围
+  // 计算变化值并映射到-50到50范围，并放大一倍（原来除以4，现在除以2）
   const rawDiff = combinedScore - baseScore;
-  return Math.max(-25, Math.min(25, Math.round(rawDiff / 4)));
+  return Math.max(-50, Math.min(50, Math.round(rawDiff / 2)));
 }
 
 /**
@@ -576,8 +576,8 @@ export async function calculateEnergyCalendar(birthday: string): Promise<Array<{
         ? avgMonthBalanceScore - baseBalanceScore
         : avgMonthBalanceScore - prevMonthBalanceScore;
       
-      // 将差值映射到 -25 ~ 25 区间
-      const scaledEnergyChange = Math.max(-25, Math.min(25, Math.round(rawDiff / 4)));
+      // 将差值映射到 -50 ~ 50 区间，并放大一倍（原来除以4，现在除以2）
+      const scaledEnergyChange = Math.max(-50, Math.min(50, Math.round(rawDiff / 2)));
       
       // 更新 prevMonthBalanceScore 供下月使用
       prevMonthBalanceScore = avgMonthBalanceScore;
@@ -716,8 +716,8 @@ export function getDailyAverageEnergy(date: Date, userBazi: FiveElementVector): 
   // 计算平均值
   const average = results.reduce((sum, val) => sum + val, 0) / results.length;
   
-  // 映射到-25到25范围
-  return Math.max(-25, Math.min(25, Math.round(average / 4)));
+  // 映射到-50到50范围，并放大一倍（原来除以4，现在除以2）
+  return Math.max(-50, Math.min(50, Math.round(average / 2)));
 }
 
 /**
