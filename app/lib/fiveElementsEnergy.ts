@@ -510,8 +510,11 @@ export async function calculateEnergyCalendar(birthday: string): Promise<Array<{
   const months = [];
   
   try {
-    // 获取用户八字基础五行向量
+    // 计算用户八字基础五行向量
     const userBazi = await getUserBaziVector(birthday);
+    // 计算用户基础平衡分数一次即可
+    const baseBalanceScore = scoreFiveElementBalance(userBazi);
+    let prevMonthBalanceScore: number | null = null;
     
     // 计算12个月的能量变化
     for (let i = 0; i < 12; i++) {
@@ -559,15 +562,25 @@ export async function calculateEnergyCalendar(birthday: string): Promise<Array<{
         // 返回能量变化
         return {
           date,
-          energyChange: combinedScore - baseScore
+          combinedScore
         };
       }));
       
-      // 计算平均能量变化
-      const avgEnergyChange = sampleResults.reduce((sum, result) => sum + result.energyChange, 0) / sampleResults.length;
+      // 计算当前月平均平衡分数（基于样本的 combinedScore）
+      const avgMonthBalanceScore = sampleResults.reduce((sum, result) => sum + result.combinedScore, 0) / sampleResults.length;
       
-      // 映射到-25到25范围
-      const scaledEnergyChange = Math.max(-25, Math.min(25, Math.round(avgEnergyChange / 4)));
+      // 确定能量变化：
+      //  - 第一个月：与八字基础分数比较
+      //  - 其余月份：与上个月平均平衡分数比较
+      const rawDiff = prevMonthBalanceScore === null
+        ? avgMonthBalanceScore - baseBalanceScore
+        : avgMonthBalanceScore - prevMonthBalanceScore;
+      
+      // 将差值映射到 -25 ~ 25 区间
+      const scaledEnergyChange = Math.max(-25, Math.min(25, Math.round(rawDiff / 4)));
+      
+      // 更新 prevMonthBalanceScore 供下月使用
+      prevMonthBalanceScore = avgMonthBalanceScore;
       
       // 确定趋势
       const trend = determineTrend(scaledEnergyChange);
