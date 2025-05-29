@@ -375,6 +375,11 @@ export function scoreFiveElementBalance(vector: FiveElementVector): number {
   // 计算向量总值
   const totalValue = vector.wood + vector.fire + vector.earth + vector.metal + vector.water;
   
+  // 避免除以 0 或负值导致 NaN/Infinity
+  if (totalValue <= 0) {
+    return 0;
+  }
+  
   // 计算每个元素的理想比例（均衡状态）
   const idealRatio = 1 / 5; // 20%
   
