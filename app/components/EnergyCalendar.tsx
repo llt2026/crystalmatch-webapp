@@ -1,11 +1,10 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { format, addMonths } from 'date-fns';
-import Link from 'next/link';
+import { addMonths } from 'date-fns';
 import { SubscriptionTier } from '@/app/lib/subscription-config';
 import { FadeInContainer } from './animations/FadeInContainer';
-import { calculateEnhancedMonthlyEnergy } from '../lib/enhancedMonthlyEnergy';
+import { calculateEnergyCalendar } from '../lib/fiveElementsEnergy';
 
 interface MonthData {
   month: string;
@@ -14,13 +13,6 @@ interface MonthData {
   crystal: string;
   date: Date;
 }
-
-// 常用水晶列表，根据月份和元素特性分配
-const CRYSTALS_BY_TREND: Record<string, string[]> = {
-  'up': ['Clear Quartz', 'Citrine', 'Tiger\'s Eye', 'Pyrite', 'Carnelian'],
-  'down': ['Amethyst', 'Rose Quartz', 'Blue Lace Agate', 'Smoky Quartz', 'Labradorite'],
-  'stable': ['Green Aventurine', 'Amazonite', 'Malachite', 'Moss Agate', 'Jade']
-};
 
 interface EnergyCalendarProps {
   birthday: string;
@@ -38,101 +30,40 @@ const EnergyCalendar: React.FC<EnergyCalendarProps> = ({
   const [error, setError] = useState<string | null>(null);
   
   useEffect(() => {
-    // 计算真实的能量变化
+    setIsLoading(true);
+    setError(null);
+    
     const calculateRealEnergyChanges = async () => {
       try {
-        setIsLoading(true);
-        setError(null);
-        
         if (!birthday) {
-          throw new Error('出生日期不能为空');
+          throw new Error('缺少出生日期信息');
         }
         
         console.log(`计算用户 ${userId} 的能量变化，生日: ${birthday}`);
         
-        const today = new Date();
-        const realData: MonthData[] = [];
-        let prevMonthResult = null;
-        
-        // 为12个月计算能量变化
-        for (let i = 0; i < 12; i++) {
-          const currentDate = addMonths(today, i);
-          const monthName = format(currentDate, 'MMM');
+        // 使用 fiveElementsEnergy.ts 中的函数计算能量日历
+        try {
+          const calendarData = await calculateEnergyCalendar(birthday);
+          console.log('能量日历计算完成', calendarData);
           
-          try {
-            console.log(`开始计算 ${monthName} 月的能量变化...`);
-            console.log(`参数: birthday=${birthday}, dateRef=${currentDate.toISOString()}`);
-            
-            // 为不同月份生成模拟的月相和日照因素
-            // 这里使用简单模拟数据，实际应用中可从天文API获取
-            const monthIndex = currentDate.getMonth();
-            
-            // 模拟月相影响 (0-1)：不同月份有不同的平均月相
-            // 春夏月份(2-7)月相值较高，秋冬月份(8-1)月相值较低
-            const moonPhase = monthIndex >= 2 && monthIndex <= 7
-              ? 0.6 + Math.random() * 0.3  // 春夏月份: 0.6-0.9
-              : 0.3 + Math.random() * 0.3; // 秋冬月份: 0.3-0.6
-            
-            // 模拟日照影响 (0-1)：夏季日照最强，冬季最弱
-            // 基于正弦曲线模拟一年中的日照变化
-            const yearProgress = (monthIndex / 12) * 2 * Math.PI;
-            const sunlight = 0.5 + 0.4 * Math.sin(yearProgress - Math.PI/2); // 6月达到峰值
-            
-            console.log(`月相影响: ${moonPhase.toFixed(2)}, 日照影响: ${sunlight.toFixed(2)}`);
-            
-            // 使用增强版函数计算能量变化
-            const result = calculateEnhancedMonthlyEnergy({
-              birthday,
-              dateRef: currentDate,
-              prevMonthScores: prevMonthResult?.monthScores || null,
-              moonPhase,
-              sunlight
-            });
-            
-            console.log(`计算结果:`, JSON.stringify(result, null, 2));
-            
-            // 直接使用计算好的能量变化值
-            const scaledChange = result.energyChange;
-            
-            console.log(`能量变化值: ${scaledChange}`);
-            
-            // 根据趋势选择合适的水晶
-            const trendCrystals = CRYSTALS_BY_TREND[result.trend] || CRYSTALS_BY_TREND['stable'];
-            const recommendedCrystal = trendCrystals[Math.floor(Math.random() * trendCrystals.length)];
-            
-            realData.push({
-              month: monthName,
-              energyChange: scaledChange,
-              trend: result.trend,
-              crystal: recommendedCrystal,
+          // 转换为 MonthData 格式
+          const realData = calendarData.map((monthData, index) => {
+            // 使用索引确定月份，而不是依赖 monthData.month 字符串解析
+            const currentDate = addMonths(new Date(), index);
+            return {
+              month: monthData.month,
+              energyChange: monthData.energyChange,
+              trend: monthData.trend,
+              crystal: monthData.crystal,
               date: currentDate
-            });
-            
-            prevMonthResult = result;
-            console.log(`${monthName} 能量变化: ${scaledChange}, 趋势: ${result.trend}, 水晶: ${recommendedCrystal}`);
-          } catch (monthError) {
-            console.error(`计算 ${monthName} 能量变化失败:`, monthError);
-            // 记录详细错误信息
-            console.error(`错误详情:`, (monthError as Error).message);
-            console.error(`错误堆栈:`, (monthError as Error).stack);
-            
-            // 即使单个月份计算失败，我们也继续处理其他月份
-            realData.push({
-              month: monthName,
-              energyChange: 0,
-              trend: 'stable',
-              crystal: 'Clear Quartz', // 默认水晶
-              date: currentDate
-            });
-          }
+            };
+          });
+          
+          setMonthlyData(realData);
+        } catch (err) {
+          console.error('计算能量日历失败:', err);
+          throw new Error(`计算能量日历失败: ${(err as Error).message}`);
         }
-        
-        if (realData.length === 0) {
-          throw new Error('无法计算任何月份的能量变化');
-        }
-        
-        setMonthlyData(realData);
-        console.log('能量变化计算完成', realData);
       } catch (err) {
         console.error('计算能量变化失败:', err);
         setError(`计算能量变化失败: ${(err as Error).message}`);

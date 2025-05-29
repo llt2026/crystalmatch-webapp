@@ -3,6 +3,8 @@
  * 基于元素的均衡偏差计算五行分数
  */
 
+import { FIVE_ELEMENT_MAPPINGS, getMoonPhaseVector, getSeasonVector } from './fiveElementsEnergy';
+
 // 定义五行类型
 export type ElementType = 'wood' | 'fire' | 'earth' | 'metal' | 'water';
 export type ElementValues = Record<ElementType, number>;
@@ -167,60 +169,87 @@ export { example as testElementScores };
 
 /**
  * 考虑月相和日照因素后计算五行均衡分数
- * @param elements 基础五行元素分布
- * @param moonPhaseInfluence 月相影响因子(0-1)
- * @param sunlightInfluence 日照影响因子(0-1)
+ * @param baseElements 基础五行元素分布
+ * @param moonPhase 月相位置(0-1)
+ * @param sunlight 日照强度(0-1)
  * @param totalCount 可选，指定总数量
  * @returns 考虑外部因素后的五行均衡分数(0-100)
  */
 export function calculateExtendedElementsScore(
-  elements: ElementValues | number[],
-  moonPhaseInfluence: number = 0,
-  sunlightInfluence: number = 0,
+  baseElements: ElementValues | number[],
+  moonPhase: number = 0,
+  sunlight: number = 0,
   totalCount?: number
 ): number {
-  // 将输入转换为数组形式
-  const elementsArray = Array.isArray(elements)
-    ? [...elements]  // 创建副本避免修改原数组
-    : Object.values(elements);
+  // 将输入转换为对象形式(如果是数组)
+  const elementsObj: ElementValues = Array.isArray(baseElements)
+    ? {
+        wood: baseElements[0],
+        fire: baseElements[1],
+        earth: baseElements[2],
+        metal: baseElements[3],
+        water: baseElements[4]
+      }
+    : {...baseElements};
 
-  // 确保有5个元素值
-  if (elementsArray.length !== 5) {
-    throw new Error('必须提供5个五行元素的数值');
-  }
+  // 添加月相和日照影响的五行修正值
+  const moonPhaseInfluence = getMoonPhaseInfluence(moonPhase);
+  const seasonInfluence = getSeasonInfluence(sunlight);
   
-  // 月相影响 - 增强水和木元素，减弱火元素
-  // 0表示新月，0.5表示满月，1表示新月
-  if (moonPhaseInfluence > 0) {
-    const moonStrength = moonPhaseInfluence * 0.3; // 最大影响强度为30%
-    
-    // 新月增强水，满月增强火
-    const waterIndex = 4; // 水的索引
-    const fireIndex = 1;  // 火的索引
-    const woodIndex = 0;  // 木的索引
-    
-    if (moonPhaseInfluence < 0.5) {
-      // 新月到满月过程：增强水和木
-      elementsArray[waterIndex] += (0.5 - moonPhaseInfluence) * moonStrength * 2;
-      elementsArray[woodIndex] += (0.5 - moonPhaseInfluence) * moonStrength;
-    } else {
-      // 满月到新月过程：增强火
-      elementsArray[fireIndex] += (moonPhaseInfluence - 0.5) * moonStrength * 2;
-    }
-  }
+  // 直接添加影响值，不需要额外的缩放因子
+  elementsObj.wood += moonPhaseInfluence.wood + seasonInfluence.wood;
+  elementsObj.fire += moonPhaseInfluence.fire + seasonInfluence.fire;
+  elementsObj.earth += moonPhaseInfluence.earth + seasonInfluence.earth;
+  elementsObj.metal += moonPhaseInfluence.metal + seasonInfluence.metal;
+  elementsObj.water += moonPhaseInfluence.water + seasonInfluence.water;
   
-  // 日照影响 - 增强火和土元素
-  if (sunlightInfluence > 0) {
-    const sunStrength = sunlightInfluence * 0.25; // 最大影响强度为25%
-    
-    const fireIndex = 1;  // 火的索引
-    const earthIndex = 2; // 土的索引
-    
-    // 增强火和土元素
-    elementsArray[fireIndex] += sunlightInfluence * sunStrength * 2;
-    elementsArray[earthIndex] += sunlightInfluence * sunStrength;
-  }
+  // 确保没有负值
+  Object.keys(elementsObj).forEach(key => {
+    const elem = key as ElementType;
+    elementsObj[elem] = Math.max(0, elementsObj[elem]);
+  });
   
   // 使用基础计算函数计算调整后的分数
-  return calculateElementsScore(elementsArray, totalCount);
+  return calculateElementsScore(elementsObj, totalCount);
+}
+
+/**
+ * 获取月相影响向量
+ * @param moonPhase 月相位置(0-1)
+ * @returns 五行影响向量
+ */
+function getMoonPhaseInfluence(moonPhase: number): ElementValues {
+  // 确定月相阶段
+  let phaseKey: keyof typeof FIVE_ELEMENT_MAPPINGS.moonPhase;
+  
+  if (moonPhase < 0.125) phaseKey = 'newMoon';
+  else if (moonPhase < 0.25) phaseKey = 'waxingCrescent';
+  else if (moonPhase < 0.375) phaseKey = 'firstQuarter';
+  else if (moonPhase < 0.5) phaseKey = 'waxingGibbous';
+  else if (moonPhase < 0.625) phaseKey = 'fullMoon';
+  else if (moonPhase < 0.75) phaseKey = 'waningGibbous';
+  else if (moonPhase < 0.875) phaseKey = 'lastQuarter';
+  else phaseKey = 'waningCrescent';
+  
+  // 直接返回映射表中的值，不再额外缩放
+  return { ...FIVE_ELEMENT_MAPPINGS.moonPhase[phaseKey] };
+}
+
+/**
+ * 获取季节/日照影响向量
+ * @param sunlight 日照强度(0-1)
+ * @returns 五行影响向量
+ */
+function getSeasonInfluence(sunlight: number): ElementValues {
+  // 根据日照强度确定季节
+  let seasonKey: keyof typeof FIVE_ELEMENT_MAPPINGS.season;
+  
+  if (sunlight < 0.2) seasonKey = 'winter';
+  else if (sunlight < 0.4) seasonKey = 'spring';
+  else if (sunlight < 0.6) seasonKey = 'summer';
+  else if (sunlight < 0.8) seasonKey = 'lateSummer';
+  else seasonKey = 'autumn';
+  
+  // 直接返回映射表中的值，不再额外缩放
+  return { ...FIVE_ELEMENT_MAPPINGS.season[seasonKey] };
 } 

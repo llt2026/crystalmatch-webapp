@@ -1,6 +1,5 @@
 /**
- * @deprecated 请使用新的enhancedMonthlyEnergy.ts或fiveElementsEnergy.ts中的函数替代
- * 本模块中的五行计算方法不再维护，请迁移到使用新的五行分数计算方法
+ * @deprecated 请使用fiveElementsEnergy.ts中的函数替代
  */
 
 import { getBaziFromLunar } from './getBaziFromLunar';
