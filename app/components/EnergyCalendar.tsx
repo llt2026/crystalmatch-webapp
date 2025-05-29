@@ -5,7 +5,7 @@ import { format, addMonths } from 'date-fns';
 import Link from 'next/link';
 import { SubscriptionTier } from '@/app/lib/subscription-config';
 import { FadeInContainer } from './animations/FadeInContainer';
-import { calculateMonthlyEnergy, MonthlyEnergyOutput } from '../lib/calculateMonthlyEnergy';
+import { calculateEnhancedMonthlyEnergy } from '../lib/enhancedMonthlyEnergy';
 
 interface MonthData {
   month: string;
@@ -63,24 +63,38 @@ const EnergyCalendar: React.FC<EnergyCalendarProps> = ({
             console.log(`开始计算 ${monthName} 月的能量变化...`);
             console.log(`参数: birthday=${birthday}, dateRef=${currentDate.toISOString()}`);
             
-            // 调用calculateMonthlyEnergy计算能量变化
-            const result = calculateMonthlyEnergy({
+            // 为不同月份生成模拟的月相和日照因素
+            // 这里使用简单模拟数据，实际应用中可从天文API获取
+            const monthIndex = currentDate.getMonth();
+            
+            // 模拟月相影响 (0-1)：不同月份有不同的平均月相
+            // 春夏月份(2-7)月相值较高，秋冬月份(8-1)月相值较低
+            const moonPhase = monthIndex >= 2 && monthIndex <= 7
+              ? 0.6 + Math.random() * 0.3  // 春夏月份: 0.6-0.9
+              : 0.3 + Math.random() * 0.3; // 秋冬月份: 0.3-0.6
+            
+            // 模拟日照影响 (0-1)：夏季日照最强，冬季最弱
+            // 基于正弦曲线模拟一年中的日照变化
+            const yearProgress = (monthIndex / 12) * 2 * Math.PI;
+            const sunlight = 0.5 + 0.4 * Math.sin(yearProgress - Math.PI/2); // 6月达到峰值
+            
+            console.log(`月相影响: ${moonPhase.toFixed(2)}, 日照影响: ${sunlight.toFixed(2)}`);
+            
+            // 使用增强版函数计算能量变化
+            const result = calculateEnhancedMonthlyEnergy({
               birthday,
               dateRef: currentDate,
-              prevMonthScores: prevMonthResult?.monthScores || null
+              prevMonthScores: prevMonthResult?.monthScores || null,
+              moonPhase,
+              sunlight
             });
             
             console.log(`计算结果:`, JSON.stringify(result, null, 2));
             
-            // 计算平均能量变化值，放大到-25到25的范围
-            const avgChange = Object.values(result.diffScores).reduce((sum, val) => sum + val, 0) / 5;
-            // 将平均变化映射到-25~25范围：avgChange 范围大约 -100~100
-            let scaledChange = Math.round(avgChange / 4); // 约等于 -25~25
-            // clamp
-            if (scaledChange > 25) scaledChange = 25;
-            if (scaledChange < -25) scaledChange = -25;
+            // 直接使用计算好的能量变化值
+            const scaledChange = result.energyChange;
             
-            console.log(`平均变化: ${avgChange}, 放大后: ${scaledChange}`);
+            console.log(`能量变化值: ${scaledChange}`);
             
             // 根据趋势选择合适的水晶
             const trendCrystals = CRYSTALS_BY_TREND[result.trend] || CRYSTALS_BY_TREND['stable'];

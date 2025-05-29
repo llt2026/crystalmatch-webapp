@@ -7,6 +7,7 @@ import { format, addMonths } from 'date-fns';
 import SunCalc from 'suncalc';
 import { Solar } from 'lunar-javascript';
 import { getBaziFromLunar } from './getBaziFromLunar';
+import { calculateElementsScore } from './fiveElementsScore';
 
 // 添加suncalc模块声明
 declare module 'suncalc';
@@ -407,14 +408,17 @@ export async function getMonthlyEnergyChange(year: number, month: number, userBa
     water: userBazi.water + monthlyVector.water
   };
   
-  // 计算合并后的五行平衡分数
-  const combinedScore = scoreFiveElementBalance(combinedVector);
+  // 计算基础五行和合并后五行的总数
+  const baseCount = Object.values(userBazi).reduce((sum, val) => sum + val, 0);
+  const combinedCount = Object.values(combinedVector).reduce((sum, val) => sum + val, 0);
   
-  // 计算基础五行平衡分数
-  const baseScore = scoreFiveElementBalance(userBazi);
+  // 计算基础分数和合并后分数
+  const baseScore = calculateElementsScore(userBazi, baseCount);
+  const combinedScore = calculateElementsScore(combinedVector, combinedCount);
   
-  // 计算变化值
-  return Math.round(combinedScore - baseScore);
+  // 计算变化值并映射到-25到25范围
+  const rawDiff = combinedScore - baseScore;
+  return Math.max(-25, Math.min(25, Math.round(rawDiff / 4)));
 }
 
 /**
@@ -452,28 +456,6 @@ export async function calculateEnergyCalendar(birthday: string): Promise<Array<{
       const month = currentDate.getMonth() + 1; // JavaScript月份从0开始
       const monthName = format(currentDate, 'MMM');
       
-      // 计算当月能量变化值
-      let energyChange = 0;
-      try {
-        energyChange = await getMonthlyEnergyChange(year, month, userBazi);
-        // 确保energyChange是有效数值
-        if (isNaN(energyChange)) {
-          console.warn(`月度能量变化计算结果为NaN，月份: ${monthName}，使用默认值0`);
-          energyChange = 0;
-        }
-      } catch (error) {
-        console.error(`计算月度能量变化失败: ${error}`);
-        energyChange = 0;
-      }
-      
-      // 确定趋势
-      let trend: 'up' | 'down' | 'stable' = 'stable';
-      if (energyChange >= 3) {
-        trend = 'up';
-      } else if (energyChange <= -3) {
-        trend = 'down';
-      }
-      
       // 获取月度五行能量向量
       let monthlyVector;
       try {
@@ -491,6 +473,26 @@ export async function calculateEnergyCalendar(birthday: string): Promise<Array<{
         metal: userBazi.metal + monthlyVector.metal,
         water: userBazi.water + monthlyVector.water
       };
+      
+      // 计算基础五行的总数和合并后五行的总数
+      const baseCount = Object.values(userBazi).reduce((sum, val) => sum + val, 0);
+      const combinedCount = Object.values(combinedVector).reduce((sum, val) => sum + val, 0);
+      
+      // 计算基础分数和合并后分数
+      const baseScore = calculateElementsScore(userBazi, baseCount);
+      const combinedScore = calculateElementsScore(combinedVector, combinedCount);
+      
+      // 计算能量变化值：将差值映射到-25到25的范围
+      const rawDiff = combinedScore - baseScore;
+      const energyChange = Math.max(-25, Math.min(25, Math.round(rawDiff / 4)));
+      
+      // 确定趋势
+      let trend: 'up' | 'down' | 'stable' = 'stable';
+      if (energyChange >= 3) {
+        trend = 'up';
+      } else if (energyChange <= -3) {
+        trend = 'down';
+      }
       
       // 找出最弱的元素
       const lowestElement = Object.entries(combinedVector).reduce(
