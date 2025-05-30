@@ -396,19 +396,14 @@ export function convertBaziToFiveElementVector(baziResult: any): FiveElementVect
     });
   }
   
-  // 理想值（以8个字符平均分布）
-  const ideal = 8 / 5; // 五行平均应该各有1.6个
-  
-  // 计算得分（与理想分布的接近程度）
-  const vector: FiveElementVector = {
-    wood: calculateScore(counts.wood, ideal),
-    fire: calculateScore(counts.fire, ideal),
-    earth: calculateScore(counts.earth, ideal),
-    metal: calculateScore(counts.metal, ideal),
-    water: calculateScore(counts.water, ideal)
-  };
-  
-  return vector;
+  // 直接返回计数向量（使用旧算法在 calculateElementsScore 中评分）
+  return {
+    wood: counts.wood,
+    fire: counts.fire,
+    earth: counts.earth,
+    metal: counts.metal,
+    water: counts.water
+  } as FiveElementVector;
 }
 
 /**
@@ -418,7 +413,6 @@ export function convertBaziToFiveElementVector(baziResult: any): FiveElementVect
  * @returns 0-100之间的分数
  */
 function calculateScore(count: number, ideal: number): number {
-  // 分数计算公式: 100 * (1 - |actual - ideal| / ideal)
   const score = 100 * (1 - Math.abs(count - ideal) / ideal);
   return Math.round(Math.max(0, Math.min(100, score)));
 }
@@ -429,42 +423,8 @@ function calculateScore(count: number, ideal: number): number {
  * @returns 0-100之间的平衡分数
  */
 export function scoreFiveElementBalance(vector: FiveElementVector): number {
-  // 计算向量总值
-  const totalValue = vector.wood + vector.fire + vector.earth + vector.metal + vector.water;
-  
-  // 避免除以 0 或负值导致 NaN/Infinity
-  if (totalValue <= 0) {
-    return 0;
-  }
-  
-  // 计算每个元素的理想比例（均衡状态）
-  const idealRatio = 1 / 5; // 20%
-  
-  // 计算各元素实际比例
-  const woodRatio = vector.wood / totalValue;
-  const fireRatio = vector.fire / totalValue;
-  const earthRatio = vector.earth / totalValue;
-  const metalRatio = vector.metal / totalValue;
-  const waterRatio = vector.water / totalValue;
-  
-  // 计算各元素与理想比例的偏差
-  const woodDeviation = Math.abs(woodRatio - idealRatio);
-  const fireDeviation = Math.abs(fireRatio - idealRatio);
-  const earthDeviation = Math.abs(earthRatio - idealRatio);
-  const metalDeviation = Math.abs(metalRatio - idealRatio);
-  const waterDeviation = Math.abs(waterRatio - idealRatio);
-  
-  // 计算总偏差
-  const totalDeviation = woodDeviation + fireDeviation + earthDeviation + metalDeviation + waterDeviation;
-  
-  // 最大可能偏差（理论上是1.6，但我们用2作为安全值）
-  const maxDeviation = 2;
-  
-  // 计算平衡得分 (100为完全平衡，0为完全不平衡)
-  const score = 100 * (1 - totalDeviation / maxDeviation);
-  
-  // 确保分数在0-100范围内
-  return Math.max(0, Math.min(100, Math.round(score)));
+  // 使用旧版 calculateElementsScore 计算平衡分数
+  return calculateElementsScore(vector);
 }
 
 /**
