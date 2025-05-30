@@ -116,24 +116,40 @@ function getPillarElementsVector(date: Date, includeYear: boolean, includeDay: b
   const pillarsToInclude: string[] = ['month'];
   if (includeYear) pillarsToInclude.unshift('year');
 
+  // 安全遍历：避免undefined柱或元素
   pillarsToInclude.forEach(p => {
+    if (!pillars[p] || !Array.isArray(pillars[p])) {
+      return; // 如果柱不存在或不是数组，跳过
+    }
     pillars[p].forEach((el: string) => {
       const map = mapElement(el);
       if (map) vector[map]++;
     });
   });
   if (includeDay) {
-    pillars['day'].forEach((el: string) => {
-      const map = mapElement(el);
-      if (map) vector[map]++;
-    });
+    if (pillars['day'] && Array.isArray(pillars['day'])) {
+      pillars['day'].forEach((el: string) => {
+        const map = mapElement(el);
+        if (map) vector[map]++;
+      });
+    }
   }
   if (includeHour) {
-    pillars['hour'].forEach((el: string) => {
-      const map = mapElement(el);
-      if (map) vector[map]++;
-    });
+    if (pillars['hour'] && Array.isArray(pillars['hour'])) {
+      pillars['hour'].forEach((el: string) => {
+        const map = mapElement(el);
+        if (map) vector[map]++;
+      });
+    }
   }
+  
+  // 确保所有值为有效数字
+  for (const key in vector) {
+    if (!Number.isFinite(vector[key as Elem])) {
+      vector[key as Elem] = 0;
+    }
+  }
+  
   return vector;
 }
 
@@ -502,12 +518,29 @@ export async function getMonthlyEnergyChange(year: number, month: number, userBa
     water: userBazi.water + pillarVector.water
   };
 
+  // 防止NaN出现
+  for (const key in combinedVector) {
+    if (!Number.isFinite(combinedVector[key as Elem])) {
+      combinedVector[key as Elem] = 0;
+    }
+  }
+
   const baseScore = scoreFiveElementBalance(userBazi);
   const combinedScore = scoreFiveElementBalance(combinedVector);
 
-  const baseImbalance = 100 - baseScore;
-  const currImbalance = 100 - combinedScore;
+  // 防止NaN出现
+  const safeBaseScore = Number.isFinite(baseScore) ? baseScore : 0;
+  const safeCombinedScore = Number.isFinite(combinedScore) ? combinedScore : 0;
+
+  const baseImbalance = 100 - safeBaseScore;
+  const currImbalance = 100 - safeCombinedScore;
   const diffRaw = baseImbalance - currImbalance;
+
+  // 如果diffRaw是NaN，则返回0
+  if (!Number.isFinite(diffRaw)) {
+    console.warn(`getMonthlyEnergyChange: diffRaw is NaN, baseScore=${baseScore}, combinedScore=${combinedScore}`);
+    return 0;
+  }
 
   return scaleDiff(diffRaw);
 }
@@ -527,7 +560,15 @@ export async function calculateEnergyCalendar(birthday: string): Promise<Array<{
   const months: any[] = [];
   try {
     const baseVector = await getUserBaziVector(birthday);
+    // NaN 保护
+    for (const key in baseVector) {
+      if (!Number.isFinite(baseVector[key as Elem])) {
+        baseVector[key as Elem] = 0;
+      }
+    }
     const baseBalance = scoreFiveElementBalance(baseVector);
+    // 确保基础分数不是NaN
+    const safeBaseBalance = Number.isFinite(baseBalance) ? baseBalance : 0;
 
     // 起始日期 = 今天
     let cursor = new Date();
@@ -560,18 +601,38 @@ export async function calculateEnergyCalendar(birthday: string): Promise<Array<{
         metal: baseVector.metal + pillarVec.metal,
         water: baseVector.water + pillarVec.water
       } as FiveElementVector;
+      // NaN 保护
+      for (const key in combined) {
+        if (!Number.isFinite(combined[key as Elem])) {
+          combined[key as Elem] = 0;
+        }
+      }
       const balance = scoreFiveElementBalance(combined);
+      // 确保分数不是NaN
+      const safeBalance = Number.isFinite(balance) ? balance : 0;
 
       // 与基础八字比较
-      const baseImbalance = 100 - baseBalance;
-      const currImbalance = 100 - balance;
+      const baseImbalance = 100 - safeBaseBalance;
+      const currImbalance = 100 - safeBalance;
       const diffRaw = baseImbalance - currImbalance;
+      // NaN保护
+      const safeDiffRaw = Number.isFinite(diffRaw) ? diffRaw : 0;
 
-      const energyChange = scaleDiff(diffRaw);
+      const energyChange = scaleDiff(safeDiffRaw);
       const trend = determineTrend(energyChange);
 
       // 最弱元素 & 水晶
-      const lowestElement = (Object.entries(combined) as [Elem, number][]).reduce((a,b)=> a[1]<b[1]?a:b)[0];
+      // 保护最弱元素计算不出错
+      let lowestElement: Elem;
+      try {
+        lowestElement = (Object.entries(combined) as [Elem, number][]).reduce((a,b)=> {
+          if (!Number.isFinite(a[1])) a[1] = 0;
+          if (!Number.isFinite(b[1])) b[1] = 0;
+          return a[1]<b[1]?a:b;
+        })[0];
+      } catch (e) {
+        lowestElement = 'water'; // 默认值
+      }
       const crystal = CRYSTAL_MAP[lowestElement];
 
       const label = `${startDate.getMonth()+1}/${startDate.getDate()}-${endDate.getMonth()+1}/${endDate.getDate()}`;
@@ -682,6 +743,12 @@ export function getEnergyHeatmapData(date: Date, userBazi: FiveElementVector): A
  * 3. 限制在 -25 ~ 25
  */
 function scaleDiff(raw: number): number {
+  // 防止NaN
+  if (!Number.isFinite(raw)) {
+    console.warn('scaleDiff: raw is not a number:', raw);
+    return 0;
+  }
+
   // 先缩放，避免分差过大
   let valRaw: number;
   const absRaw = Math.abs(raw);
@@ -693,5 +760,9 @@ function scaleDiff(raw: number): number {
   if (Math.abs(val) < 1) val = val >= 0 ? 1 : -1;
   if (val > 25) val = 25;
   if (val < -25) val = -25;
+  // 再次检查NaN
+  if (!Number.isFinite(val)) {
+    return 0;
+  }
   return val;
 } 
