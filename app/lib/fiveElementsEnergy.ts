@@ -499,7 +499,9 @@ export function getEnergyChange(date: Date, userBazi: FiveElementVector): number
   const baseScore = scoreFiveElementBalance(userBazi);
   
   // 计算变化值
-  const diff = currentScore - baseScore;
+  const baseImbalance = 100 - baseScore;
+  const currImbalance = 100 - currentScore;
+  const diff = baseImbalance - currImbalance;
   return scaleDiff(diff);
 }
 
@@ -534,7 +536,9 @@ export async function getMonthlyEnergyChange(year: number, month: number, userBa
 
   const baseScore = scoreFiveElementBalance(userBazi);
   const combinedScore = scoreFiveElementBalance(combinedVector);
-  const diff = combinedScore - baseScore;
+  const baseImbalance = 100 - baseScore;
+  const currImbalance = 100 - combinedScore;
+  const diff = baseImbalance - currImbalance;
   return scaleDiff(diff);
 }
 
@@ -588,7 +592,9 @@ export async function calculateEnergyCalendar(birthday: string): Promise<Array<{
       } as FiveElementVector;
       const balance = scoreFiveElementBalance(combined);
 
-      const diff = balance - baseBalance;
+      const baseImbalance = 100 - baseBalance;
+      const currImbalance = 100 - balance;
+      const diff = baseImbalance - currImbalance;
       const energyChange = scaleDiff(diff);
       const trend = determineTrend(energyChange);
 
@@ -656,7 +662,7 @@ export function getDailyAverageEnergy(date: Date, userBazi: FiveElementVector): 
 
   const baseScore = scoreFiveElementBalance(userBazi);
   const dayScore = scoreFiveElementBalance(combined);
-  const diff = dayScore - baseScore;
+  const diff = (100 - baseScore) - (100 - dayScore);
   return scaleDiff(diff);
 }
 
@@ -685,7 +691,7 @@ export function getEnergyHeatmapData(date: Date, userBazi: FiveElementVector): A
     } as FiveElementVector;
     const baseScore = scoreFiveElementBalance(userBazi);
     const hourScore = scoreFiveElementBalance(combined);
-    const diff = hourScore - baseScore;
+    const diff = (100 - baseScore) - (100 - hourScore);
     const energyChange = scaleDiff(diff);
 
     result.push({
@@ -701,12 +707,14 @@ export function getEnergyHeatmapData(date: Date, userBazi: FiveElementVector): A
  * 根据原始分差计算显示用能量变化值
  * 1. 保留1位小数
  * 2. 若绝对值<1 强制设为 ±1
- * 3. 限制在 -50 ~ 50
+ * 3. 限制在 -25 ~ 25
  */
 function scaleDiff(raw: number): number {
-  let val = Math.round(raw * 10) / 10; // 保留1位小数
+  // 先缩放，避免分差过大
+  let valRaw = raw / 4; // 压缩到合理区间
+  let val = Math.round(valRaw * 10) / 10; // 保留1位小数
   if (Math.abs(val) < 1) val = val >= 0 ? 1 : -1;
-  if (val > 50) val = 50;
-  if (val < -50) val = -50;
+  if (val > 25) val = 25;
+  if (val < -25) val = -25;
   return val;
 } 
