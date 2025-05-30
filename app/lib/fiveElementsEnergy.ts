@@ -499,7 +499,8 @@ export function getEnergyChange(date: Date, userBazi: FiveElementVector): number
   const baseScore = scoreFiveElementBalance(userBazi);
   
   // 计算变化值
-  return currentScore - baseScore;
+  const diff = currentScore - baseScore;
+  return scaleDiff(diff);
 }
 
 /**
@@ -534,7 +535,7 @@ export async function getMonthlyEnergyChange(year: number, month: number, userBa
   const baseScore = scoreFiveElementBalance(userBazi);
   const combinedScore = scoreFiveElementBalance(combinedVector);
   const diff = combinedScore - baseScore;
-  return Math.max(-50, Math.min(50, Math.round(diff / 2)));
+  return scaleDiff(diff);
 }
 
 /**
@@ -553,7 +554,6 @@ export async function calculateEnergyCalendar(birthday: string): Promise<Array<{
   try {
     const baseVector = await getUserBaziVector(birthday);
     const baseBalance = scoreFiveElementBalance(baseVector);
-    let prevBalance: number | null = null;
 
     // 起始日期 = 今天
     let cursor = new Date();
@@ -588,18 +588,17 @@ export async function calculateEnergyCalendar(birthday: string): Promise<Array<{
       } as FiveElementVector;
       const balance = scoreFiveElementBalance(combined);
 
-      const diff = prevBalance === null ? balance - baseBalance : balance - prevBalance;
-      const energyChange = Math.max(-50, Math.min(50, Math.round(diff / 2)));
+      const diff = balance - baseBalance;
+      const energyChange = scaleDiff(diff);
       const trend = determineTrend(energyChange);
 
       // 最弱元素 & 水晶
-      const lowestElement = (Object.entries(combined) as [Elem, number][]) .reduce((a,b)=> a[1]<b[1]?a:b)[0];
+      const lowestElement = (Object.entries(combined) as [Elem, number][]).reduce((a,b)=> a[1]<b[1]?a:b)[0];
       const crystal = CRYSTAL_MAP[lowestElement];
 
       const label = `${startDate.getMonth()+1}/${startDate.getDate()}-${endDate.getMonth()+1}/${endDate.getDate()}`;
       months.push({ month: label, energyChange, trend, crystal, lowestElement });
 
-      prevBalance = balance;
       // 移动光标到下一天
       cursor = new Date(endDate);
       cursor.setDate(cursor.getDate() + 1);
@@ -658,7 +657,7 @@ export function getDailyAverageEnergy(date: Date, userBazi: FiveElementVector): 
   const baseScore = scoreFiveElementBalance(userBazi);
   const dayScore = scoreFiveElementBalance(combined);
   const diff = dayScore - baseScore;
-  return Math.max(-50, Math.min(50, Math.round(diff / 2)));
+  return scaleDiff(diff);
 }
 
 /**
@@ -687,7 +686,7 @@ export function getEnergyHeatmapData(date: Date, userBazi: FiveElementVector): A
     const baseScore = scoreFiveElementBalance(userBazi);
     const hourScore = scoreFiveElementBalance(combined);
     const diff = hourScore - baseScore;
-    const energyChange = Math.max(-50, Math.min(50, Math.round(diff / 2)));
+    const energyChange = scaleDiff(diff);
 
     result.push({
       hour,
@@ -696,4 +695,18 @@ export function getEnergyHeatmapData(date: Date, userBazi: FiveElementVector): A
   }
   
   return result;
+}
+
+/**
+ * 根据原始分差计算显示用能量变化值
+ * 1. 保留1位小数
+ * 2. 若绝对值<1 强制设为 ±1
+ * 3. 限制在 -50 ~ 50
+ */
+function scaleDiff(raw: number): number {
+  let val = Math.round(raw * 10) / 10; // 保留1位小数
+  if (Math.abs(val) < 1) val = val >= 0 ? 1 : -1;
+  if (val > 50) val = 50;
+  if (val < -50) val = -50;
+  return val;
 } 
