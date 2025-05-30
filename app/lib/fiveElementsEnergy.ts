@@ -532,9 +532,8 @@ export async function getMonthlyEnergyChange(year: number, month: number, userBa
   const safeBaseScore = Number.isFinite(baseScore) ? baseScore : 0;
   const safeCombinedScore = Number.isFinite(combinedScore) ? combinedScore : 0;
 
-  const baseImbalance = 100 - safeBaseScore;
-  const currImbalance = 100 - safeCombinedScore;
-  const diffRaw = baseImbalance - currImbalance;
+  // 直接计算分数差值：当前分数 - 基础分数
+  const diffRaw = safeCombinedScore - safeBaseScore;
 
   // 如果diffRaw是NaN，则返回0
   if (!Number.isFinite(diffRaw)) {
@@ -546,18 +545,18 @@ export async function getMonthlyEnergyChange(year: number, month: number, userBa
 }
 
 /**
- * 计算月度能量日历数据
+ * 计算能量日历数据
  * @param birthday 用户生日（YYYY-MM-DD格式）
- * @returns 12个月的能量日历数据Promise
+ * @returns 10天的能量日历数据Promise
  */
 export async function calculateEnergyCalendar(birthday: string): Promise<Array<{
-  month: string; // 形如 "4/1-4/4"
+  month: string; // 日期，形如 "5/12"
   energyChange: number;
   trend: 'up' | 'down' | 'stable';
   crystal: string;
   lowestElement: Elem;
 }>> {
-  const months: any[] = [];
+  const days: any[] = [];
   try {
     const baseVector = await getUserBaziVector(birthday);
     // NaN 保护
@@ -570,30 +569,20 @@ export async function calculateEnergyCalendar(birthday: string): Promise<Array<{
     // 确保基础分数不是NaN
     const safeBaseBalance = Number.isFinite(baseBalance) ? baseBalance : 0;
 
-    // 起始日期 = 今天
+    // 起始日期 = 今天的中午12点
     let cursor = new Date();
-    // 生成最多 12 个阶段
-    for (let stage = 0; stage < 12; stage++) {
-      const startDate = new Date(cursor);
-      // 当前月柱
-      const startBazi = getBaziFromLunar(startDate);
-      if (!startBazi || !startBazi.fiveElements) break;
-      const startMonthPillar = startBazi.fiveElements.month.join('');
+    cursor.setHours(12, 0, 0, 0);
+    
+    // 生成10天的数据
+    for (let day = 0; day < 10; day++) {
+      const date = new Date(cursor);
+      date.setDate(date.getDate() + day);
+      
+      // 确保时间为当天中午12点
+      date.setHours(12, 0, 0, 0);
 
-      // 前进到月柱变化的前一天
-      let endDate = new Date(startDate);
-      while (true) {
-        const next = new Date(endDate);
-        next.setDate(next.getDate() + 1);
-        const nextBazi = getBaziFromLunar(next);
-        if (!nextBazi || !nextBazi.fiveElements) break;
-        const nextMonthPillar = nextBazi.fiveElements.month.join('');
-        if (nextMonthPillar !== startMonthPillar) break; // 月柱变更
-        endDate = next;
-      }
-
-      // 计算阶段能量分数：年+月柱元素 + 基础八字
-      const pillarVec = getPillarElementsVector(startDate, false, false, false); // 只年+月
+      // 计算日能量：完整八字（年+月+日+时柱）
+      const pillarVec = getPillarElementsVector(date, true, true, true); // 完整八字
       const combined = {
         wood: baseVector.wood + pillarVec.wood,
         fire: baseVector.fire + pillarVec.fire,
@@ -612,9 +601,7 @@ export async function calculateEnergyCalendar(birthday: string): Promise<Array<{
       const safeBalance = Number.isFinite(balance) ? balance : 0;
 
       // 与基础八字比较
-      const baseImbalance = 100 - safeBaseBalance;
-      const currImbalance = 100 - safeBalance;
-      const diffRaw = baseImbalance - currImbalance;
+      const diffRaw = safeBalance - safeBaseBalance;
       // NaN保护
       const safeDiffRaw = Number.isFinite(diffRaw) ? diffRaw : 0;
 
@@ -635,17 +622,13 @@ export async function calculateEnergyCalendar(birthday: string): Promise<Array<{
       }
       const crystal = CRYSTAL_MAP[lowestElement];
 
-      const label = `${startDate.getMonth()+1}/${startDate.getDate()}-${endDate.getMonth()+1}/${endDate.getDate()}`;
-      months.push({ month: label, energyChange, trend, crystal, lowestElement });
-
-      // 移动光标到下一天
-      cursor = new Date(endDate);
-      cursor.setDate(cursor.getDate() + 1);
+      const label = `${date.getMonth()+1}/${date.getDate()}`;
+      days.push({ month: label, energyChange, trend, crystal, lowestElement });
     }
   } catch (e) {
     console.error('calculateEnergyCalendar error', e);
   }
-  return months;
+  return days;
 }
 
 /**
