@@ -102,16 +102,21 @@ function mapElement(raw: string): Elem | null {
 /**
  * 提取指定柱组合的五行元素向量
  * @param date 日期对象
+ * @param includeYear 是否包含年柱
+ * @param includeDay 是否包含日柱
  * @param includeHour 是否包含时柱
  */
-function getPillarElementsVector(date: Date, includeDay: boolean, includeHour: boolean): FiveElementVector {
+function getPillarElementsVector(date: Date, includeYear: boolean, includeDay: boolean, includeHour: boolean): FiveElementVector {
   const bazi = getBaziFromLunar(date);
   if (!bazi || !bazi.fiveElements) return { wood: 0, fire: 0, earth: 0, metal: 0, water: 0 };
   const pillars = bazi.fiveElements as any;
   const vector: FiveElementVector = { wood: 0, fire: 0, earth: 0, metal: 0, water: 0 };
 
-  // always include year and month
-  ['year', 'month'].forEach(p => {
+  // 必要柱
+  const pillarsToInclude: string[] = ['month'];
+  if (includeYear) pillarsToInclude.unshift('year');
+
+  pillarsToInclude.forEach(p => {
     pillars[p].forEach((el: string) => {
       const map = mapElement(el);
       if (map) vector[map]++;
@@ -525,7 +530,7 @@ export async function getUserBaziVector(birthday: string): Promise<FiveElementVe
  */
 export async function getMonthlyEnergyChange(year: number, month: number, userBazi: FiveElementVector): Promise<number> {
   const sampleDate = new Date(year, month - 1, 1);
-  const pillarVector = getPillarElementsVector(sampleDate, false, false); // 只年+月
+  const pillarVector = getPillarElementsVector(sampleDate, false, false, false); // 只年+月
   const combinedVector = {
     wood: userBazi.wood + pillarVector.wood,
     fire: userBazi.fire + pillarVector.fire,
@@ -582,7 +587,7 @@ export async function calculateEnergyCalendar(birthday: string): Promise<Array<{
       }
 
       // 计算阶段能量分数：年+月柱元素 + 基础八字
-      const pillarVec = getPillarElementsVector(startDate, false, false); // 只年+月
+      const pillarVec = getPillarElementsVector(startDate, false, false, false); // 只年+月
       const combined = {
         wood: baseVector.wood + pillarVec.wood,
         fire: baseVector.fire + pillarVec.fire,
@@ -651,7 +656,7 @@ function getSampleDatesForMonth(year: number, month: number): Date[] {
  */
 export function getDailyAverageEnergy(date: Date, userBazi: FiveElementVector): number {
   // 使用年+月+日柱向量
-  const pillarVector = getPillarElementsVector(date, true, false);
+  const pillarVector = getPillarElementsVector(date, true, true, false);
   const combined = {
     wood: userBazi.wood + pillarVector.wood,
     fire: userBazi.fire + pillarVector.fire,
@@ -681,7 +686,7 @@ export function getEnergyHeatmapData(date: Date, userBazi: FiveElementVector): A
     dateTime.setHours(hour, 0, 0, 0);
     
     // 计算柱向量（包含时柱）
-    const pillarVector = getPillarElementsVector(dateTime, true, true);
+    const pillarVector = getPillarElementsVector(dateTime, true, false, true);
     const combined = {
       wood: userBazi.wood + pillarVector.wood,
       fire: userBazi.fire + pillarVector.fire,
@@ -711,7 +716,12 @@ export function getEnergyHeatmapData(date: Date, userBazi: FiveElementVector): A
  */
 function scaleDiff(raw: number): number {
   // 先缩放，避免分差过大
-  let valRaw = raw / 4; // 压缩到合理区间
+  let valRaw: number;
+  const absRaw = Math.abs(raw);
+  if (absRaw <= 50) valRaw = raw;        // 小差异不缩放
+  else if (absRaw <= 100) valRaw = raw / 2; // 中等差异减半
+  else valRaw = raw / 4;                    // 大于100再÷4
+
   let val = Math.round(valRaw * 10) / 10; // 保留1位小数
   if (Math.abs(val) < 1) val = val >= 0 ? 1 : -1;
   if (val > 25) val = 25;
