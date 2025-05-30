@@ -529,22 +529,42 @@ export async function getUserBaziVector(birthday: string): Promise<FiveElementVe
  * @returns 月度能量变化值Promise
  */
 export async function getMonthlyEnergyChange(year: number, month: number, userBazi: FiveElementVector): Promise<number> {
-  const sampleDate = new Date(year, month - 1, 1);
-  const pillarVector = getPillarElementsVector(sampleDate, false, false, false); // 只年+月
-  const combinedVector = {
-    wood: userBazi.wood + pillarVector.wood,
-    fire: userBazi.fire + pillarVector.fire,
-    earth: userBazi.earth + pillarVector.earth,
-    metal: userBazi.metal + pillarVector.metal,
-    water: userBazi.water + pillarVector.water
+  // 计算当前月起始日期（用于获取月柱）
+  const currentDate = new Date(year, month - 1, 1);
+  const currPillar = getPillarElementsVector(currentDate, false, false, false);
+  const currentVector: FiveElementVector = {
+    wood: userBazi.wood + currPillar.wood,
+    fire: userBazi.fire + currPillar.fire,
+    earth: userBazi.earth + currPillar.earth,
+    metal: userBazi.metal + currPillar.metal,
+    water: userBazi.water + currPillar.water
   };
 
-  const baseScore = scoreFiveElementBalance(userBazi);
-  const combinedScore = scoreFiveElementBalance(combinedVector);
-  const baseImbalance = 100 - baseScore;
-  const currImbalance = 100 - combinedScore;
-  const diff = baseImbalance - currImbalance;
-  return scaleDiff(diff);
+  // 计算上月起始日期
+  const prevDate = new Date(year, month - 2, 1); // JS日期自动处理<0的月份
+  const prevPillar = getPillarElementsVector(prevDate, false, false, false);
+  const prevVector: FiveElementVector = {
+    wood: userBazi.wood + prevPillar.wood,
+    fire: userBazi.fire + prevPillar.fire,
+    earth: userBazi.earth + prevPillar.earth,
+    metal: userBazi.metal + prevPillar.metal,
+    water: userBazi.water + prevPillar.water
+  };
+
+  const currScore = scoreFiveElementBalance(currentVector);
+  const prevScore = scoreFiveElementBalance(prevVector);
+
+  // 环比差异（与上一阶段比较）。若无上一阶段则与基础八字比较
+  let diffRaw: number;
+  if (prevScore !== null) {
+    diffRaw = currScore - prevScore;
+  } else {
+    diffRaw = currScore - scoreFiveElementBalance(userBazi);
+  }
+
+  const energyChange = diffRaw === 0 ? 0 : scaleDiff(diffRaw);
+
+  return energyChange;
 }
 
 /**
@@ -563,6 +583,7 @@ export async function calculateEnergyCalendar(birthday: string): Promise<Array<{
   try {
     const baseVector = await getUserBaziVector(birthday);
     const baseBalance = scoreFiveElementBalance(baseVector);
+    let prevStageBalance: number | null = null; // 用于环比比较
 
     // 起始日期 = 今天
     let cursor = new Date();
@@ -597,10 +618,15 @@ export async function calculateEnergyCalendar(birthday: string): Promise<Array<{
       } as FiveElementVector;
       const balance = scoreFiveElementBalance(combined);
 
-      const baseImbalance = 100 - baseBalance;
-      const currImbalance = 100 - balance;
-      const diff = baseImbalance - currImbalance;
-      const energyChange = scaleDiff(diff);
+      // 环比差异（与上一阶段比较）。若无上一阶段则与基础八字比较
+      let diffRaw: number;
+      if (prevStageBalance !== null) {
+        diffRaw = balance - prevStageBalance;
+      } else {
+        diffRaw = balance - baseBalance;
+      }
+
+      const energyChange = diffRaw === 0 ? 0 : scaleDiff(diffRaw);
       const trend = determineTrend(energyChange);
 
       // 最弱元素 & 水晶
@@ -613,6 +639,8 @@ export async function calculateEnergyCalendar(birthday: string): Promise<Array<{
       // 移动光标到下一天
       cursor = new Date(endDate);
       cursor.setDate(cursor.getDate() + 1);
+
+      prevStageBalance = balance; // 更新上一阶段基准
     }
   } catch (e) {
     console.error('calculateEnergyCalendar error', e);
