@@ -57,7 +57,10 @@ export function calculateElementsScore(
   }
   
   // 计算分数：100 - (总偏差/最大偏差)*100，确保不小于0
-  const score = 100 - (totalDeviation / maxDeviation) * 100;
+  let score = 100 - (totalDeviation / maxDeviation) * 100;
+  if (Number.isNaN(score)) {
+    score = 0;
+  }
   
   // 返回不小于0的分数
   return Math.max(0, score);
