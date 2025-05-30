@@ -80,6 +80,58 @@ export const FIVE_ELEMENT_MAPPINGS = {
 // 缓存月度能量向量计算结果
 const monthlyEnergyCache = new Map<string, FiveElementVector>();
 
+// 中文/英文到 Elem 映射
+const CHN_TO_ENG: Record<string, Elem> = {
+  '木': 'wood',
+  '火': 'fire',
+  '土': 'earth',
+  '金': 'metal',
+  '水': 'water'
+};
+
+function mapElement(raw: string): Elem | null {
+  if (!raw) return null;
+  const lower = raw.toLowerCase();
+  if (lower === 'wood' || lower === 'fire' || lower === 'earth' || lower === 'metal' || lower === 'water') {
+    return lower as Elem;
+  }
+  if (CHN_TO_ENG[raw]) return CHN_TO_ENG[raw];
+  return null;
+}
+
+/**
+ * 提取指定柱组合的五行元素向量
+ * @param date 日期对象
+ * @param includeHour 是否包含时柱
+ */
+function getPillarElementsVector(date: Date, includeDay: boolean, includeHour: boolean): FiveElementVector {
+  const bazi = getBaziFromLunar(date);
+  if (!bazi || !bazi.fiveElements) return { wood: 0, fire: 0, earth: 0, metal: 0, water: 0 };
+  const pillars = bazi.fiveElements as any;
+  const vector: FiveElementVector = { wood: 0, fire: 0, earth: 0, metal: 0, water: 0 };
+
+  // always include year and month
+  ['year', 'month'].forEach(p => {
+    pillars[p].forEach((el: string) => {
+      const map = mapElement(el);
+      if (map) vector[map]++;
+    });
+  });
+  if (includeDay) {
+    pillars['day'].forEach((el: string) => {
+      const map = mapElement(el);
+      if (map) vector[map]++;
+    });
+  }
+  if (includeHour) {
+    pillars['hour'].forEach((el: string) => {
+      const map = mapElement(el);
+      if (map) vector[map]++;
+    });
+  }
+  return vector;
+}
+
 /**
  * 获取月相影响向量
  * @param moonPhase 月相位置(0-1)
@@ -469,29 +521,20 @@ export async function getUserBaziVector(birthday: string): Promise<FiveElementVe
  * @returns 月度能量变化值Promise
  */
 export async function getMonthlyEnergyChange(year: number, month: number, userBazi: FiveElementVector): Promise<number> {
-  // 获取该月的五行能量向量
-  const monthlyVector = await getMonthlyEnergyVector(year, month);
-  
-  // 合并用户基础五行和月度影响
+  const sampleDate = new Date(year, month - 1, 1);
+  const pillarVector = getPillarElementsVector(sampleDate, false, false); // 只年+月
   const combinedVector = {
-    wood: userBazi.wood + monthlyVector.wood,
-    fire: userBazi.fire + monthlyVector.fire,
-    earth: userBazi.earth + monthlyVector.earth,
-    metal: userBazi.metal + monthlyVector.metal,
-    water: userBazi.water + monthlyVector.water
+    wood: userBazi.wood + pillarVector.wood,
+    fire: userBazi.fire + pillarVector.fire,
+    earth: userBazi.earth + pillarVector.earth,
+    metal: userBazi.metal + pillarVector.metal,
+    water: userBazi.water + pillarVector.water
   };
-  
-  // 计算基础五行和合并后五行的总数
-  const baseCount = Object.values(userBazi).reduce((sum, val) => sum + val, 0);
-  const combinedCount = Object.values(combinedVector).reduce((sum, val) => sum + val, 0);
-  
-  // 计算基础分数和合并后分数
-  const baseScore = calculateElementsScore(userBazi, baseCount);
-  const combinedScore = calculateElementsScore(combinedVector, combinedCount);
-  
-  // 计算变化值并映射到-50到50范围，并放大一倍（原来除以4，现在除以2）
-  const rawDiff = combinedScore - baseScore;
-  return Math.max(-50, Math.min(50, Math.round(rawDiff / 2)));
+
+  const baseScore = scoreFiveElementBalance(userBazi);
+  const combinedScore = scoreFiveElementBalance(combinedVector);
+  const diff = combinedScore - baseScore;
+  return Math.max(-50, Math.min(50, Math.round(diff / 2)));
 }
 
 /**
@@ -500,141 +543,70 @@ export async function getMonthlyEnergyChange(year: number, month: number, userBa
  * @returns 12个月的能量日历数据Promise
  */
 export async function calculateEnergyCalendar(birthday: string): Promise<Array<{
-  month: string;
+  month: string; // 形如 "4/1-4/4"
   energyChange: number;
   trend: 'up' | 'down' | 'stable';
   crystal: string;
   lowestElement: Elem;
 }>> {
-  const today = new Date();
-  const months = [];
-  
+  const months: any[] = [];
   try {
-    // 计算用户八字基础五行向量
-    const userBazi = await getUserBaziVector(birthday);
-    // 计算用户基础平衡分数一次即可
-    const baseBalanceScore = scoreFiveElementBalance(userBazi);
-    let prevMonthBalanceScore: number | null = null;
-    
-    // 计算12个月的能量变化
-    for (let i = 0; i < 12; i++) {
-      const currentDate = addMonths(today, i);
-      const year = currentDate.getFullYear();
-      const month = currentDate.getMonth() + 1; // JavaScript月份从0开始
-      const monthName = format(currentDate, 'MMM');
-      
-      // 获取该月采样点的能量计算结果
-      const sampleDates = getSampleDatesForMonth(year, month);
-      const sampleResults = await Promise.all(sampleDates.map(async (date) => {
-        // 获取日期的月相和日照因素
-        const monthIndex = date.getMonth();
-        
-        // 计算月相
-        const monthOffset = (monthIndex * 0.0833) % 1; // 每月偏移约1/12个周期
-        const dayOffset = (date.getDate() / 30) % 1; // 日期在月内的位置
-        const moonPhase = (monthOffset + dayOffset) % 1; // 合成后的月相位置(0-1)
-        
-        // 计算日照/季节因素
-        const yearProgress = (monthIndex / 12) * 2 * Math.PI;
-        const seasonAngle = yearProgress - Math.PI/2; // 6月达到峰值
-        const sunlight = 0.5 + 0.3 * Math.sin(seasonAngle);
-        
-        // 获取月相和季节影响
-        const moonPhaseVector = getMoonPhaseInfluence(moonPhase);
-        const seasonVector = getSeasonInfluence(sunlight);
-        
-        // 基础八字向量
-        const baseVector = { ...userBazi };
-        
-        // 合并影响因素
-        const combinedVector = {
-          wood: baseVector.wood + moonPhaseVector.wood + seasonVector.wood,
-          fire: baseVector.fire + moonPhaseVector.fire + seasonVector.fire,
-          earth: baseVector.earth + moonPhaseVector.earth + seasonVector.earth,
-          metal: baseVector.metal + moonPhaseVector.metal + seasonVector.metal,
-          water: baseVector.water + moonPhaseVector.water + seasonVector.water
-        };
-        
-        // 计算基础分数和合并分数
-        const baseScore = scoreFiveElementBalance(baseVector);
-        const combinedScore = scoreFiveElementBalance(combinedVector);
-        
-        // 返回能量变化
-        return {
-          date,
-          combinedScore
-        };
-      }));
-      
-      // 计算当前月平均平衡分数（基于样本的 combinedScore）
-      const avgMonthBalanceScore = sampleResults.reduce((sum, result) => sum + result.combinedScore, 0) / sampleResults.length;
-      
-      // 确定能量变化：
-      //  - 第一个月：与八字基础分数比较
-      //  - 其余月份：与上个月平均平衡分数比较
-      const rawDiff = prevMonthBalanceScore === null
-        ? avgMonthBalanceScore - baseBalanceScore
-        : avgMonthBalanceScore - prevMonthBalanceScore;
-      
-      // 将差值映射到 -50 ~ 50 区间，并放大一倍（原来除以4，现在除以2）
-      const scaledEnergyChange = Math.max(-50, Math.min(50, Math.round(rawDiff / 2)));
-      
-      // 更新 prevMonthBalanceScore 供下月使用
-      prevMonthBalanceScore = avgMonthBalanceScore;
-      
-      // 确定趋势
-      const trend = determineTrend(scaledEnergyChange);
-      
-      // 获取最终计算日期的五行向量（用月末日期）
-      const finalDate = sampleDates[sampleDates.length - 1];
-      const monthPhaseVector = getMoonPhaseInfluence(
-        (finalDate.getMonth() * 0.0833 + finalDate.getDate() / 30) % 1
-      );
-      const monthSeasonVector = getSeasonInfluence(
-        0.5 + 0.3 * Math.sin((finalDate.getMonth() / 12) * 2 * Math.PI - Math.PI/2)
-      );
-      
-      // 合并最终的五行向量
-      const finalVector = {
-        wood: userBazi.wood + monthPhaseVector.wood + monthSeasonVector.wood,
-        fire: userBazi.fire + monthPhaseVector.fire + monthSeasonVector.fire,
-        earth: userBazi.earth + monthPhaseVector.earth + monthSeasonVector.earth,
-        metal: userBazi.metal + monthPhaseVector.metal + monthSeasonVector.metal,
-        water: userBazi.water + monthPhaseVector.water + monthSeasonVector.water
-      };
-      
-      // 找出最弱的元素
-      const lowestElement = Object.entries(finalVector).reduce(
-        (lowest, [elem, score]) => {
-          const elemKey = elem as Elem;
-          return score < lowest.score ? { elem: elemKey, score } : lowest;
-        },
-        { elem: 'earth' as Elem, score: Number.MAX_VALUE }
-      ).elem;
-      
-      // 根据最弱元素推荐水晶
+    const baseVector = await getUserBaziVector(birthday);
+    const baseBalance = scoreFiveElementBalance(baseVector);
+    let prevBalance: number | null = null;
+
+    // 起始日期 = 今天
+    let cursor = new Date();
+    // 生成最多 12 个阶段
+    for (let stage = 0; stage < 12; stage++) {
+      const startDate = new Date(cursor);
+      // 当前月柱
+      const startBazi = getBaziFromLunar(startDate);
+      if (!startBazi || !startBazi.fiveElements) break;
+      const startMonthPillar = startBazi.fiveElements.month.join('');
+
+      // 前进到月柱变化的前一天
+      let endDate = new Date(startDate);
+      while (true) {
+        const next = new Date(endDate);
+        next.setDate(next.getDate() + 1);
+        const nextBazi = getBaziFromLunar(next);
+        if (!nextBazi || !nextBazi.fiveElements) break;
+        const nextMonthPillar = nextBazi.fiveElements.month.join('');
+        if (nextMonthPillar !== startMonthPillar) break; // 月柱变更
+        endDate = next;
+      }
+
+      // 计算阶段能量分数：年+月柱元素 + 基础八字
+      const pillarVec = getPillarElementsVector(startDate, false, false); // 只年+月
+      const combined = {
+        wood: baseVector.wood + pillarVec.wood,
+        fire: baseVector.fire + pillarVec.fire,
+        earth: baseVector.earth + pillarVec.earth,
+        metal: baseVector.metal + pillarVec.metal,
+        water: baseVector.water + pillarVec.water
+      } as FiveElementVector;
+      const balance = scoreFiveElementBalance(combined);
+
+      const diff = prevBalance === null ? balance - baseBalance : balance - prevBalance;
+      const energyChange = Math.max(-50, Math.min(50, Math.round(diff / 2)));
+      const trend = determineTrend(energyChange);
+
+      // 最弱元素 & 水晶
+      const lowestElement = (Object.entries(combined) as [Elem, number][]) .reduce((a,b)=> a[1]<b[1]?a:b)[0];
       const crystal = CRYSTAL_MAP[lowestElement];
-      
-      months.push({
-        month: monthName,
-        energyChange: scaledEnergyChange,
-        trend,
-        crystal,
-        lowestElement
-      });
+
+      const label = `${startDate.getMonth()+1}/${startDate.getDate()}-${endDate.getMonth()+1}/${endDate.getDate()}`;
+      months.push({ month: label, energyChange, trend, crystal, lowestElement });
+
+      prevBalance = balance;
+      // 移动光标到下一天
+      cursor = new Date(endDate);
+      cursor.setDate(cursor.getDate() + 1);
     }
-  } catch (error) {
-    console.error(`能量日历计算失败: ${error}`);
-    // 返回至少一个默认月份数据，避免UI显示完全空白
-    months.push({
-      month: format(today, 'MMM'),
-      energyChange: 0,
-      trend: 'stable' as const,
-      crystal: 'Clear Quartz',
-      lowestElement: 'metal' as Elem
-    });
+  } catch (e) {
+    console.error('calculateEnergyCalendar error', e);
   }
-  
   return months;
 }
 
@@ -673,51 +645,20 @@ function getSampleDatesForMonth(year: number, month: number): Date[] {
  * @returns 日平均能量变化值
  */
 export function getDailyAverageEnergy(date: Date, userBazi: FiveElementVector): number {
-  const results = [];
-  
-  // 对一天中的每个小时进行采样
-  for (let hour = 0; hour < 24; hour++) {
-    const dateTime = new Date(date);
-    dateTime.setHours(hour, 0, 0, 0);
-    
-    // 获取日照时段影响
-    const dayTimeVector = getDayTimeVector(dateTime);
-    
-    // 获取月相影响
-    const monthIndex = dateTime.getMonth();
-    const monthOffset = (monthIndex * 0.0833) % 1;
-    const dayOffset = (dateTime.getDate() / 30) % 1;
-    const moonPhase = (monthOffset + dayOffset) % 1;
-    const moonPhaseVector = getMoonPhaseInfluence(moonPhase);
-    
-    // 获取季节影响
-    const yearProgress = (monthIndex / 12) * 2 * Math.PI;
-    const seasonAngle = yearProgress - Math.PI/2;
-    const sunlight = 0.5 + 0.3 * Math.sin(seasonAngle);
-    const seasonVector = getSeasonInfluence(sunlight);
-    
-    // 合并向量
-    const combinedVector = {
-      wood: userBazi.wood + dayTimeVector.wood + moonPhaseVector.wood + seasonVector.wood,
-      fire: userBazi.fire + dayTimeVector.fire + moonPhaseVector.fire + seasonVector.fire,
-      earth: userBazi.earth + dayTimeVector.earth + moonPhaseVector.earth + seasonVector.earth,
-      metal: userBazi.metal + dayTimeVector.metal + moonPhaseVector.metal + seasonVector.metal,
-      water: userBazi.water + dayTimeVector.water + moonPhaseVector.water + seasonVector.water
-    };
-    
-    // 计算基础分数和合并分数
-    const baseScore = scoreFiveElementBalance(userBazi);
-    const combinedScore = scoreFiveElementBalance(combinedVector);
-    
-    // 添加到结果中
-    results.push(combinedScore - baseScore);
-  }
-  
-  // 计算平均值
-  const average = results.reduce((sum, val) => sum + val, 0) / results.length;
-  
-  // 映射到-50到50范围，并放大一倍（原来除以4，现在除以2）
-  return Math.max(-50, Math.min(50, Math.round(average / 2)));
+  // 使用年+月+日柱向量
+  const pillarVector = getPillarElementsVector(date, true, false);
+  const combined = {
+    wood: userBazi.wood + pillarVector.wood,
+    fire: userBazi.fire + pillarVector.fire,
+    earth: userBazi.earth + pillarVector.earth,
+    metal: userBazi.metal + pillarVector.metal,
+    water: userBazi.water + pillarVector.water
+  } as FiveElementVector;
+
+  const baseScore = scoreFiveElementBalance(userBazi);
+  const dayScore = scoreFiveElementBalance(combined);
+  const diff = dayScore - baseScore;
+  return Math.max(-50, Math.min(50, Math.round(diff / 2)));
 }
 
 /**
@@ -734,8 +675,20 @@ export function getEnergyHeatmapData(date: Date, userBazi: FiveElementVector): A
     const dateTime = new Date(date);
     dateTime.setHours(hour, 0, 0, 0);
     
-    const energyChange = getEnergyChange(dateTime, userBazi);
-    
+    // 计算柱向量（包含时柱）
+    const pillarVector = getPillarElementsVector(dateTime, true, true);
+    const combined = {
+      wood: userBazi.wood + pillarVector.wood,
+      fire: userBazi.fire + pillarVector.fire,
+      earth: userBazi.earth + pillarVector.earth,
+      metal: userBazi.metal + pillarVector.metal,
+      water: userBazi.water + pillarVector.water
+    } as FiveElementVector;
+    const baseScore = scoreFiveElementBalance(userBazi);
+    const hourScore = scoreFiveElementBalance(combined);
+    const diff = hourScore - baseScore;
+    const energyChange = Math.max(-50, Math.min(50, Math.round(diff / 2)));
+
     result.push({
       hour,
       energy: energyChange

@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { addMonths } from 'date-fns';
 import { SubscriptionTier } from '@/app/lib/subscription-config';
 import { FadeInContainer } from './animations/FadeInContainer';
 import { calculateEnergyCalendar } from '../lib/fiveElementsEnergy';
@@ -47,15 +46,13 @@ const EnergyCalendar: React.FC<EnergyCalendarProps> = ({
           console.log('能量日历计算完成', calendarData);
           
           // 转换为 MonthData 格式
-          const realData = calendarData.map((monthData, index) => {
-            // 使用索引确定月份，而不是依赖 monthData.month 字符串解析
-            const currentDate = addMonths(new Date(), index);
+          const realData = calendarData.map((monthData) => {
             return {
               month: monthData.month,
               energyChange: monthData.energyChange,
               trend: monthData.trend,
               crystal: monthData.crystal,
-              date: currentDate
+              date: new Date()
             };
           });
           
