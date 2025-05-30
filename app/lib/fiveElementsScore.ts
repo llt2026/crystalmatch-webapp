@@ -32,6 +32,11 @@ export function calculateElementsScore(
   // 计算总数量（如果未指定）
   const total = totalCount || elementsArray.reduce((sum, val) => sum + val, 0);
   
+  // 当总数为0（极端情况）时，无可比性，直接返回0分
+  if (total === 0) {
+    return 0;
+  }
+  
   // 理想均衡值：总数除以5
   const idealValue = total / 5;
   
@@ -45,6 +50,11 @@ export function calculateElementsScore(
   // 最大偏差出现在：一个元素占据所有格子，其他元素为0
   // 公式：4个元素的理想值之和 + |总数-理想值|
   const maxDeviation = 4 * idealValue + Math.abs(total - idealValue);
+  
+  // 防止除以0（理想值为0或总数极端情况下）
+  if (maxDeviation === 0) {
+    return 0;
+  }
   
   // 计算分数：100 - (总偏差/最大偏差)*100，确保不小于0
   const score = 100 - (totalDeviation / maxDeviation) * 100;
