@@ -24,6 +24,14 @@ export function calculateElementsScore(
     ? elements
     : Object.values(elements);
 
+  // 将 NaN 或非数字值归零
+  for (let i = 0; i < elementsArray.length; i++) {
+    const v = elementsArray[i] as number;
+    if (!Number.isFinite(v)) {
+      elementsArray[i] = 0;
+    }
+  }
+
   // 确保有5个元素值
   if (elementsArray.length !== 5) {
     throw new Error('必须提供5个五行元素的数值');
