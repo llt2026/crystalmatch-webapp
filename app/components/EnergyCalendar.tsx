@@ -10,7 +10,8 @@ interface MonthData {
   energyChange: number;
   trend: 'up' | 'down' | 'stable';
   crystal: string;
-  date: Date;
+  date?: Date;
+  monthPillar?: string;
 }
 
 interface EnergyCalendarProps {
@@ -113,14 +114,14 @@ const EnergyCalendar: React.FC<EnergyCalendarProps> = ({
     <FadeInContainer className="mb-10 bg-opacity-25 backdrop-blur-md rounded-xl overflow-hidden">
       <div className="p-5 bg-purple-900 bg-opacity-30">
         <h3 className="text-xl font-semibold text-white">Energy Calendar</h3>
-        <p className="text-gray-200 text-sm">Your personal energy forecast</p>
+        <p className="text-gray-200 text-sm">Your personal energy forecast by solar terms</p>
       </div>
 
       <div className="overflow-x-auto">
         <table className="w-full text-left">
           <thead className="bg-purple-900 bg-opacity-40 text-purple-100">
             <tr>
-              <th className="py-3 px-4 font-medium">Month</th>
+              <th className="py-3 px-4 font-medium">Date Range</th>
               <th className="py-3 px-4 font-medium">Energy Change</th>
               <th className="py-3 px-4 font-medium">Crystal</th>
               <th className="py-3 px-4 font-medium">Action</th>

@@ -547,14 +547,15 @@ export async function getMonthlyEnergyChange(year: number, month: number, userBa
 /**
  * 计算能量日历数据
  * @param birthday 用户生日（YYYY-MM-DD格式）
- * @returns 10天的能量日历数据Promise
+ * @returns 基于节气变化的能量日历数据Promise
  */
 export async function calculateEnergyCalendar(birthday: string): Promise<Array<{
-  month: string; // 日期，形如 "5/12"
+  month: string; // 日期描述，形如 "5/4 - 5/5"，表示节气区间
   energyChange: number;
   trend: 'up' | 'down' | 'stable';
   crystal: string;
   lowestElement: Elem;
+  monthPillar?: string; // 月柱信息
 }>> {
   const days: any[] = [];
   try {
@@ -573,61 +574,155 @@ export async function calculateEnergyCalendar(birthday: string): Promise<Array<{
     let cursor = new Date();
     cursor.setHours(12, 0, 0, 0);
     
-    // 生成10天的数据
-    for (let day = 0; day < 10; day++) {
+    // 存储当前节气月的数据
+    let currentSegment: {
+      startDate: Date;
+      endDate: Date;
+      monthPillar: string;
+      pillarVec: FiveElementVector;
+      combined: FiveElementVector;
+      balance: number;
+      energyChange: number;
+      trend: 'up' | 'down' | 'stable';
+      lowestElement: Elem;
+      crystal: string;
+    } | null = null;
+    
+    // 向后计算90天，寻找节气变化点
+    let prevMonthPillar = '';
+    
+    for (let day = 0; day < 90; day++) {
       const date = new Date(cursor);
       date.setDate(date.getDate() + day);
       
       // 确保时间为当天中午12点
       date.setHours(12, 0, 0, 0);
-
-      // 计算日能量：完整八字（年+月+日+时柱）
-      const pillarVec = getPillarElementsVector(date, true, true, true); // 完整八字
-      const combined = {
-        wood: baseVector.wood + pillarVec.wood,
-        fire: baseVector.fire + pillarVec.fire,
-        earth: baseVector.earth + pillarVec.earth,
-        metal: baseVector.metal + pillarVec.metal,
-        water: baseVector.water + pillarVec.water
-      } as FiveElementVector;
-      // NaN 保护
-      for (const key in combined) {
-        if (!Number.isFinite(combined[key as Elem])) {
-          combined[key as Elem] = 0;
+      
+      // 获取当日八字信息
+      const dailyBazi = getBaziFromLunar(date);
+      if (!dailyBazi) continue;
+      
+      // 获取月柱信息
+      const monthPillar = dailyBazi.monthPillar || '';
+      
+      // 检查是否是新的节气段开始
+      const isNewSegment = day === 0 || monthPillar !== prevMonthPillar;
+      
+      if (isNewSegment && currentSegment) {
+        // 当前段结束，记录当前段信息
+        currentSegment.endDate = new Date(date);
+        currentSegment.endDate.setDate(currentSegment.endDate.getDate() - 1);
+        
+        // 添加到结果数组
+        const startMonth = currentSegment.startDate.getMonth() + 1;
+        const startDay = currentSegment.startDate.getDate();
+        const endMonth = currentSegment.endDate.getMonth() + 1;
+        const endDay = currentSegment.endDate.getDate();
+        
+        const label = `${startMonth}/${startDay}${startMonth !== endMonth || startDay !== endDay ? ` - ${endMonth}/${endDay}` : ''}`;
+        
+        days.push({
+          month: label,
+          energyChange: currentSegment.energyChange,
+          trend: currentSegment.trend,
+          crystal: currentSegment.crystal,
+          lowestElement: currentSegment.lowestElement,
+          monthPillar: currentSegment.monthPillar
+        });
+      }
+      
+      if (isNewSegment) {
+        // 开始新的节气段
+        // 计算月柱能量：使用年月柱（不含日时）
+        const pillarVec = getPillarElementsVector(date, true, true, false);
+        
+        // 合并基础八字和当前节气的八字
+        const combined = {
+          wood: baseVector.wood + pillarVec.wood,
+          fire: baseVector.fire + pillarVec.fire,
+          earth: baseVector.earth + pillarVec.earth,
+          metal: baseVector.metal + pillarVec.metal,
+          water: baseVector.water + pillarVec.water
+        } as FiveElementVector;
+        
+        // NaN 保护
+        for (const key in combined) {
+          if (!Number.isFinite(combined[key as Elem])) {
+            combined[key as Elem] = 0;
+          }
         }
+        
+        const balance = scoreFiveElementBalance(combined);
+        // 确保分数不是NaN
+        const safeBalance = Number.isFinite(balance) ? balance : 0;
+
+        // 与基础八字比较
+        const diffRaw = safeBalance - safeBaseBalance;
+        // NaN保护
+        const safeDiffRaw = Number.isFinite(diffRaw) ? diffRaw : 0;
+
+        const energyChange = scaleDiff(safeDiffRaw);
+        const trend = determineTrend(energyChange);
+
+        // 最弱元素 & 水晶
+        // 保护最弱元素计算不出错
+        let lowestElement: Elem;
+        try {
+          lowestElement = (Object.entries(combined) as [Elem, number][]).reduce((a,b)=> {
+            if (!Number.isFinite(a[1])) a[1] = 0;
+            if (!Number.isFinite(b[1])) b[1] = 0;
+            return a[1]<b[1]?a:b;
+          })[0];
+        } catch (e) {
+          lowestElement = 'water'; // 默认值
+        }
+        const crystal = CRYSTAL_MAP[lowestElement];
+        
+        // 记录新的节气段
+        currentSegment = {
+          startDate: new Date(date),
+          endDate: new Date(date), // 暂时设为起始日期相同
+          monthPillar,
+          pillarVec,
+          combined,
+          balance: safeBalance,
+          energyChange,
+          trend,
+          lowestElement,
+          crystal
+        };
       }
-      const balance = scoreFiveElementBalance(combined);
-      // 确保分数不是NaN
-      const safeBalance = Number.isFinite(balance) ? balance : 0;
-
-      // 与基础八字比较
-      const diffRaw = safeBalance - safeBaseBalance;
-      // NaN保护
-      const safeDiffRaw = Number.isFinite(diffRaw) ? diffRaw : 0;
-
-      const energyChange = scaleDiff(safeDiffRaw);
-      const trend = determineTrend(energyChange);
-
-      // 最弱元素 & 水晶
-      // 保护最弱元素计算不出错
-      let lowestElement: Elem;
-      try {
-        lowestElement = (Object.entries(combined) as [Elem, number][]).reduce((a,b)=> {
-          if (!Number.isFinite(a[1])) a[1] = 0;
-          if (!Number.isFinite(b[1])) b[1] = 0;
-          return a[1]<b[1]?a:b;
-        })[0];
-      } catch (e) {
-        lowestElement = 'water'; // 默认值
+      
+      prevMonthPillar = monthPillar;
+      
+      // 如果已经收集了至少6个节气段，就停止计算
+      if (days.length >= 6 && isNewSegment) {
+        break;
       }
-      const crystal = CRYSTAL_MAP[lowestElement];
-
-      const label = `${date.getMonth()+1}/${date.getDate()}`;
-      days.push({ month: label, energyChange, trend, crystal, lowestElement });
+    }
+    
+    // 处理最后一个段
+    if (currentSegment) {
+      const startMonth = currentSegment.startDate.getMonth() + 1;
+      const startDay = currentSegment.startDate.getDate();
+      const endMonth = currentSegment.endDate.getMonth() + 1;
+      const endDay = currentSegment.endDate.getDate();
+      
+      const label = `${startMonth}/${startDay}${startMonth !== endMonth || startDay !== endDay ? ` - ${endMonth}/${endDay}` : ''}`;
+      
+      days.push({
+        month: label,
+        energyChange: currentSegment.energyChange,
+        trend: currentSegment.trend,
+        crystal: currentSegment.crystal,
+        lowestElement: currentSegment.lowestElement,
+        monthPillar: currentSegment.monthPillar
+      });
     }
   } catch (e) {
     console.error('calculateEnergyCalendar error', e);
   }
+  
   return days;
 }
 
