@@ -5,8 +5,15 @@ import { jwtVerify } from 'jose';
 // Validate user token
 async function validateUserToken(request: NextRequest) {
   try {
-    const token = request.cookies.get('token')?.value;
-    
+    let token = request.cookies.get('token')?.value;
+    // 允许使用 Authorization: Bearer <token>
+    if (!token) {
+      const auth = request.headers.get('authorization');
+      if (auth?.startsWith('Bearer ')) {
+        token = auth.slice(7);
+      }
+    }
+
     if (!token) {
       return null;
     }
