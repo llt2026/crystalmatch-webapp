@@ -38,11 +38,19 @@ async function validateUserToken(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   try {
+    // 记录请求信息
+    console.log('收到elements请求:', {
+      cookies: request.cookies.getAll().map(c => c.name),
+      hasAuthHeader: !!request.headers.get('authorization'),
+      url: request.url
+    });
+
     // Validate user identity
     const userId = await validateUserToken(request);
     
-    // 为了构建阶段，如果没有userId，使用模拟数据
-    const effectiveUserId = userId || 'anonymous-user';
+    // 紧急模式 - 即使没有有效token也返回数据
+    const effectiveUserId = userId || 'emergency-user-' + new Date().getTime();
+    console.log('使用effectiveUserId:', effectiveUserId);
 
     // 根据用户ID生成一些随机但稳定的数值
     const getUserSpecificValue = (userId: string, base: number, variance: number) => {

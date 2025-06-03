@@ -82,10 +82,29 @@ export default function EnergyReportPage() {
       try {
         setLoading(true);
 
-        const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : '';
-        const headers: Record<string,string> = token ? { 'Authorization': `Bearer ${token}` } : {};
+        // 尝试从多个位置获取token
+        let token = null;
+        if (typeof window !== 'undefined') {
+          // 依次尝试从localStorage不同键名获取
+          const possibleKeys = ['authToken', 'token', 'jwt', 'crystalMatchToken'];
+          for (const key of possibleKeys) {
+            const savedToken = localStorage.getItem(key);
+            if (savedToken) {
+              console.log(`从localStorage[${key}]获取到token`);
+              token = savedToken;
+              break;
+            }
+          }
+        }
 
-        console.log('使用headers:', headers); // 添加调试信息，了解token是否正确传递
+        const headers: Record<string,string> = token ? { 'Authorization': `Bearer ${token}` } : {};
+        
+        console.log('使用headers:', headers);
+        
+        if (token) {
+          // 同时也设置到cookie，增加成功概率
+          document.cookie = `token=${token}; path=/; max-age=86400`;
+        }
 
         // 从API获取用户数据
         const userRes = await fetch('/api/user/profile', { headers });
