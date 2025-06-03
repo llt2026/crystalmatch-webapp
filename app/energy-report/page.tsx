@@ -262,7 +262,7 @@ export default function EnergyReportPage() {
         crystal={{
           name: userData.yearCrystal.name,
           description: userData.yearCrystal.description || "Your Personalized Crystal",
-          imageUrl: `/images/crystals/${userData.yearCrystal.name.toLowerCase().replace(/['\s]+/g, '-')}.jpg`,
+          imageUrl: `/images/crystals/${userData.yearCrystal.name}.png`,
           effect: userData.yearCrystal.effect,
           planetAssociation: userData.yearCrystal.planet || "Earth",
           year: 2025

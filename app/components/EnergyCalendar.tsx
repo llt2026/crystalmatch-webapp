@@ -13,6 +13,44 @@ const EnergyCalendar: React.FC<EnergyCalendarProps> = ({ birthDate }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // 将数字月份转换为英文月份名称
+  const getMonthName = (month: number): string => {
+    const months = [
+      'January', 'February', 'March', 'April',
+      'May', 'June', 'July', 'August',
+      'September', 'October', 'November', 'December'
+    ];
+    return months[month - 1];
+  };
+
+  // 格式化日期为"June 3-4, 2025"格式
+  const formatDateRange = (dateStr: string): string => {
+    if (!dateStr) return '';
+    
+    // 处理格式如"6/3 - 6/4"的日期字符串
+    const parts = dateStr.split(' - ');
+    
+    if (parts.length === 1) {
+      // 单日期，例如"6/3"
+      const [month, day] = parts[0].split('/').map(Number);
+      const currentYear = new Date().getFullYear();
+      return `${getMonthName(month)} ${day}, ${currentYear}`;
+    } else {
+      // 日期范围，例如"6/3 - 6/4"
+      const [startMonth, startDay] = parts[0].split('/').map(Number);
+      const [endMonth, endDay] = parts[1].split('/').map(Number);
+      const currentYear = new Date().getFullYear();
+      
+      if (startMonth === endMonth) {
+        // 同月份，例如"June 3-4, 2025"
+        return `${getMonthName(startMonth)} ${startDay}-${endDay}, ${currentYear}`;
+      } else {
+        // 跨月份，例如"June 28 - July 4, 2025"
+        return `${getMonthName(startMonth)} ${startDay} - ${getMonthName(endMonth)} ${endDay}, ${currentYear}`;
+      }
+    }
+  };
+
   useEffect(() => {
     async function loadCalendarData() {
       if (!birthDate) return;
@@ -24,10 +62,14 @@ const EnergyCalendar: React.FC<EnergyCalendarProps> = ({ birthDate }) => {
         // 使用能量计算函数获取真实数据 - 从用户查询日开始
         const data = await calculateEnergyCalendar(birthDate);
         
-        // 直接使用从能量计算函数返回的数据
-        // 每个节气区间应该已经包含了正确的日期范围
-        // 例如 "May 1–4, 2025" 和 "May 5 – June 4, 2025"
-        setCalendarData(data);
+        // 格式化日期显示
+        const formattedData = data.map(item => ({
+          ...item,
+          originalMonth: item.month, // 保留原始格式，以防后续需要
+          month: formatDateRange(item.month)
+        }));
+        
+        setCalendarData(formattedData);
       } catch (error) {
         console.error('Error loading energy calendar:', error);
         setError('Failed to load energy calendar. Please try again later.');
