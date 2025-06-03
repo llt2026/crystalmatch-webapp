@@ -78,8 +78,8 @@ const EnergyCalendar: React.FC<EnergyCalendarProps> = ({ birthDate }) => {
 
   return (
     <div className="mt-4">
-      <h2 className="text-xl font-semibold mb-2">能量变化日历</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+      <h2 className="text-xl font-semibold mb-2">Energy Calendar</h2>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
         {calendarData.map((item, index) => (
           <div
             key={index}

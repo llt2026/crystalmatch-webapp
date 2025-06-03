@@ -165,7 +165,7 @@ export default function EnergyReportPage() {
         });
       } catch (err) {
         console.error("Error fetching user data:", err);
-        setError('无法加载您的能量报告。请稍后再试。');
+        setError('Unable to load your energy report. Please try again later.');
       } finally {
         setLoading(false);
       }
@@ -182,10 +182,10 @@ export default function EnergyReportPage() {
     return (
       <main className="min-h-screen bg-purple-900 text-white p-4 md:p-8 flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">出错了！</h1>
-          <p className="mb-6">{error || "无法加载您的能量报告"}</p>
+          <h1 className="text-2xl font-bold mb-4">Error!</h1>
+          <p className="mb-6">{error || "Unable to load your energy report"}</p>
           <Link href="/" className="bg-white text-purple-900 px-6 py-2 rounded-lg font-semibold hover:bg-gray-100">
-            返回首页
+            Return to Home
           </Link>
         </div>
       </main>
@@ -219,15 +219,15 @@ export default function EnergyReportPage() {
         
         <div className="bg-purple-800/80 rounded-lg p-4 w-full text-center">
           <p className="text-lg">
-            基于2,500年五行智慧{" "}
-            <span className="text-yellow-300">⚡</span> &amp; GPT洞察
+            Based on 2,500 years of Five Elements wisdom{" "}
+            <span className="text-yellow-300">⚡</span> &amp; GPT insights
           </p>
         </div>
       </div>
       
       {/* Elements Radar Chart */}
       <div className="rounded-lg bg-purple-900/60 p-4 md:p-6 mb-8 backdrop-blur-sm border border-purple-800/50">
-        <h2 className="text-xl md:text-2xl font-bold mb-4 text-center">您的能量状况</h2>
+        <h2 className="text-xl md:text-2xl font-bold mb-4 text-center">Your Energy Status</h2>
         <ElementRadarChart data={userData.elementValues} />
       </div>
       
@@ -238,10 +238,10 @@ export default function EnergyReportPage() {
       <YearlyCrystal 
         crystal={{
           name: userData.yearCrystal.name,
-          description: "专注 · 清晰 · 结构",
+          description: "Focus · Clarity · Structure",
           imageUrl: `/images/crystals/${userData.yearCrystal.name}.png`,
-          effect: "灵感提升器",
-          planetAssociation: "太阳/月亮",
+          effect: "Inspiration Enhancer",
+          planetAssociation: "Sun/Moon",
           year: 2025
         }} 
         isFreeUser={userData.subscriptionTier === 'free'}
@@ -256,10 +256,10 @@ export default function EnergyReportPage() {
       {/* Call to action */}
       {userData.subscriptionTier !== 'yearly' && (
         <div className="rounded-lg bg-gradient-to-r from-purple-700 to-indigo-700 p-6 text-center backdrop-blur-sm border border-purple-600/50">
-          <h2 className="text-xl md:text-2xl font-semibold mb-4">解锁您的全部潜能</h2>
-          <p className="mb-6">获取详细的每月指导和个性化水晶推荐</p>
+          <h2 className="text-xl md:text-2xl font-semibold mb-4">Unlock Your Full Potential</h2>
+          <p className="mb-6">Get detailed monthly guidance and personalized crystal recommendations</p>
           <Link href="/subscription" className="bg-white text-purple-900 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
-            立即升级
+            Upgrade Now
           </Link>
         </div>
       )}
