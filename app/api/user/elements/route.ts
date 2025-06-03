@@ -6,7 +6,15 @@ import { jwtVerify } from 'jose';
 // Validate user token
 async function validateUserToken(request: NextRequest) {
   try {
-    const token = request.cookies.get('token')?.value;
+    let token = request.cookies.get('token')?.value;
+    
+    // 允许使用 Authorization: Bearer <token>
+    if (!token) {
+      const auth = request.headers.get('authorization');
+      if (auth?.startsWith('Bearer ')) {
+        token = auth.slice(7);
+      }
+    }
     
     if (!token) {
       return null;
@@ -14,7 +22,7 @@ async function validateUserToken(request: NextRequest) {
 
     const { payload } = await jwtVerify(
       token,
-      new TextEncoder().encode(process.env.JWT_SECRET || 'crystalmatch-secure-jwt-secret-key')
+      new TextEncoder().encode(process.env.JWT_SECRET || 'your-secret-key')
     );
     
     return payload.userId || payload.sub;
