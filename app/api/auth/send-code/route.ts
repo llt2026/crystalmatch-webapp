@@ -130,10 +130,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // 生成一份只在测试模式下用的 verificationToken，包含email + code
+    const jwt = await import('jsonwebtoken').then(m=>m.default);
+    const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+    const verificationToken = jwt.sign({ email: normalizedEmail, code }, JWT_SECRET, { expiresIn: codeExpirySeconds });
+
     return NextResponse.json({ 
       success: true,
       expirySeconds: codeExpirySeconds,
       testMode: skipMailSending || !hasMailConfig,
+      verificationToken,
       code: process.env.NODE_ENV !== 'production' && (skipMailSending || !hasMailConfig) ? code : undefined
     });
   } catch (error: any) {

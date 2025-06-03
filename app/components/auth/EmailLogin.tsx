@@ -91,7 +91,11 @@ export default function EmailLogin() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, code }),
+        body: JSON.stringify({ 
+          email, 
+          code, 
+          verificationToken: (window as any).__VERIFICATION_TOKEN || '' 
+        }),
       });
 
       const data = await response.json();

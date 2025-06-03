@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, code } = await request.json();
+    const { email, code, verificationToken } = await request.json();
     
     // 记录请求信息用于调试
     console.log(`验证请求: email=${email}, code=${code}, time=${new Date().toISOString()}`);
@@ -26,7 +26,22 @@ export async function POST(request: NextRequest) {
     console.log(`验证码验证请求: ${normalizedEmail}, code=${code}`);
 
     // 使用Upstash验证验证码
-    const isValid = await checkCode(normalizedEmail, code);
+    let isValid = await checkCode(normalizedEmail, code);
+    
+    // 如果redis检查失败，并且处于测试模式，尝试使用verificationToken回退验证
+    if (!isValid && (process.env.SKIP_MAIL_SENDING === 'true' || process.env.NODE_ENV !== 'production')) {
+      if (verificationToken) {
+        try {
+          const decoded: any = jwt.verify(verificationToken, JWT_SECRET);
+          if (decoded.email === normalizedEmail && String(decoded.code) === String(code)) {
+            isValid = true;
+            console.log('测试模式下通过verificationToken验证成功');
+          }
+        } catch(err) {
+          console.log('verificationToken 无效');
+        }
+      }
+    }
     
     // 如果验证失败，返回错误
     if (!isValid) {
