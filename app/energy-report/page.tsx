@@ -76,6 +76,7 @@ export default function EnergyReportPage() {
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [selectedMonth, setSelectedMonth] = useState<string>('');
 
   useEffect(() => {
     async function fetchUserData() {
@@ -149,6 +150,11 @@ export default function EnergyReportPage() {
 
     fetchUserData();
   }, []);
+
+  // 处理月份选择
+  const handleMonthSelect = (month: string) => {
+    setSelectedMonth(month);
+  };
 
   if (loading) {
     return <LoadingScreen />;
@@ -228,7 +234,7 @@ export default function EnergyReportPage() {
       <div className="mb-8">
         <EnergyCalendar 
           birthDate={userData.birthDate}
-          onSelectMonth={(month) => console.log(`Selected month: ${month}`)}
+          onSelectMonth={handleMonthSelect}
         />
       </div>
       

@@ -30,7 +30,7 @@ const EnergyCalendar: React.FC<EnergyCalendarProps> = ({ birthDate, onSelectMont
         // 默认选择第一个月
         if (data.length > 0 && !selectedMonth) {
           setSelectedMonth(data[0].month);
-          onSelectMonth && onSelectMonth(data[0].month);
+          // 移到客户端事件中处理
         }
       } catch (error) {
         console.error('Error loading energy calendar:', error);
@@ -41,11 +41,18 @@ const EnergyCalendar: React.FC<EnergyCalendarProps> = ({ birthDate, onSelectMont
     }
 
     loadCalendarData();
-  }, [birthDate, onSelectMonth, selectedMonth]);
+  }, [birthDate, selectedMonth]);
+
+  // 客户端副作用中处理回调
+  useEffect(() => {
+    if (selectedMonth && onSelectMonth) {
+      onSelectMonth(selectedMonth);
+    }
+  }, [selectedMonth, onSelectMonth]);
 
   const handleMonthClick = (month: string) => {
     setSelectedMonth(month);
-    onSelectMonth && onSelectMonth(month);
+    // 不在这里直接调用onSelectMonth，通过上面的useEffect处理
   };
 
   // 获取能量变化级别的颜色
