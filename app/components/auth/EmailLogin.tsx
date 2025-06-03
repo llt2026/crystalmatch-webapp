@@ -105,6 +105,10 @@ export default function EmailLogin() {
         throw new Error(data.error || t('auth.invalidCode'));
       }
 
+      if (data.token) {
+        localStorage.setItem('authToken', data.token);
+      }
+
       // Verification successful, redirect to dashboard
       router.push('/dashboard');
     } catch (err) {

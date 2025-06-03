@@ -82,15 +82,18 @@ export default function EnergyReportPage() {
       try {
         setLoading(true);
 
+        const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : '';
+        const headers: Record<string,string> = token ? { 'Authorization': `Bearer ${token}` } : {};
+
         // 从API获取用户数据
-        const userRes = await fetch('/api/user/profile');
+        const userRes = await fetch('/api/user/profile', { headers });
         if (!userRes.ok) {
           throw new Error('Failed to load user profile');
         }
         let userData = await userRes.json();
 
         // 获取用户能量数据
-        const elementsRes = await fetch('/api/user/elements');
+        const elementsRes = await fetch('/api/user/elements', { headers });
         if (!elementsRes.ok) {
           throw new Error('Failed to load user elements');
         }
