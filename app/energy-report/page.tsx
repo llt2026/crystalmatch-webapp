@@ -120,7 +120,7 @@ export default function EnergyReportPage() {
         }
         const elementsData = await elementsRes.json();
         
-        // 格式化元素数据
+        // 格式化元素数据 - 使用真实数据
         const elementValues: ElementData[] = [
           { element: "S", value: elementsData.earth || 75, fullName: "Stability Energy" },
           { element: "F", value: elementsData.water || 85, fullName: "Fluid Energy" },
@@ -129,16 +129,9 @@ export default function EnergyReportPage() {
           { element: "P", value: elementsData.fire || 70, fullName: "Passion Energy" },
         ];
 
-        // 如果无法获取API数据，使用默认值进行测试
+        // 使用真实数据，不再使用测试数据
         if (!userData || !userData.id) {
-          console.warn('Using test data as user data is unavailable');
-          userData = {
-            id: "demo-user-2025",
-            name: "Olivia Wilson",
-            email: "demo@crystalmatch.com",
-            birthDate: "1990-06-15T12:00:00.000Z",
-            subscriptionTier: "free"
-          };
+          throw new Error('User data is required');
         }
         
         // 转换元素值以计算特质
