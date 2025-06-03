@@ -24,21 +24,22 @@ const EnergyCalendar: React.FC<EnergyCalendarProps> = ({ birthDate }) => {
         // 使用能量计算函数获取真实数据
         const data = await calculateEnergyCalendar(birthDate);
         
-        // 根据节气排列月份
+        // 确保根据传统节气的12节气月份正确排序
         const solarTermMonths = [
-          'Lìchūn', 'Yǔshuǐ', 'Jīngzhé', 'Chūnfēn', 
-          'Qīngmíng', 'Gǔyǔ', 'Lìxià', 'Xiǎomǎn', 
-          'Mángzhòng', 'Xiàzhì', 'Xiǎoshǔ', 'Dàshǔ'
+          '立春', '雨水', '惊蛰', '春分', 
+          '清明', '谷雨', '立夏', '小满', 
+          '芒种', '夏至', '小暑', '大暑'
         ];
         
-        // 确保所有节气月份都有数据
+        // 按节气月份索引排序并保证所有月份都有数据
         const completeData = solarTermMonths.map((month, index) => {
-          // 使用真实数据
+          // 使用真实数据，如果有对应数据就使用，没有则创建一个默认数据
+          const monthData = data[index] || {};
           return {
             month,
-            energyChange: data[index]?.energyChange || (Math.random() * 10 - 5).toFixed(1),
-            trend: data[index]?.trend || (Math.random() > 0.5 ? 'up' : 'down'),
-            crystal: data[index]?.crystal || ['Amethyst', 'Rose Quartz', 'Clear Quartz', 'Citrine', 'Obsidian'][Math.floor(Math.random() * 5)]
+            energyChange: monthData.energyChange || 0,
+            trend: monthData.trend || 'stable',
+            crystal: monthData.crystal || '—'
           };
         });
         
