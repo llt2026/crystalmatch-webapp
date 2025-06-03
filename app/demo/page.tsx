@@ -29,7 +29,6 @@ export default function DemoPage() {
         
         <EnergyCalendar 
           birthDate={birthDate}
-          onSelectMonth={(month) => console.log(`Selected month: ${month}`)}
         />
       </div>
       

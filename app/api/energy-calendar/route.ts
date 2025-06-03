@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { calculateEnergyCalendar } from '@/app/lib/energyCalculation2025';
 
+// 确保该 API 路由始终动态执行，避免 Next.js 静态化时的限制
+export const dynamic = 'force-dynamic';
+
 /**
  * 能量日历API端点
  * 根据出生日期返回未来12个月的能量变化日历
