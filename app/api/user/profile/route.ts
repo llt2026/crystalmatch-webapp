@@ -20,7 +20,7 @@ async function validateUserToken(request: NextRequest) {
 
     const { payload } = await jwtVerify(
       token,
-      new TextEncoder().encode(process.env.JWT_SECRET || 'crystalmatch-secure-jwt-secret-key')
+      new TextEncoder().encode(process.env.JWT_SECRET || 'your-secret-key')
     );
     
     return payload.userId || payload.sub;
