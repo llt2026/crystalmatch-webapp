@@ -21,29 +21,13 @@ const EnergyCalendar: React.FC<EnergyCalendarProps> = ({ birthDate }) => {
       setError(null);
       
       try {
-        // 使用能量计算函数获取真实数据
+        // 使用能量计算函数获取真实数据 - 从用户查询日开始
         const data = await calculateEnergyCalendar(birthDate);
         
-        // 确保根据传统节气的12节气月份正确排序
-        const solarTermMonths = [
-          '立春', '雨水', '惊蛰', '春分', 
-          '清明', '谷雨', '立夏', '小满', 
-          '芒种', '夏至', '小暑', '大暑'
-        ];
-        
-        // 按节气月份索引排序并保证所有月份都有数据
-        const completeData = solarTermMonths.map((month, index) => {
-          // 使用真实数据，如果有对应数据就使用，没有则创建一个默认数据
-          const monthData = data[index] || {};
-          return {
-            month,
-            energyChange: monthData.energyChange || 0,
-            trend: monthData.trend || 'stable',
-            crystal: monthData.crystal || '—'
-          };
-        });
-        
-        setCalendarData(completeData);
+        // 直接使用从能量计算函数返回的数据
+        // 每个节气区间应该已经包含了正确的日期范围
+        // 例如 "May 1–4, 2025" 和 "May 5 – June 4, 2025"
+        setCalendarData(data);
       } catch (error) {
         console.error('Error loading energy calendar:', error);
         setError('Failed to load energy calendar. Please try again later.');
