@@ -16,6 +16,7 @@ import LoadingScreen from '../components/LoadingScreen';
 type UserData = {
   id: string;
   name: string;
+  email: string;
   avatar?: string;
   elementValues: ElementData[];
   strength: {
@@ -70,22 +71,6 @@ function findWeakestElement(data: ElementData[]): string {
   return elementMap[weakest.element] || weakest.element;
 }
 
-// Sample data - in production this would come from API
-const basicUserData = {
-  id: "user-12345",
-  name: "Olivia",
-  avatar: "/images/profile-avatar.jpg",
-  birthDate: "1990-06-15T12:00:00.000Z",
-  subscriptionTier: "yearly" as const,
-  elementValues: [
-    { element: "S", value: 75, fullName: "Stability Energy" },
-    { element: "F", value: 85, fullName: "Fluid Energy" },
-    { element: "G", value: 65, fullName: "Growth Energy" },
-    { element: "C", value: 25, fullName: "Clarity Energy" },
-    { element: "P", value: 70, fullName: "Passion Energy" },
-  ]
-};
-
 export default function EnergyReportPage() {
   const router = useRouter();
   const [userData, setUserData] = useState<UserData | null>(null);
@@ -93,38 +78,76 @@ export default function EnergyReportPage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    async function prepareUserData() {
+    async function fetchUserData() {
       try {
         setLoading(true);
-        
-        // 在实际应用中，这里会从API获取真实用户数据
-        // 现在使用示例数据模拟
 
-        // Convert the element values to the format needed for trait calculation
-        const elementDistribution = transformElementDataToDistribution(basicUserData.elementValues);
+        // 从API获取用户数据
+        const userRes = await fetch('/api/user/profile');
+        if (!userRes.ok) {
+          throw new Error('Failed to load user profile');
+        }
+        let userData = await userRes.json();
+
+        // 获取用户能量数据
+        const elementsRes = await fetch('/api/user/elements');
+        if (!elementsRes.ok) {
+          throw new Error('Failed to load user elements');
+        }
+        const elementsData = await elementsRes.json();
         
-        // Get user's personalized strength and weakness traits
-        const userTraits = getUserElementTraits(basicUserData.id, elementDistribution);
+        // 格式化元素数据
+        const elementValues: ElementData[] = [
+          { element: "S", value: elementsData.earth || 75, fullName: "Stability Energy" },
+          { element: "F", value: elementsData.water || 85, fullName: "Fluid Energy" },
+          { element: "G", value: elementsData.wood || 65, fullName: "Growth Energy" },
+          { element: "C", value: elementsData.metal || 25, fullName: "Clarity Energy" },
+          { element: "P", value: elementsData.fire || 70, fullName: "Passion Energy" },
+        ];
+
+        // 如果无法获取API数据，使用默认值进行测试
+        if (!userData || !userData.id) {
+          console.warn('Using test data as user data is unavailable');
+          userData = {
+            id: "test-user",
+            name: "Test User",
+            email: "test@example.com",
+            birthDate: "1990-01-01T00:00:00.000Z",
+            subscriptionTier: "yearly"
+          };
+        }
         
-        // Get user's recommended crystal
-        const userCrystal = getUserCrystal(basicUserData.id, elementDistribution, 2025);
+        // 转换元素值以计算特质
+        const elementDistribution = transformElementDataToDistribution(elementValues);
         
-        // Return combined user data
+        // 获取用户的个性化优势和劣势特质
+        const userTraits = getUserElementTraits(userData.id, elementDistribution);
+        
+        // 获取用户推荐的水晶
+        const userCrystal = getUserCrystal(userData.id, elementDistribution, 2025);
+        
+        // 返回组合的用户数据
         setUserData({
-          ...basicUserData,
+          id: userData.id,
+          name: userData.name || 'User',
+          email: userData.email || '',
+          avatar: userData.avatar,
+          elementValues,
           strength: userTraits.strength,
           weakness: userTraits.weakness,
-          yearCrystal: userCrystal
+          yearCrystal: userCrystal,
+          birthDate: userData.birthDate,
+          subscriptionTier: userData.subscriptionTier || 'free'
         });
       } catch (err) {
-        console.error("Error preparing user data:", err);
-        setError('Failed to load your energy report. Please try again later.');
+        console.error("Error fetching user data:", err);
+        setError('无法加载您的能量报告。请稍后再试。');
       } finally {
         setLoading(false);
       }
     }
 
-    prepareUserData();
+    fetchUserData();
   }, []);
 
   if (loading) {
@@ -135,10 +158,10 @@ export default function EnergyReportPage() {
     return (
       <main className="min-h-screen bg-purple-900 text-white p-4 md:p-8 flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Oops! Something went wrong</h1>
-          <p className="mb-6">{error || "Unable to load your energy report"}</p>
+          <h1 className="text-2xl font-bold mb-4">出错了！</h1>
+          <p className="mb-6">{error || "无法加载您的能量报告"}</p>
           <Link href="/" className="bg-white text-purple-900 px-6 py-2 rounded-lg font-semibold hover:bg-gray-100">
-            Return Home
+            返回首页
           </Link>
         </div>
       </main>
@@ -172,15 +195,15 @@ export default function EnergyReportPage() {
         
         <div className="bg-purple-800/80 rounded-lg p-4 w-full text-center">
           <p className="text-lg">
-            Powered by 2,500-year Five-Element wisdom{" "}
-            <span className="text-yellow-300">⚡</span> &amp; GPT insight
+            基于2,500年五行智慧{" "}
+            <span className="text-yellow-300">⚡</span> &amp; GPT洞察
           </p>
         </div>
       </div>
       
       {/* Elements Radar Chart */}
       <div className="rounded-lg bg-purple-900/60 p-4 md:p-6 mb-8 backdrop-blur-sm border border-purple-800/50">
-        <h2 className="text-xl md:text-2xl font-bold mb-4 text-center">Your Energy Profile</h2>
+        <h2 className="text-xl md:text-2xl font-bold mb-4 text-center">您的能量状况</h2>
         <ElementRadarChart data={userData.elementValues} />
       </div>
       
@@ -191,33 +214,34 @@ export default function EnergyReportPage() {
       <YearlyCrystal 
         crystal={{
           name: userData.yearCrystal.name,
-          description: "Focus · Clarity · Structure",
-          imageUrl: `/images/crystals/Clear Quartz.png`,
-          effect: "Brainstorm booster",
-          planetAssociation: "Sun/Moon",
+          description: "专注 · 清晰 · 结构",
+          imageUrl: `/images/crystals/${userData.yearCrystal.name}.png`,
+          effect: "灵感提升器",
+          planetAssociation: "太阳/月亮",
           year: 2025
         }} 
-        isFreeUser={false}
+        isFreeUser={userData.subscriptionTier === 'free'}
         userElement={findWeakestElement(userData.elementValues)}
       />
       
       {/* Energy Calendar */}
       <div className="mb-8">
         <EnergyCalendar 
-          birthday={userData.birthDate}
-          subscriptionTier={userData.subscriptionTier}
-          userId={userData.id}
+          birthDate={userData.birthDate}
+          onSelectMonth={(month) => console.log(`Selected month: ${month}`)}
         />
       </div>
       
       {/* Call to action */}
-      <div className="rounded-lg bg-gradient-to-r from-purple-700 to-indigo-700 p-6 text-center backdrop-blur-sm border border-purple-600/50">
-        <h2 className="text-xl md:text-2xl font-semibold mb-4">Unlock Your Full Potential</h2>
-        <p className="mb-6">Get detailed monthly guidance and personalized crystal recommendations</p>
-        <Link href="/subscription" className="bg-white text-purple-900 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
-          Upgrade Now
-        </Link>
-      </div>
+      {userData.subscriptionTier !== 'yearly' && (
+        <div className="rounded-lg bg-gradient-to-r from-purple-700 to-indigo-700 p-6 text-center backdrop-blur-sm border border-purple-600/50">
+          <h2 className="text-xl md:text-2xl font-semibold mb-4">解锁您的全部潜能</h2>
+          <p className="mb-6">获取详细的每月指导和个性化水晶推荐</p>
+          <Link href="/subscription" className="bg-white text-purple-900 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
+            立即升级
+          </Link>
+        </div>
+      )}
     </main>
   );
 } 
