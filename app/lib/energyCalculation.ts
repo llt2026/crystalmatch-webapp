@@ -150,6 +150,37 @@ export function calculateFiveElementScore(vector: FiveElementVector): number {
   return Math.max(0, Math.min(100, score));
 }
 
+// 缩放差异值到合理范围
+export function scaleDiff(raw: number): number {
+  // 防止NaN
+  if (!Number.isFinite(raw)) {
+    console.warn('scaleDiff: raw is not a number:', raw);
+    return 0;
+  }
+
+  // 先缩放，避免分差过大
+  let valRaw: number;
+  const absRaw = Math.abs(raw);
+  if (absRaw <= 10) valRaw = raw;        // 小差异不缩放
+  else if (absRaw <= 20) valRaw = raw / 1.5; // 中等差异缩小
+  else valRaw = raw / 2;                   // 大差异减半
+
+  let val = Math.round(valRaw * 10) / 10; // 保留1位小数
+  
+  // 如果绝对值小于1但不为0，则强制设为±1
+  if (Math.abs(val) < 1 && val !== 0) val = val > 0 ? 1 : -1;
+  
+  // 限制在-15到15之间，而不是-25到25
+  if (val > 15) val = 15;
+  if (val < -15) val = -15;
+  
+  // 再次检查NaN
+  if (!Number.isFinite(val)) {
+    return 0;
+  }
+  return val;
+}
+
 /**
  * 计算月能量值
  * @param baseEightChar 基础八字（年月日时的天干地支）

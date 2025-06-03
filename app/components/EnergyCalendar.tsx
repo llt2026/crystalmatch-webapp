@@ -134,11 +134,11 @@ const EnergyCalendar: React.FC<EnergyCalendarProps> = ({
                 <td className="py-3 px-4 border-b border-purple-700">
                   {/* 根据能量变化正负值显示不同样式 */}
                   {month.energyChange === 0 ? (
-                    <span className="text-gray-300">—</span>
+                    <span className="text-gray-300">Neutral (0)</span>
                   ) : month.energyChange > 0 ? (
-                    <span className="text-green-300 font-medium">▲ +{month.energyChange}</span>
+                    <span className="text-green-300 font-medium">▲ +{month.energyChange.toFixed(1)}</span>
                   ) : (
-                    <span className="text-rose-300 font-medium">▼ {month.energyChange}</span>
+                    <span className="text-rose-300 font-medium">▼ {month.energyChange.toFixed(1)}</span>
                   )}
                 </td>
                 <td className="py-3 px-4 border-b border-purple-700">

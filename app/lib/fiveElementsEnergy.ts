@@ -479,10 +479,8 @@ export function getEnergyChange(date: Date, userBazi: FiveElementVector): number
   // 计算基础五行平衡分数
   const baseScore = scoreFiveElementBalance(userBazi);
   
-  // 计算变化值
-  const baseImbalance = 100 - baseScore;
-  const currImbalance = 100 - currentScore;
-  const diff = baseImbalance - currImbalance;
+  // 计算变化值 - 直接使用分数差
+  const diff = currentScore - baseScore;
   return scaleDiff(diff);
 }
 
@@ -634,15 +632,15 @@ export async function calculateEnergyCalendar(birthday: string): Promise<Array<{
       if (isNewSegment) {
         // 开始新的节气段
         // 计算月柱能量：使用年月柱（不含日时）
-        const pillarVec = getPillarElementsVector(date, true, true, false);
+        const pillarVector = getPillarElementsVector(date, true, false, false);
         
         // 合并基础八字和当前节气的八字
         const combined = {
-          wood: baseVector.wood + pillarVec.wood,
-          fire: baseVector.fire + pillarVec.fire,
-          earth: baseVector.earth + pillarVec.earth,
-          metal: baseVector.metal + pillarVec.metal,
-          water: baseVector.water + pillarVec.water
+          wood: baseVector.wood + pillarVector.wood,
+          fire: baseVector.fire + pillarVector.fire,
+          earth: baseVector.earth + pillarVector.earth,
+          metal: baseVector.metal + pillarVector.metal,
+          water: baseVector.water + pillarVector.water
         } as FiveElementVector;
         
         // NaN 保护
@@ -652,18 +650,19 @@ export async function calculateEnergyCalendar(birthday: string): Promise<Array<{
           }
         }
         
+        // 计算得分
         const balance = scoreFiveElementBalance(combined);
-        // 确保分数不是NaN
         const safeBalance = Number.isFinite(balance) ? balance : 0;
+        const safeBaseBalance = Number.isFinite(baseBalance) ? baseBalance : 0;
 
-        // 与基础八字比较
+        // 直接计算分数差异，而不是反转
         const diffRaw = safeBalance - safeBaseBalance;
+        
         // NaN保护
         const safeDiffRaw = Number.isFinite(diffRaw) ? diffRaw : 0;
-
         const energyChange = scaleDiff(safeDiffRaw);
         const trend = determineTrend(energyChange);
-
+        
         // 最弱元素 & 水晶
         // 保护最弱元素计算不出错
         let lowestElement: Elem;
@@ -683,7 +682,7 @@ export async function calculateEnergyCalendar(birthday: string): Promise<Array<{
           startDate: new Date(date),
           endDate: new Date(date), // 暂时设为起始日期相同
           monthPillar,
-          pillarVec,
+          pillarVec: pillarVector,
           combined,
           balance: safeBalance,
           energyChange,
@@ -773,7 +772,9 @@ export function getDailyAverageEnergy(date: Date, userBazi: FiveElementVector): 
 
   const baseScore = scoreFiveElementBalance(userBazi);
   const dayScore = scoreFiveElementBalance(combined);
-  const diff = (100 - baseScore) - (100 - dayScore);
+  
+  // 直接计算分数差异
+  const diff = dayScore - baseScore;
   return scaleDiff(diff);
 }
 
@@ -802,7 +803,9 @@ export function getEnergyHeatmapData(date: Date, userBazi: FiveElementVector): A
     } as FiveElementVector;
     const baseScore = scoreFiveElementBalance(userBazi);
     const hourScore = scoreFiveElementBalance(combined);
-    const diff = (100 - baseScore) - (100 - hourScore);
+    
+    // 直接使用分数差
+    const diff = hourScore - baseScore;
     const energyChange = scaleDiff(diff);
 
     result.push({
@@ -817,8 +820,8 @@ export function getEnergyHeatmapData(date: Date, userBazi: FiveElementVector): A
 /**
  * 根据原始分差计算显示用能量变化值
  * 1. 保留1位小数
- * 2. 若绝对值<1 强制设为 ±1
- * 3. 限制在 -25 ~ 25
+ * 2. 若绝对值<1且不为0 强制设为 ±1
+ * 3. 限制在 -15 ~ 15
  */
 function scaleDiff(raw: number): number {
   // 防止NaN
@@ -830,14 +833,19 @@ function scaleDiff(raw: number): number {
   // 先缩放，避免分差过大
   let valRaw: number;
   const absRaw = Math.abs(raw);
-  if (absRaw <= 50) valRaw = raw;        // 小差异不缩放
-  else if (absRaw <= 100) valRaw = raw / 2; // 中等差异减半
-  else valRaw = raw / 4;                    // 大于100再÷4
+  if (absRaw <= 10) valRaw = raw;        // 小差异不缩放
+  else if (absRaw <= 20) valRaw = raw / 1.5; // 中等差异缩小
+  else valRaw = raw / 2;                  // 大差异减半
 
   let val = Math.round(valRaw * 10) / 10; // 保留1位小数
-  if (Math.abs(val) < 1) val = val >= 0 ? 1 : -1;
-  if (val > 25) val = 25;
-  if (val < -25) val = -25;
+  
+  // 如果绝对值小于1但不为0，则强制设为±1
+  if (Math.abs(val) < 1 && val !== 0) val = val > 0 ? 1 : -1;
+  
+  // 限制在-15到15之间，而不是-25到25
+  if (val > 15) val = 15;
+  if (val < -15) val = -15;
+  
   // 再次检查NaN
   if (!Number.isFinite(val)) {
     return 0;
