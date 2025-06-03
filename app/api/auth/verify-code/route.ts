@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 import { prisma } from '@/app/lib/prisma';
 import { checkCode } from '@/utils/upstash';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+const JWT_SECRET = process.env.JWT_SECRET || 'crystalmatch-secure-jwt-secret-key';
 
 export const dynamic = 'force-dynamic';
 

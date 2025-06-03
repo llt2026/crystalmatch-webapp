@@ -11,18 +11,23 @@ async function validateUserToken(request: NextRequest) {
       const auth = request.headers.get('authorization');
       if (auth?.startsWith('Bearer ')) {
         token = auth.slice(7);
+        console.log('从Authorization头获取token');
       }
     }
 
     if (!token) {
+      console.log('未找到token');
       return null;
     }
 
+    console.log(`验证token(前10字符): ${token.substring(0, 10)}...`);
+    
     const { payload } = await jwtVerify(
       token,
-      new TextEncoder().encode(process.env.JWT_SECRET || 'your-secret-key')
+      new TextEncoder().encode(process.env.JWT_SECRET || 'crystalmatch-secure-jwt-secret-key')
     );
     
+    console.log('验证成功，payload:', payload);
     return payload.userId || payload.sub;
   } catch (error) {
     console.error('JWT verification failed:', error);
