@@ -85,6 +85,8 @@ export default function EnergyReportPage() {
         const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : '';
         const headers: Record<string,string> = token ? { 'Authorization': `Bearer ${token}` } : {};
 
+        console.log('使用headers:', headers); // 添加调试信息，了解token是否正确传递
+
         // 从API获取用户数据
         const userRes = await fetch('/api/user/profile', { headers });
         if (!userRes.ok) {

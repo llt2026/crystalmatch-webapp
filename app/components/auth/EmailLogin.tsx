@@ -107,6 +107,7 @@ export default function EmailLogin() {
 
       if (data.token) {
         localStorage.setItem('authToken', data.token);
+        console.log('已保存token到localStorage');
       }
 
       // Verification successful, redirect to dashboard
