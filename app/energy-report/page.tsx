@@ -133,11 +133,11 @@ export default function EnergyReportPage() {
         if (!userData || !userData.id) {
           console.warn('Using test data as user data is unavailable');
           userData = {
-            id: "test-user",
-            name: "Test User",
-            email: "test@example.com",
-            birthDate: "1990-01-01T00:00:00.000Z",
-            subscriptionTier: "yearly"
+            id: "demo-user-2025",
+            name: "Olivia Wilson",
+            email: "demo@crystalmatch.com",
+            birthDate: "1990-06-15T12:00:00.000Z",
+            subscriptionTier: "free"
           };
         }
         
@@ -153,8 +153,8 @@ export default function EnergyReportPage() {
         // 返回组合的用户数据
         setUserData({
           id: userData.id,
-          name: userData.name || 'User',
-          email: userData.email || '',
+          name: userData.name || 'Demo User',
+          email: userData.email || 'demo@crystalmatch.com',
           avatar: userData.avatar,
           elementValues,
           strength: userTraits.strength,
