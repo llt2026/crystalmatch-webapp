@@ -134,35 +134,12 @@ export default function ProfilePage() {
         <div className="bg-black/30 backdrop-blur-xl rounded-2xl p-5 shadow-xl">
           {/* 水平布局 */}
           <div className="flex flex-row items-center">
-            {/* 默认头像 - 使用正确的绝对路径 */}
+            {/* 默认头像 */}
             <div className="w-20 h-20 flex-shrink-0 mr-4 relative overflow-hidden rounded-full">
-              {/* 确保使用绝对路径，防止在生产环境中出现404 */}
               <img 
                 src="/images/avatars/default-avatar.png"
                 alt={`${profile.name}的头像`}
                 className="w-full h-full object-cover"
-                style={{backgroundColor: '#673AB7'}}
-                onError={(e) => {
-                  console.log('头像加载失败，使用备用方案');
-                  const target = e.target as HTMLImageElement;
-                  // 设置透明度为0，然后使用背景色和文本作为备用显示
-                  target.style.opacity = '0';
-                  const parent = target.parentElement as HTMLElement;
-                  if (parent) {
-                    parent.style.backgroundColor = '#673AB7';
-                    parent.style.display = 'flex';
-                    parent.style.alignItems = 'center';
-                    parent.style.justifyContent = 'center';
-                    
-                    const textElement = document.createElement('span');
-                    textElement.textContent = profile.name.charAt(0).toUpperCase();
-                    textElement.style.fontSize = '2rem';
-                    textElement.style.fontWeight = 'bold';
-                    textElement.style.color = 'white';
-                    
-                    parent.appendChild(textElement);
-                  }
-                }}
               />
             </div>
             {/* 用户信息 */}
@@ -170,7 +147,7 @@ export default function ProfilePage() {
               {/* 用户名 - 显示真实用户名 */}
               <p className="text-lg font-semibold text-white leading-tight mb-1">{profile.name}</p>
               
-              {/* 生日信息 - 从真实数据中获取并格式化 */}
+              {/* 生日信息 - 从真实数据中获取并格式化为美区格式 (MM/DD/YYYY) */}
               {(profile.birthDate || profile.birthInfo?.date) && (
                 <p className="text-sm text-purple-200">
                   {new Date(profile.birthDate || profile.birthInfo?.date || '').toLocaleDateString('en-US', { 
