@@ -27,8 +27,6 @@ model User {
   preferences   Json?
   role          String         @default("user")
   isActive      Boolean        @default(true)
-  subscriptionStatus String         @default("free")
-  subscriptionExpiresAt DateTime?
   lastLoginAt   DateTime?
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
@@ -36,7 +34,6 @@ model User {
   subscriptions Subscription[]
   @@index([email])
   @@index([role])
-  @@index([subscriptionStatus])
 }
 
 model SubscriptionPlan {
@@ -55,6 +52,7 @@ model SubscriptionPlan {
 model Subscription {
   id          String           @id @default(uuid())
   status      String
+  planType    String           @default("plus")
   startDate   DateTime         @default(now())
   endDate     DateTime?
   renewalDate DateTime?

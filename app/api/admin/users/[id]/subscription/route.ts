@@ -32,19 +32,65 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       );
     }
     
+    // 寻找默认的订阅计划或创建一个
+    let planId = '';
+    if (subscriptionStatus !== 'free') {
+      // 查找匹配的订阅计划
+      let plan = await prisma.subscriptionPlan.findFirst({
+        where: { 
+          name: { contains: subscriptionStatus, mode: 'insensitive' },
+          isActive: true
+        }
+      });
+      
+      if (!plan) {
+        // 如果找不到对应计划，则创建一个基本计划
+        plan = await prisma.subscriptionPlan.create({
+          data: {
+            name: subscriptionStatus === 'plus' ? 'Plus Monthly' : 'Pro Monthly',
+            description: `${subscriptionStatus === 'plus' ? 'Plus' : 'Pro'} membership`,
+            price: subscriptionStatus === 'plus' ? 9.99 : 19.99,
+            period: 'monthly',
+            features: { access: subscriptionStatus === 'plus' ? 'plus' : 'pro' },
+            isActive: true
+          }
+        });
+      }
+      planId = plan.id;
+    }
+
     let expiresAt = null;
     if (subscriptionStatus === 'plus' || subscriptionStatus === 'pro') {
       expiresAt = new Date();
       expiresAt.setMonth(expiresAt.getMonth() + 1);
     }
     
-    const updatedUser = await prisma.user.update({
-      where: { id },
-      data: {
-        subscriptionStatus,
-        subscriptionExpiresAt: expiresAt
+    // 取消现有的活跃订阅
+    await prisma.subscription.updateMany({
+      where: {
+        userId: id,
+        status: 'active',
+        endDate: { gt: new Date() }
       },
+      data: {
+        status: 'cancelled',
+        cancelledAt: new Date()
+      }
     });
+    
+    // 如果不是免费会员，创建新的订阅
+    if (subscriptionStatus !== 'free') {
+      await prisma.subscription.create({
+        data: {
+          userId: id,
+          planId: planId,
+          status: 'active',
+          startDate: new Date(),
+          endDate: expiresAt,
+          planType: subscriptionStatus  // 添加planType字段以便于查询
+        }
+      });
+    }
     
     console.log(`Admin updated user ${id} subscription to ${subscriptionStatus}`, expiresAt);
     

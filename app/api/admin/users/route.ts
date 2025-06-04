@@ -57,13 +57,24 @@ export async function GET(request: NextRequest) {
 
     // 转换数据结构供前端使用
     const serializedUsers = users.map((u: any) => {
+      // 根据用户的subscription记录确定订阅状态
+      let subscriptionStatus = 'free';
+      if (u.subscriptions && u.subscriptions.length > 0) {
+        const activeSubscription = u.subscriptions.find((s: any) => 
+          s.status === 'active' && (!s.endDate || new Date(s.endDate) > new Date())
+        );
+        if (activeSubscription) {
+          subscriptionStatus = activeSubscription.planType || 'plus';
+        }
+      }
+      
       return {
         id: u.id,
         email: u.email,
         name: u.name || '',
         createdAt: u.createdAt,
         lastLogin: u.lastLoginAt,
-        subscriptionStatus: u.subscriptionStatus || 'free',
+        subscriptionStatus: subscriptionStatus,
       };
     });
 
