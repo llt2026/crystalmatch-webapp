@@ -155,7 +155,7 @@ export default function ProfilePage() {
           </Link>
 
           {/* Annual Premium Report */}
-          <Link href={`/report/annual-premium-${new Date().getFullYear()}${profile.birthInfo?.date ? `?birthDate=${encodeURIComponent(profile.birthInfo.date)}` : ''}`} className="bg-gradient-to-br from-purple-600/30 to-purple-800/30 p-4 rounded-xl flex justify-between items-center no-underline">
+          <Link href={`/energy-report${profile.birthInfo?.date ? `?birthDate=${encodeURIComponent(profile.birthInfo.date)}` : ''}`} className="bg-gradient-to-br from-purple-600/30 to-purple-800/30 p-4 rounded-xl flex justify-between items-center no-underline">
             <p className="text-sm font-medium">Annual Premium Report 2025</p>
           </Link>
 
