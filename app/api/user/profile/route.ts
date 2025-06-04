@@ -95,11 +95,13 @@ export async function GET(request: NextRequest) {
       const birthDateIso = birthInfo.birthdate || birthInfo.date || undefined;
 
       const userProfile = {
+        // 唯一ID，供前端逻辑使用
+        id: user.id,
         // 如果数据库未存储name，则回退使用邮箱前缀，避免出现"Unknown User"
         name: user.name || (user.email?.split('@')[0] ?? 'User'),
         email: user.email,
-        // avatar字段
-        avatar: user.avatar || '',
+        // 如果未设置头像则使用默认头像保持一致
+        avatar: user.avatar && user.avatar.trim() !== '' ? user.avatar : '/default-avatar.png',
         // 供前端兼容：既提供扁平birthDate，也提供birthInfo对象
         birthDate: birthDateIso,
         birthInfo: {
