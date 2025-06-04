@@ -1,15 +1,50 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { calculateEnergyCalendar } from '../lib/energyCalculation2025';
+import { calculateEnergyCalendar, EnergyCalendarItem, Elem } from '../lib/energyCalculation2025';
 import LoadingSpinner from './LoadingSpinner';
 
 interface EnergyCalendarProps {
   birthDate: string;
 }
 
+// 扩展EnergyCalendarItem接口，添加我们需要的额外字段
+interface ExtendedEnergyCalendarItem extends EnergyCalendarItem {
+  originalMonth?: string;
+  luckyColor?: string;
+  highestElement?: Elem;
+}
+
+// 五行元素对应的水晶列表 - 每个元素对应4种水晶
+const elementCrystals: Record<Elem, string[]> = {
+  "wood": [
+    "Green Aventurine", "Malachite", "Nephrite Jade", "Amazonite"
+  ],
+  "fire": [
+    "Carnelian", "Sunstone", "Garnet", "Ruby"
+  ],
+  "earth": [
+    "Tiger's Eye", "Smoky Quartz", "Moss Agate", "Picture Jasper"
+  ],
+  "metal": [
+    "Clear Quartz", "Hematite", "Pyrite", "Howlite"
+  ],
+  "water": [
+    "Sodalite", "Aquamarine", "Blue Lace Agate", "Labradorite"
+  ]
+};
+
+// 五行元素对应的幸运颜色
+const elementLuckyColors: Record<Elem, string> = {
+  "wood": "Green + Brown",
+  "fire": "Red + Orange",
+  "earth": "Yellow + Beige",
+  "metal": "White + Silver/Gray",
+  "water": "Blue + Black"
+};
+
 const EnergyCalendar: React.FC<EnergyCalendarProps> = ({ birthDate }) => {
-  const [calendarData, setCalendarData] = useState<any[]>([]);
+  const [calendarData, setCalendarData] = useState<ExtendedEnergyCalendarItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -51,6 +86,17 @@ const EnergyCalendar: React.FC<EnergyCalendarProps> = ({ birthDate }) => {
     }
   };
 
+  // 为同一元素的月份轮换推荐不同水晶
+  const getRotatedCrystal = (element: Elem | undefined, index: number): string => {
+    if (!element || !elementCrystals[element]) return 'Unknown Crystal';
+    
+    // 获取该元素的水晶列表
+    const crystalList = elementCrystals[element];
+    
+    // 基于月份索引轮换推荐水晶
+    return crystalList[index % crystalList.length];
+  };
+
   useEffect(() => {
     async function loadCalendarData() {
       if (!birthDate) return;
@@ -62,12 +108,59 @@ const EnergyCalendar: React.FC<EnergyCalendarProps> = ({ birthDate }) => {
         // 使用能量计算函数获取真实数据 - 从用户查询日开始
         const data = await calculateEnergyCalendar(birthDate);
         
-        // 格式化日期显示
-        const formattedData = data.map(item => ({
-          ...item,
-          originalMonth: item.month, // 保留原始格式，以防后续需要
-          month: formatDateRange(item.month)
-        }));
+        // 处理水晶轮换推荐
+        // 先统计每个元素出现的次数和索引位置
+        const elementOccurrences: Record<string, number[]> = {};
+        
+        // 首先记录每个元素出现的索引位置
+        data.forEach((item, index) => {
+          if (item.lowestElement) {
+            const element = item.lowestElement;
+            if (!elementOccurrences[element]) {
+              elementOccurrences[element] = [];
+            }
+            elementOccurrences[element].push(index);
+          }
+        });
+        
+        // 找出每月最高元素（作为幸运颜色的基础）
+        // 由于API没有直接提供最高元素，我们假设为所有元素中与最低元素相反的元素
+        // 实际应用中应该使用真实计算的最高元素
+        const oppositeElement: Record<Elem, Elem> = {
+          "wood": "metal",
+          "fire": "water",
+          "earth": "wood",
+          "metal": "fire",
+          "water": "earth"
+        };
+        
+        // 格式化日期显示并轮换水晶推荐
+        const formattedData = data.map((item, index) => {
+          // 查找当前元素的出现位置
+          const element = item.lowestElement;
+          let elementIndex = 0;
+          
+          if (element && elementOccurrences[element]) {
+            const elementIndices = elementOccurrences[element];
+            elementIndex = elementIndices.indexOf(index);
+          }
+          
+          // 轮换推荐水晶
+          const rotatedCrystal = getRotatedCrystal(element, elementIndex);
+          
+          // 找出当月最高元素（这里使用了假设，实际应用中应该使用真实数据）
+          const highestElement = element ? oppositeElement[element] : "fire";
+          
+          return {
+            ...item,
+            originalMonth: item.month, // 保留原始格式，以防后续需要
+            month: formatDateRange(item.month),
+            crystal: rotatedCrystal, 
+            // 找出当月最高元素对应的幸运颜色
+            luckyColor: elementLuckyColors[highestElement],
+            highestElement
+          };
+        });
         
         setCalendarData(formattedData);
       } catch (error) {
@@ -119,7 +212,7 @@ const EnergyCalendar: React.FC<EnergyCalendarProps> = ({ birthDate }) => {
               <th className="py-3 px-4 text-left text-white font-semibold">Month</th>
               <th className="py-3 px-4 text-left text-white font-semibold">Energy Change</th>
               <th className="py-3 px-4 text-left text-white font-semibold">Crystal</th>
-              <th className="py-3 px-4 text-left text-white font-semibold">Monthly Report</th>
+              <th className="py-3 px-4 text-left text-white font-semibold">Lucky Colors</th>
             </tr>
           </thead>
           <tbody>
@@ -139,7 +232,7 @@ const EnergyCalendar: React.FC<EnergyCalendarProps> = ({ birthDate }) => {
                   {item.crystal}
                 </td>
                 <td className="py-3 px-4 text-gray-300">
-                  <span>View detailed guidance</span>
+                  {item.luckyColor}
                 </td>
               </tr>
             ))}
