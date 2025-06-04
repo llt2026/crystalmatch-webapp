@@ -76,11 +76,29 @@ export default function EnergyReportPage() {
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [urlBirthDate, setUrlBirthDate] = useState<string | null>(null);
 
   useEffect(() => {
+    // 客户端加载时读取URL参数
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const birthDateParam = urlParams.get('birthDate');
+      console.log('URL中的birthDate参数:', birthDateParam || '未提供');
+      setUrlBirthDate(birthDateParam);
+    }
+    
     async function fetchUserData() {
       try {
         setLoading(true);
+
+        let urlParams;
+        
+        // 优先检查URL参数中是否包含birthDate
+        if (typeof window !== 'undefined') {
+          urlParams = new URLSearchParams(window.location.search);
+          const urlBirthDate = urlParams.get('birthDate');
+          console.log('URL中的birthDate参数:', urlBirthDate || '未提供');
+        }
 
         // 尝试从多个位置获取token
         let token = null;
@@ -196,7 +214,7 @@ export default function EnergyReportPage() {
           strength: userTraits.strength,
           weakness: userTraits.weakness,
           yearCrystal: userCrystal,
-          birthDate: userData.birthDate || (userData as any).birthInfo?.date || (userData as any).birthInfo?.birthdate || '1990-01-01T00:00:00.000Z',
+          birthDate: urlBirthDate || userData.birthDate || (userData as any).birthInfo?.date || (userData as any).birthInfo?.birthdate || '1990-01-01T00:00:00.000Z',
           subscriptionTier: userData.subscriptionTier || 'yearly'
         });
       } catch (err) {
@@ -294,7 +312,7 @@ export default function EnergyReportPage() {
       
       {/* Energy Calendar */}
       <div className="mb-8">
-        <EnergyCalendar birthDate={userData.birthDate} />
+        <EnergyCalendar birthDate={urlBirthDate || userData.birthDate || '1990-01-01T00:00:00.000Z'} />
       </div>
       
       {/* Call to action */}
