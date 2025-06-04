@@ -6,40 +6,6 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
-    // 用于生产环境的紧急处理
-    if (request.url.includes('crystalmatch.co')) {
-      // 返回硬编码的演示数据
-      return NextResponse.json({
-        users: [
-          {
-            id: 'demo-user-1',
-            email: 'user1@example.com',
-            name: 'User One',
-            createdAt: new Date().toISOString(),
-            lastLogin: new Date().toISOString(),
-            subscriptionStatus: 'free'
-          },
-          {
-            id: 'demo-user-2',
-            email: 'user2@example.com',
-            name: 'User Two',
-            createdAt: new Date().toISOString(),
-            lastLogin: new Date().toISOString(),
-            subscriptionStatus: 'plus'
-          },
-          {
-            id: 'demo-user-3',
-            email: 'user3@example.com',
-            name: 'User Three',
-            createdAt: new Date().toISOString(),
-            lastLogin: new Date().toISOString(),
-            subscriptionStatus: 'pro'
-          }
-        ],
-        totalPages: 1
-      });
-    }
-
     // Verify admin token
     const authError = await verifyAdminToken(request);
     if (authError) return authError;
@@ -72,24 +38,61 @@ export async function GET(request: NextRequest) {
     const totalUsers = await prisma.user.count({ where: whereCondition });
     const totalPages = Math.ceil(totalUsers / pageSize);
 
+    // 基础用户查询
     const users = await prisma.user.findMany({
       where: whereCondition,
       skip: (page - 1) * pageSize,
       take: pageSize,
       orderBy: {
         createdAt: 'desc',
-      },
+      }
     });
 
-    // 将所有用户数据中简单假设为free会员，避免复杂查询
-    const serializedUsers = users.map((user: any) => ({
-      id: user.id,
-      email: user.email,
-      name: user.name || '',
-      createdAt: user.createdAt,
-      lastLogin: user.lastLoginAt,
-      subscriptionStatus: 'free',
-    }));
+    // 分批查询每个用户的订阅信息，避免嵌套查询导致的500错误
+    const serializedUsers = await Promise.all(
+      users.map(async (user: any) => {
+        let subscriptionStatus = 'free';
+        
+        try {
+          // 单独查询每个用户的活跃订阅
+          const activeSubscription = await prisma.subscription.findFirst({
+            where: {
+              userId: user.id,
+              status: 'active',
+              endDate: { gt: new Date() }
+            },
+            orderBy: { createdAt: 'desc' },
+            include: { 
+              plan: {
+                select: { name: true }
+              } 
+            }
+          });
+
+          // 根据订阅计划名称确定会员类型
+          if (activeSubscription?.plan?.name) {
+            const planName = activeSubscription.plan.name.toLowerCase();
+            if (planName.includes('pro')) {
+              subscriptionStatus = 'pro';
+            } else if (planName.includes('plus')) {
+              subscriptionStatus = 'plus';
+            }
+          }
+        } catch (err) {
+          console.error(`Error fetching subscription for user ${user.id}:`, err);
+          // 如果查询出错，默认为free
+        }
+        
+        return {
+          id: user.id,
+          email: user.email,
+          name: user.name || '',
+          createdAt: user.createdAt,
+          lastLogin: user.lastLoginAt,
+          subscriptionStatus: subscriptionStatus,
+        };
+      })
+    );
 
     return NextResponse.json({
       users: serializedUsers,
@@ -97,8 +100,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('Failed to retrieve user list:', error);
-    
-    // 返回空数据而不是错误
+    // 出错时返回空列表而不是500错误
     return NextResponse.json({
       users: [],
       totalPages: 1,

@@ -32,6 +32,15 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       );
     }
     
+    // 检查用户是否存在
+    const user = await prisma.user.findUnique({
+      where: { id }
+    });
+    
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+    
     // 寻找默认的订阅计划或创建一个
     let planId = '';
     if (subscriptionStatus !== 'free') {
@@ -91,6 +100,19 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       });
     }
     
+    // 记录操作日志
+    await prisma.log.create({
+      data: {
+        action: 'update_subscription',
+        entity: 'user',
+        entityId: id,
+        details: { 
+          status: subscriptionStatus,
+          expiresAt: expiresAt?.toISOString()
+        }
+      }
+    }).catch(err => console.error('Failed to create log:', err));
+    
     console.log(`Admin updated user ${id} subscription to ${subscriptionStatus}`, expiresAt);
     
     return NextResponse.json({ 
@@ -103,7 +125,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
   } catch (error) {
     console.error('Error updating user subscription:', error);
     return NextResponse.json(
-      { error: 'Failed to update subscription status' }, 
+      { error: 'Failed to update subscription status', details: error instanceof Error ? error.message : 'Unknown error' }, 
       { status: 500 }
     );
   }
