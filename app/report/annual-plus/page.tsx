@@ -1,18 +1,38 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
-import { calculateEnergyCalendar, EnergyCalendarItem, Elem } from '../../lib/energyCalculation2025';
+import ElementRadarChart, { ElementData } from '../../components/ElementRadarChart';
+import YearlyCrystal from '../../components/YearlyCrystal';
+import ElementTraits from '../../components/ElementTraits';
+import { getUserElementTraits } from '../../lib/getUserElementTraits';
+import { getUserCrystal, CrystalRecommendation } from '../../lib/getUserCrystal';
+import { useRouter } from 'next/navigation';
 import LoadingScreen from '../../components/LoadingScreen';
 
-// 扩展EnergyCalendarItem接口，添加我们需要的额外字段
-interface ExtendedEnergyCalendarItem extends EnergyCalendarItem {
-  formattedMonth: string;
-  crystal: string;
-}
+// Types for our data
+type UserData = {
+  id: string;
+  name: string;
+  email: string;
+  avatar?: string;
+  elementValues: ElementData[];
+  strength: {
+    element: string;
+    traits: string[];
+  };
+  weakness: {
+    element: string;
+    traits: string[];
+  };
+  yearCrystal: CrystalRecommendation;
+  birthDate: string;
+  subscriptionTier: 'free' | 'plus' | 'pro' | 'premium';
+};
 
-// 五行元素对应的水晶列表 - 每个元素对应4种水晶
-const elementCrystals: Record<Elem, string[]> = {
+// Five Elements crystals mapping - each element has 4 crystals
+const elementCrystals: Record<string, string[]> = {
   "wood": [
     "Green Aventurine", "Malachite", "Nephrite Jade", "Amazonite"
   ],
@@ -30,28 +50,240 @@ const elementCrystals: Record<Elem, string[]> = {
   ]
 };
 
-export default function AnnualPlusReport() {
-  const [calendarData, setCalendarData] = useState<ExtendedEnergyCalendarItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [birthDate, setBirthDate] = useState<string | null>(null);
+// Transform element data to element distribution for traits calculation
+function transformElementDataToDistribution(data: ElementData[]): { element: any; value: number }[] {
+  return data.map(item => {
+    // Convert short element names to full element names for trait mapping
+    const elementMap: Record<string, string> = {
+      'S': 'earth',
+      'F': 'water',
+      'G': 'wood',
+      'C': 'metal',
+      'P': 'fire'
+    };
+    
+    return {
+      element: elementMap[item.element] || item.element.toLowerCase(),
+      value: item.value
+    };
+  });
+}
 
-  // 将数字月份转换为英文月份名称
-  const getMonthName = (month: number): string => {
-    const months = [
-      'Jan', 'Feb', 'Mar', 'Apr',
-      'May', 'Jun', 'Jul', 'Aug',
-      'Sep', 'Oct', 'Nov', 'Dec'
-    ];
-    return months[month - 1];
+// Find user's weakest element
+function findWeakestElement(data: ElementData[]): string {
+  if (!data || data.length === 0) return 'earth';
+  
+  // Find element with minimum value
+  const weakest = data.reduce((min, item) => 
+    item.value < min.value ? item : min, data[0]);
+  
+  // Map to full element name
+  const elementMap: Record<string, string> = {
+    'S': 'Earth',
+    'F': 'Water',
+    'G': 'Wood',
+    'C': 'Metal',
+    'P': 'Fire'
   };
+  
+  return elementMap[weakest.element] || weakest.element;
+}
 
-  // 格式化日期为"June 3-4, 2025"格式
+export default function AnnualPlusReport() {
+  const router = useRouter();
+  const [userData, setUserData] = useState<UserData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [urlBirthDate, setUrlBirthDate] = useState<string | null>(null);
+  const [calendarData, setCalendarData] = useState<any[]>([]);
+
+  useEffect(() => {
+    // Read URL parameters on client-side
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const birthDateParam = urlParams.get('birthDate');
+      console.log('URL birthDate parameter:', birthDateParam || 'not provided');
+      setUrlBirthDate(birthDateParam);
+    }
+    
+    async function fetchUserData() {
+      try {
+        setLoading(true);
+
+        // Try to get token from various storage locations
+        let token = null;
+        if (typeof window !== 'undefined') {
+          const possibleKeys = ['authToken', 'token', 'jwt', 'crystalMatchToken'];
+          for (const key of possibleKeys) {
+            const savedToken = localStorage.getItem(key);
+            if (savedToken) {
+              console.log(`Retrieved token from localStorage[${key}]`);
+              token = savedToken;
+              break;
+            }
+          }
+        }
+
+        const headers: Record<string,string> = token ? { 'Authorization': `Bearer ${token}` } : {};
+        
+        if (token) {
+          // Also set to cookie for better success rate
+          document.cookie = `token=${token}; path=/; max-age=86400`;
+        }
+
+        // Get user data from API
+        let userData = null;
+        try {
+          const userRes = await fetch('/api/user/profile', { 
+            headers,
+            credentials: 'include',
+            cache: 'no-store', 
+            method: 'GET',
+          });
+          if (!userRes.ok) {
+            throw new Error(`Failed to get user data: ${userRes.status}`);
+          }
+          userData = await userRes.json();
+          console.log('User data retrieved:', userData);
+        } catch (userError) {
+          console.error('Error fetching user data:', userError);
+        }
+        
+        // Get user energy data
+        let elementsData = null;
+        try {
+          const elementsRes = await fetch('/api/user/elements', { 
+            headers,
+            credentials: 'include',
+            cache: 'no-store'
+          });
+          if (!elementsRes.ok) {
+            throw new Error(`Failed to get elements data: ${elementsRes.status}`);
+          }
+          elementsData = await elementsRes.json();
+          console.log('Elements data retrieved:', elementsData);
+        } catch (elementsError) {
+          console.error('Error fetching elements data:', elementsError);
+          // If unable to get element data, set default values
+          elementsData = {
+            earth: 50 + Math.floor(Math.random() * 30),
+            water: 50 + Math.floor(Math.random() * 30), 
+            wood: 50 + Math.floor(Math.random() * 30),
+            metal: 30 + Math.floor(Math.random() * 40),
+            fire: 40 + Math.floor(Math.random() * 35)
+          };
+        }
+        
+        // Ensure we have user data - use default if API fails
+        if (!userData || !userData.id) {
+          console.warn('API could not retrieve user data, using emergency default data');
+          const tempId = `temp-${new Date().getTime()}-${Math.floor(Math.random() * 1000)}`;
+          userData = {
+            id: tempId,
+            name: "Guest User",
+            email: "guest@crystalmatch.com",
+            birthDate: "1990-01-01T00:00:00.000Z",
+            subscriptionTier: "plus" // Show appropriate content for plus user
+          };
+        }
+        
+        // Format element data
+        const elementValues: ElementData[] = [
+          { element: "S", value: elementsData.earth, fullName: "Stability Energy" },
+          { element: "F", value: elementsData.water, fullName: "Fluid Energy" },
+          { element: "G", value: elementsData.wood, fullName: "Growth Energy" },
+          { element: "C", value: elementsData.metal, fullName: "Clarity Energy" },
+          { element: "P", value: elementsData.fire, fullName: "Passion Energy" },
+        ];
+        
+        // Convert element values for traits calculation
+        const elementDistribution = transformElementDataToDistribution(elementValues);
+        
+        // Get user's personalized strength and weakness traits
+        const userTraits = getUserElementTraits(userData.id, elementDistribution);
+        
+        // Get user's recommended crystal
+        const userCrystal = getUserCrystal(userData.id, elementDistribution, 2025);
+        
+        // Set combined user data
+        setUserData({
+          id: userData.id,
+          name: userData.name || 'Guest User',
+          email: userData.email || 'guest@crystalmatch.com',
+          avatar: userData.avatar,
+          elementValues,
+          strength: userTraits.strength,
+          weakness: userTraits.weakness,
+          yearCrystal: userCrystal,
+          birthDate: urlBirthDate || userData.birthDate || (userData as any).birthInfo?.date || (userData as any).birthInfo?.birthdate || '1990-01-01T00:00:00.000Z',
+          subscriptionTier: userData.subscriptionTier || 'plus'
+        });
+        
+        // Load calendar data
+        try {
+          if (urlBirthDate || userData.birthDate || (userData as any).birthInfo?.date) {
+            const birthDateForCalc = urlBirthDate || userData.birthDate || (userData as any).birthInfo?.date;
+            const { calculateEnergyCalendar } = await import('../../lib/energyCalculation2025');
+            const calendarData = await calculateEnergyCalendar(birthDateForCalc);
+            
+            // Process calendar data for crystal recommendations
+            const elementOccurrences: Record<string, number[]> = {};
+            calendarData.forEach((item: any, index: number) => {
+              if (item.lowestElement) {
+                const element = item.lowestElement;
+                if (!elementOccurrences[element]) {
+                  elementOccurrences[element] = [];
+                }
+                elementOccurrences[element].push(index);
+              }
+            });
+            
+            // Format month strings and add crystal recommendations
+            const formattedCalendarData = calendarData.map((item: any, index: number) => {
+              // Get crystal recommendation based on element and occurrence
+              let crystal = "Unknown Crystal";
+              if (item.lowestElement && elementCrystals[item.lowestElement]) {
+                const element = item.lowestElement;
+                let elementIndex = 0;
+                
+                if (elementOccurrences[element]) {
+                  const elementIndices = elementOccurrences[element];
+                  elementIndex = elementIndices.indexOf(index);
+                }
+                
+                const crystalList = elementCrystals[element];
+                crystal = crystalList[elementIndex % crystalList.length];
+              }
+              
+              return {
+                ...item,
+                formattedMonth: formatDateRange(item.month),
+                crystal
+              };
+            });
+            
+            setCalendarData(formattedCalendarData);
+          }
+        } catch (calendarError) {
+          console.error('Error calculating energy calendar:', calendarError);
+        }
+      } catch (err) {
+        console.error("Error fetching user data:", err);
+        setError('Unable to load your energy report. Please try again later.');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchUserData();
+  }, [urlBirthDate]);
+  
+  // Format date string to "Month Day, Year" format
   const formatDateRange = (dateStr: string): string => {
     if (!dateStr) return '';
     
-    // 处理格式如"6/3/2025" 或 "6/3/2025 - 7/4/2025"
     const parts = dateStr.split(' - ');
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
     const parsePart = (part: string) => {
       const [m, d, y] = part.split('/').map(Number);
@@ -60,101 +292,19 @@ export default function AnnualPlusReport() {
 
     if (parts.length === 1) {
       const { month, day, year } = parsePart(parts[0]);
-      return `${getMonthName(month)} ${day}, ${year}`;
+      return `${months[month-1]} ${day}, ${year}`;
     } else {
       const start = parsePart(parts[0]);
       const end = parsePart(parts[1]);
 
       if (start.month === end.month && start.year === end.year) {
-        // 同月同年
-        return `${getMonthName(start.month)} ${start.day}-${end.day}, ${start.year}`;
+        return `${months[start.month-1]} ${start.day}-${end.day}, ${start.year}`;
       }
-      // 跨月或跨年
-      return `${getMonthName(start.month)} ${start.day}, ${start.year} - ${getMonthName(end.month)} ${end.day}, ${end.year}`;
+      return `${months[start.month-1]} ${start.day}, ${start.year} - ${months[end.month-1]} ${end.day}, ${end.year}`;
     }
   };
-
-  // 为同一元素的月份轮换推荐不同水晶
-  const getRotatedCrystal = (element: Elem | undefined, index: number): string => {
-    if (!element || !elementCrystals[element]) return 'Unknown Crystal';
-    
-    // 获取该元素的水晶列表
-    const crystalList = elementCrystals[element];
-    
-    // 基于月份索引轮换推荐水晶
-    return crystalList[index % crystalList.length];
-  };
-
-  useEffect(() => {
-    // 客户端加载时读取URL参数
-    if (typeof window !== 'undefined') {
-      const urlParams = new URLSearchParams(window.location.search);
-      const birthDateParam = urlParams.get('birthDate');
-      console.log('URL中的birthDate参数:', birthDateParam || '未提供');
-      setBirthDate(birthDateParam);
-    }
-  }, []);
-
-  useEffect(() => {
-    async function loadCalendarData() {
-      if (!birthDate) return;
-      
-      setLoading(true);
-      setError(null);
-      
-      try {
-        // 使用能量计算函数获取真实数据 - 从用户查询日开始
-        const data = await calculateEnergyCalendar(birthDate);
-        
-        // 处理水晶轮换推荐
-        // 先统计每个元素出现的次数和索引位置
-        const elementOccurrences: Record<string, number[]> = {};
-        
-        // 首先记录每个元素出现的索引位置
-        data.forEach((item, index) => {
-          if (item.lowestElement) {
-            const element = item.lowestElement;
-            if (!elementOccurrences[element]) {
-              elementOccurrences[element] = [];
-            }
-            elementOccurrences[element].push(index);
-          }
-        });
-        
-        // 格式化日期显示并轮换水晶推荐
-        const formattedData = data.map((item, index) => {
-          // 查找当前元素的出现位置
-          const element = item.lowestElement;
-          let elementIndex = 0;
-          
-          if (element && elementOccurrences[element]) {
-            const elementIndices = elementOccurrences[element];
-            elementIndex = elementIndices.indexOf(index);
-          }
-          
-          // 轮换推荐水晶
-          const rotatedCrystal = getRotatedCrystal(element, elementIndex);
-          
-          return {
-            ...item,
-            formattedMonth: formatDateRange(item.month),
-            crystal: rotatedCrystal
-          };
-        });
-        
-        setCalendarData(formattedData);
-      } catch (error) {
-        console.error('Error loading energy calendar:', error);
-        setError('加载能量日历失败。请稍后再试。');
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    loadCalendarData();
-  }, [birthDate]);
-
-  // 获取能量变化级别的颜色
+  
+  // Get color for energy change value
   const getEnergyColor = (energyChange: number): string => {
     if (energyChange >= 5) return 'text-red-500';
     if (energyChange >= 2) return 'text-red-400';
@@ -165,7 +315,7 @@ export default function AnnualPlusReport() {
     return 'text-blue-500';
   };
 
-  // 获取趋势图标
+  // Get trend icon
   const getTrendIcon = (trend: string): string => {
     switch (trend) {
       case 'up': return '↑';
@@ -178,29 +328,94 @@ export default function AnnualPlusReport() {
     return <LoadingScreen />;
   }
   
-  if (error) {
-    return <div className="text-red-500 p-4">{error}</div>;
+  if (error || !userData) {
+    return (
+      <main className="min-h-screen bg-purple-900 text-white p-4 md:p-8 flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Error!</h1>
+          <p className="mb-6">{error || "Unable to load your energy report"}</p>
+          <Link href="/" className="bg-white text-purple-900 px-6 py-2 rounded-lg font-semibold hover:bg-gray-100">
+            Return to Home
+          </Link>
+        </div>
+      </main>
+    );
   }
-
+  
   return (
     <main className="min-h-screen bg-gradient-to-b from-purple-950 to-purple-900 text-white p-4">
-      <Link href="/profile" className="inline-flex items-center text-purple-300 hover:text-white transition-colors mb-4">
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
-          <path fillRule="evenodd" d="M9.707 14.707a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 1.414L7.414 9H15a1 1 0 110 2H7.414l2.293 2.293a1 1 0 010 1.414z" clipRule="evenodd" />
-        </svg>
-        返回个人中心
-      </Link>
-      
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold mb-6 text-center">2025年度高级能量报告 <span className="text-yellow-300">PLUS</span></h1>
+      {/* User Profile */}
+      <div className="rounded-lg bg-purple-900/60 p-6 mb-8 backdrop-blur-sm border border-purple-800/50">
+        <div className="flex flex-row items-center mb-6">
+          {userData.avatar ? (
+            <div className="w-24 h-24 rounded-full overflow-hidden mr-6 bg-purple-800 border-2 border-purple-600 relative flex-shrink-0">
+              <Image 
+                src={userData.avatar}
+                alt={userData.name}
+                fill
+                className="object-cover"
+              />
+            </div>
+          ) : (
+            <div className="w-24 h-24 rounded-full mr-6 bg-purple-800 border-2 border-purple-600 flex items-center justify-center flex-shrink-0">
+              <span className="text-white text-3xl font-bold">
+                {userData.name?.charAt(0) || '?'}
+              </span>
+            </div>
+          )}
+          
+          <div className="flex flex-col">
+            <h1 className="text-5xl font-bold text-white leading-none">{userData.name}</h1>
+            {/* Birthday below name */}
+            <p className="text-purple-300 text-sm mt-1">
+              {new Date(userData.birthDate).toLocaleDateString('en-US', {
+                month: 'short', day: 'numeric', year: 'numeric'
+              })}
+            </p>
+          </div>
+        </div>
         
-        <div className="overflow-x-auto mb-8">
+        <div className="bg-purple-800/80 rounded-lg p-4 w-full text-center">
+          <p className="text-lg">
+            4,000 Years of Five Elements Wisdom{" "}
+            <span className="text-yellow-300">⚡</span> Enhanced by AI
+          </p>
+        </div>
+      </div>
+      
+      {/* Elements Radar Chart */}
+      <div className="rounded-lg bg-purple-900/60 p-4 md:p-6 mb-8 backdrop-blur-sm border border-purple-800/50">
+        <h2 className="text-xl md:text-2xl font-bold mb-4 text-center">Your Energy Status</h2>
+        <ElementRadarChart data={userData.elementValues} />
+      </div>
+      
+      {/* Strength & Weakness */}
+      <ElementTraits strength={userData.strength} weakness={userData.weakness} />
+      
+      {/* Yearly Crystal */}
+      <YearlyCrystal 
+        crystal={{
+          name: userData.yearCrystal.name,
+          description: userData.yearCrystal.description || "Your Personalized Crystal",
+          imageUrl: `/images/crystals/${userData.yearCrystal.name}.png`,
+          effect: userData.yearCrystal.effect,
+          planetAssociation: userData.yearCrystal.planet || "Earth",
+          year: 2025
+        }} 
+        isFreeUser={false}
+        userElement={findWeakestElement(userData.elementValues)}
+      />
+      
+      {/* Energy Calendar - Show Month, Energy Change, and Crystal columns */}
+      <div className="mb-8">
+        <h2 className="text-2xl font-bold mb-4 text-white">Energy Calendar</h2>
+        <div className="overflow-x-auto">
           <table className="w-full border-collapse">
             <thead className="bg-purple-800">
               <tr>
-                <th className="py-3 px-4 text-left text-white font-semibold">月份</th>
-                <th className="py-3 px-4 text-left text-white font-semibold">能量变化</th>
-                <th className="py-3 px-4 text-left text-white font-semibold">推荐水晶</th>
+                <th className="py-3 px-4 text-left text-white font-semibold">Month</th>
+                <th className="py-3 px-4 text-left text-white font-semibold">Energy Change</th>
+                <th className="py-3 px-4 text-left text-white font-semibold">Crystal</th>
               </tr>
             </thead>
             <tbody>
@@ -224,15 +439,25 @@ export default function AnnualPlusReport() {
             </tbody>
           </table>
         </div>
-        
-        {/* 升级提示 */}
-        <div className="bg-gradient-to-r from-purple-700 to-indigo-700 p-6 rounded-lg text-center">
-          <h2 className="text-xl font-semibold mb-4">获取全部高级能量指导</h2>
-          <p className="mb-6">升级到Premium计划，解锁幸运颜色与完整年度能量计划</p>
-          <Link href="/subscription" className="bg-white text-purple-900 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors inline-block">
-            升级至Premium
-          </Link>
-        </div>
+      </div>
+      
+      {/* Call to action - For Plus users to upgrade to Pro */}
+      <div className="rounded-lg bg-gradient-to-r from-purple-700 to-indigo-700 p-6 text-center backdrop-blur-sm border border-purple-600/50">
+        <h2 className="text-xl md:text-2xl font-semibold mb-4">Get More Advanced Insights</h2>
+        <p className="mb-6">Upgrade to Pro for lucky color recommendations and complete yearly energy plan</p>
+        <Link href="/subscription" className="bg-white text-purple-900 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
+          Upgrade to Pro
+        </Link>
+      </div>
+      
+      {/* Back to Profile button */}
+      <div className="mt-10 mb-6 text-center">
+        <Link href="/profile" className="inline-flex items-center text-white bg-purple-800 hover:bg-purple-700 px-6 py-3 rounded-lg font-semibold transition-colors">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M9.707 14.707a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 1.414L7.414 9H15a1 1 0 110 2H7.414l2.293 2.293a1 1 0 010 1.414z" clipRule="evenodd" />
+          </svg>
+          Back to Profile
+        </Link>
       </div>
     </main>
   );
