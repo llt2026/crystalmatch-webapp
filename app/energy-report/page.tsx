@@ -109,7 +109,11 @@ export default function EnergyReportPage() {
         // 从API获取用户数据
         let userData = null;
         try {
-          const userRes = await fetch('/api/user/profile', { headers });
+          const userRes = await fetch('/api/user/profile', { 
+            headers,
+            credentials: 'include',
+            cache: 'no-store'
+          });
           if (!userRes.ok) {
             throw new Error(`获取用户数据失败: ${userRes.status}`);
           }
@@ -123,7 +127,11 @@ export default function EnergyReportPage() {
         // 获取用户能量数据 - 确保无论如何都能获取到数据
         let elementsData = null;
         try {
-          const elementsRes = await fetch('/api/user/elements', { headers });
+          const elementsRes = await fetch('/api/user/elements', { 
+            headers,
+            credentials: 'include',
+            cache: 'no-store'
+          });
           if (!elementsRes.ok) {
             throw new Error(`获取元素数据失败: ${elementsRes.status}`);
           }
