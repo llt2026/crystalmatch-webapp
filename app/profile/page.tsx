@@ -29,42 +29,16 @@ export default function ProfilePage() {
     async function fetchRealUserData() {
       try {
         setIsLoading(true);
-        // 获取可能存在的auth token
-        let token = '';
-        if (typeof window !== 'undefined') {
-          token = localStorage.getItem('token') || '';
-          // 尝试其他可能的token存储位置
-          if (!token) {
-            token = localStorage.getItem('authToken') || 
-                    localStorage.getItem('jwt') || 
-                    localStorage.getItem('crystalMatchToken') || '';
-          }
-          
-          // 也检查cookie
-          const cookies = document.cookie.split(';');
-          for (const cookie of cookies) {
-            const [name, value] = cookie.trim().split('=');
-            if (name === 'token' || name === 'authToken' || name === 'jwt') {
-              token = value;
-              break;
-            }
-          }
-        }
-
-        console.log('Using token:', token ? 'Yes (found)' : 'No (not found)');
-        
-        // 设置请求头
+        // 直接使用浏览器自动附带的cookie，避免在前端暴露token
         const headers: Record<string, string> = {};
-        if (token) {
-          headers['Authorization'] = `Bearer ${token}`;
-        }
         
         // 从API获取用户数据 - 添加随机数防止缓存
         const cacheBuster = new Date().getTime();
         const response = await fetch(`/api/user/profile?_=${cacheBuster}`, {
           method: 'GET',
           headers,
-          cache: 'no-store'
+          cache: 'no-store',
+          credentials: 'include', // 确保携带cookie
         });
         
         if (!response.ok) {
@@ -137,7 +111,7 @@ export default function ProfilePage() {
             {/* 默认头像 */}
             <div className="w-20 h-20 flex-shrink-0 mr-4 relative overflow-hidden rounded-full">
               <img 
-                src="/images/avatars/default-avatar.png"
+                src="/default-avatar.png"
                 alt={`${profile.name}的头像`}
                 className="w-full h-full object-cover"
               />

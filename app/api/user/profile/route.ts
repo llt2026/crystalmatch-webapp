@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic'; // 确保 API 路由始终动态执行，避免构建期缓存
 import { jwtVerify } from 'jose';
 
-// Validate user token
-async function validateUserToken(request: NextRequest) {
+type JwtPayload = Record<string, any>;
+
+async function getJwtPayload(request: NextRequest): Promise<JwtPayload | null> {
   try {
     let token = request.cookies.get('token')?.value;
     console.log('从cookie获取token:', token ? '存在' : '不存在');
@@ -14,31 +15,18 @@ async function validateUserToken(request: NextRequest) {
       console.log('Authorization头:', auth);
       if (auth?.startsWith('Bearer ')) {
         token = auth.slice(7);
-        console.log('从Authorization头获取token');
       }
     }
 
     if (!token) {
-      console.log('未找到token');
       return null;
     }
 
-    // 分析token结构
-    console.log(`验证token(前10字符): ${token.substring(0, 10)}...`);
-    try {
-      const decoded = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
-      console.log('Token payload结构:', Object.keys(decoded));
-    } catch (err) {
-      console.log('无法解析token payload');
-    }
-    
     const { payload } = await jwtVerify(
       token,
       new TextEncoder().encode(process.env.JWT_SECRET || 'crystalmatch-secure-jwt-secret-key')
     );
-    
-    console.log('验证成功，payload:', payload);
-    return payload.userId || payload.sub || payload.email || payload.id;
+    return payload as JwtPayload;
   } catch (error) {
     console.error('JWT verification failed:', error);
     return null;
@@ -80,41 +68,31 @@ export async function GET(request: NextRequest) {
       url: request.url
     });
 
-    // Validate user identity
-    const userId = await validateUserToken(request);
-    
-    // 紧急模式 - 即使没有token也返回数据
-    const effectiveUserId = userId || 'emergency-user-' + new Date().getTime();
-    console.log('使用effectiveUserId:', effectiveUserId);
-    
-    // Return mock user data
-    const mockUser = getMockUser(effectiveUserId);
-    const { id, ...userProfile } = mockUser;
-    
-    // 兼容 TS，使用 any 访问可能不存在的字段
-    const userProfileAny: any = userProfile;
+    // 尝试解析 JWT payload 以获取真实用户信息
+    const jwtPayload = await getJwtPayload(request);
 
-    // 转换成前端 /profile 页所需结构
-    const normalizedProfile = {
-      name: userProfile.name,
-      email: userProfile.email,
-      avatar: userProfileAny.avatar ?? '',
-      location: {
-        country: userProfile.location.country || '',
-        state: userProfileAny.location?.state || '',
-        city: userProfileAny.location?.city || '',
+    if (!jwtPayload) {
+      console.log('未登录或token无效，返回401');
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // 提取我们关心的字段
+    const userProfile = {
+      name: jwtPayload.name || jwtPayload.fullName || 'Unknown User',
+      email: jwtPayload.email || '',
+      avatar: jwtPayload.avatar || '',
+      birthInfo: {
+        date: jwtPayload.birthDate || jwtPayload.dob || undefined,
       },
       subscription: {
-        status: 'free' as const,
-        expiresAt: undefined,
+        status: jwtPayload.subscriptionStatus || 'free',
+        expiresAt: jwtPayload.subscriptionExpiresAt || undefined,
       },
-      reportsCount: 0,
-      joinedAt: userProfile.createdAt,
-      // 附带原始数据，方便后续升级
-      _raw: userProfile,
+      joinedAt: jwtPayload.iat ? new Date(jwtPayload.iat * 1000).toISOString() : undefined,
+      _raw: jwtPayload,
     };
 
-    return NextResponse.json(normalizedProfile);
+    return NextResponse.json(userProfile);
   } catch (error) {
     console.error('Error fetching user profile:', error);
     return NextResponse.json(
@@ -131,11 +109,11 @@ export async function GET(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     // Validate user identity
-    const userId = await validateUserToken(request);
-    
-    if (!userId) {
+    const jwtPayload = await getJwtPayload(request);
+    if (!jwtPayload) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    const userId = jwtPayload.sub || jwtPayload.userId || jwtPayload.email || 'unknown';
 
     // Get request data
     const updates = await request.json();
@@ -151,7 +129,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Get mock user and merge updates
-    const mockUser = getMockUser(userId.toString());
+    const mockUser = getMockUser(userId);
     const updatedUser = {
       ...mockUser,
       ...filteredUpdates,
