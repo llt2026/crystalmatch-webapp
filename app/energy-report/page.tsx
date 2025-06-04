@@ -242,8 +242,8 @@ export default function EnergyReportPage() {
         
         <div className="bg-purple-800/80 rounded-lg p-4 w-full text-center">
           <p className="text-lg">
-            Based on 2,500 years of Five Elements wisdom{" "}
-            <span className="text-yellow-300">⚡</span> &amp; GPT insights
+            4,000 Years of Five Elements Wisdom{" "}
+            <span className="text-yellow-300">⚡</span> Enhanced by AI
           </p>
         </div>
       </div>
