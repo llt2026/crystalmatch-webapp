@@ -85,7 +85,19 @@ export async function GET(request: NextRequest) {
     }
 
     try {
-      const user = await prisma.user.findUnique({ where: { id: userId } });
+      const user = await prisma.user.findUnique({ 
+        where: { id: userId },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          avatar: true,
+          birthInfo: true,
+          createdAt: true,
+          subscriptionStatus: true,
+          subscriptionExpiresAt: true
+        }
+      });
 
       if (!user) {
         return NextResponse.json({ error: 'User not found' }, { status: 404 });
@@ -106,6 +118,10 @@ export async function GET(request: NextRequest) {
       const birthDateIso = birthInfo.birthdate || birthInfo.date || undefined;
       console.log('提取到的birthDateIso:', birthDateIso);
 
+      // 确定用户订阅状态，即使数据库中字段可能不存在
+      const subscriptionStatus = user.subscriptionStatus || 'free';
+      const subscriptionExpiresAt = user.subscriptionExpiresAt || null;
+
       const userProfile = {
         // 唯一ID，供前端逻辑使用
         id: user.id,
@@ -121,8 +137,8 @@ export async function GET(request: NextRequest) {
           gender: birthInfo.gender,
         },
         subscription: {
-          status: (user as any).subscriptionStatus ?? 'free',
-          expiresAt: (user as any).subscriptionExpiresAt?.toISOString() ?? undefined,
+          status: subscriptionStatus,
+          expiresAt: subscriptionExpiresAt?.toISOString() ?? undefined,
         },
         joinedAt: user.createdAt.toISOString(),
       };

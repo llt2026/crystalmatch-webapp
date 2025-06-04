@@ -33,8 +33,10 @@ export async function POST(request: NextRequest) {
     // 检查邮箱是否已注册
     const normalizedEmail = email.toLowerCase().trim();
 
+    // 查找现有用户时最小化查询字段
     const existingUser = await prisma.user.findUnique({
-      where: { email: normalizedEmail }
+      where: { email: normalizedEmail },
+      select: { id: true }
     });
 
     if (existingUser) {
@@ -63,7 +65,13 @@ export async function POST(request: NextRequest) {
         birthInfo: {
           date: birthDate.toISOString(),
         },
+        subscriptionStatus: 'free',  // 确保新用户默认为免费会员
       },
+      select: {
+        id: true,
+        email: true,
+        name: true
+      }
     });
 
     // 生成JWT令牌
