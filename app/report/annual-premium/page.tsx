@@ -10,6 +10,7 @@ import { getUserElementTraits } from '../../lib/getUserElementTraits';
 import { getUserCrystal, CrystalRecommendation } from '../../lib/getUserCrystal';
 import { useRouter } from 'next/navigation';
 import LoadingScreen from '../../components/LoadingScreen';
+import EnergyCalendar from '../../components/EnergyCalendar';
 
 // Types for our data
 type UserData = {
@@ -438,41 +439,7 @@ export default function AnnualPremiumReport() {
       
       {/* Energy Calendar - Full table with all four columns */}
       <div className="mb-8">
-        <h2 className="text-2xl font-bold mb-4 text-white">Energy Calendar</h2>
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
-            <thead className="bg-purple-800">
-              <tr>
-                <th className="py-3 px-4 text-left text-white font-semibold">Month</th>
-                <th className="py-3 px-4 text-left text-white font-semibold">Energy Change</th>
-                <th className="py-3 px-4 text-left text-white font-semibold">Crystal</th>
-                <th className="py-3 px-4 text-left text-white font-semibold">Lucky Colors</th>
-              </tr>
-            </thead>
-            <tbody>
-              {calendarData.map((item, index) => (
-                <tr 
-                  key={index} 
-                  className={index % 2 === 0 ? 'bg-purple-900' : 'bg-purple-800/70'}
-                >
-                  <td className="py-3 px-4 text-white font-medium">{item.formattedMonth}</td>
-                  <td className="py-3 px-4">
-                    <span className={`font-medium ${getEnergyColor(item.energyChange)}`}>
-                      {item.energyChange > 0 ? `+${item.energyChange}` : item.energyChange === 0 ? '—' : item.energyChange}
-                      {' '}{getTrendIcon(item.trend)}
-                    </span>
-                  </td>
-                  <td className="py-3 px-4 text-yellow-300">
-                    {item.crystal}
-                  </td>
-                  <td className="py-3 px-4 text-gray-300">
-                    {item.luckyColor}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <EnergyCalendar birthDate={userData.birthDate} subscriptionTier="pro" />
       </div>
       
       {/* Pro/Premium member benefits */}

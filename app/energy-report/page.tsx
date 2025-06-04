@@ -312,7 +312,7 @@ export default function EnergyReportPage() {
       
       {/* Energy Calendar */}
       <div className="mb-8">
-        <EnergyCalendar birthDate={urlBirthDate || userData.birthDate || '1990-01-01T00:00:00.000Z'} />
+        <EnergyCalendar birthDate={urlBirthDate || userData.birthDate || '1990-01-01T00:00:00.000Z'} subscriptionTier="premium" />
       </div>
       
       {/* Call to action */}

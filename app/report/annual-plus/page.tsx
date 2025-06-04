@@ -10,6 +10,7 @@ import { getUserElementTraits } from '../../lib/getUserElementTraits';
 import { getUserCrystal, CrystalRecommendation } from '../../lib/getUserCrystal';
 import { useRouter } from 'next/navigation';
 import LoadingScreen from '../../components/LoadingScreen';
+import EnergyCalendar from '../../components/EnergyCalendar';
 
 // Types for our data
 type UserData = {
@@ -408,46 +409,7 @@ export default function AnnualPlusReport() {
       
       {/* Energy Calendar - Show Month, Energy Change, Crystal columns and lock Lucky Colors */}
       <div className="mb-8">
-        <h2 className="text-2xl font-bold mb-4 text-white">Energy Calendar</h2>
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
-            <thead className="bg-purple-800">
-              <tr>
-                <th className="py-3 px-4 text-left text-white font-semibold">Month</th>
-                <th className="py-3 px-4 text-left text-white font-semibold">Energy Change</th>
-                <th className="py-3 px-4 text-left text-white font-semibold">Crystal</th>
-                <th className="py-3 px-4 text-left text-white font-semibold">Lucky Colors</th>
-              </tr>
-            </thead>
-            <tbody>
-              {calendarData.map((item, index) => (
-                <tr 
-                  key={index} 
-                  className={index % 2 === 0 ? 'bg-purple-900' : 'bg-purple-800/70'}
-                >
-                  <td className="py-3 px-4 text-white font-medium">{item.formattedMonth}</td>
-                  <td className="py-3 px-4">
-                    <span className={`font-medium ${getEnergyColor(item.energyChange)}`}>
-                      {item.energyChange > 0 ? `+${item.energyChange}` : item.energyChange === 0 ? '—' : item.energyChange}
-                      {' '}{getTrendIcon(item.trend)}
-                    </span>
-                  </td>
-                  <td className="py-3 px-4 text-yellow-300">
-                    {item.crystal}
-                  </td>
-                  <td className="py-3 px-4 text-gray-400">
-                    <div className="flex items-center">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-                      </svg>
-                      <span className="text-gray-400">Pro members only</span>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <EnergyCalendar birthDate={userData.birthDate} subscriptionTier="plus" />
       </div>
       
       {/* Call to action - For Plus users to upgrade to Pro */}
