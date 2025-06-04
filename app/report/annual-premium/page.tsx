@@ -29,7 +29,7 @@ type UserData = {
   };
   yearCrystal: CrystalRecommendation;
   birthDate: string;
-  subscriptionTier: 'free' | 'plus' | 'pro' | 'premium';
+  subscriptionTier: 'free' | 'plus' | 'pro';
 };
 
 // Five Elements crystals mapping - each element has 4 crystals
@@ -193,7 +193,7 @@ export default function AnnualPremiumReport() {
             name: "Guest User",
             email: "guest@crystalmatch.com",
             birthDate: "1990-01-01T00:00:00.000Z",
-            subscriptionTier: "pro" // Show appropriate content for pro user
+            subscriptionTier: "free" // Show appropriate content for free user
           };
         }
         
@@ -226,7 +226,7 @@ export default function AnnualPremiumReport() {
           weakness: userTraits.weakness,
           yearCrystal: userCrystal,
           birthDate: urlBirthDate || userData.birthDate || (userData as any).birthInfo?.date || (userData as any).birthInfo?.birthdate || '1990-01-01T00:00:00.000Z',
-          subscriptionTier: userData.subscriptionTier || 'pro'
+          subscriptionTier: userData.subscriptionTier || 'free'
         });
         
         // Load calendar data
@@ -439,10 +439,10 @@ export default function AnnualPremiumReport() {
       
       {/* Energy Calendar - Full table with all four columns */}
       <div className="mb-8">
-        <EnergyCalendar birthDate={userData.birthDate} subscriptionTier="pro" />
+        <EnergyCalendar birthDate={userData.birthDate} subscriptionTier={userData.subscriptionTier} />
       </div>
       
-      {/* Pro/Premium member benefits */}
+      {/* Pro member benefits */}
       <div className="rounded-lg bg-black/40 p-6 mb-8">
         <h2 className="text-xl font-medium mb-4 text-yellow-300">Pro Member Exclusive Features</h2>
         <ul className="list-disc list-inside space-y-2 text-sm text-gray-300">

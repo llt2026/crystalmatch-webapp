@@ -11,7 +11,7 @@ interface UserProfile {
   email: string;
   birthDate?: string;
   subscription?: {
-    status: 'free' | 'plus' | 'pro' | 'premium';
+    status: 'free' | 'plus' | 'pro';
   };
   birthInfo?: {
     date: string;
@@ -128,7 +128,19 @@ export default function ProfilePage() {
                 alt={`${profile.name}'s avatar`}
                 className="w-full h-full object-cover"
               />
+              
+              {/* 会员等级标识 - 右上角 */}
+              <div className="absolute top-0 right-0">
+                {profile.subscription?.status === 'pro' ? (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] bg-gradient-to-r from-purple-700 to-indigo-700 text-white">PRO</span>
+                ) : profile.subscription?.status === 'plus' ? (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] bg-purple-600 text-white">PLUS</span>
+                ) : (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] bg-white/20 text-white border border-white/30">FREE</span>
+                )}
+              </div>
             </div>
+            
             {/* 用户信息 */}
             <div className="flex flex-col items-start text-left">
               {/* 用户名 - 显示真实用户名 */}
@@ -146,14 +158,11 @@ export default function ProfilePage() {
               )}
               
               {/* 订阅状态标签 */}
-              {profile.subscription?.status === 'premium' && (
-                <span className="mt-2 px-2 py-0.5 rounded-full text-[10px] bg-purple-700 text-white">PREMIUM</span>
+              {profile.subscription?.status === 'pro' && (
+                <span className="mt-2 px-2 py-0.5 rounded-full text-[10px] bg-purple-700 text-white">PRO</span>
               )}
               {profile.subscription?.status === 'plus' && (
                 <span className="mt-2 px-2 py-0.5 rounded-full text-[10px] bg-purple-600 text-white">PLUS</span>
-              )}
-              {profile.subscription?.status === 'pro' && (
-                <span className="mt-2 px-2 py-0.5 rounded-full text-[10px] bg-purple-700 text-white">PRO</span>
               )}
             </div>
           </div>
@@ -184,69 +193,25 @@ export default function ProfilePage() {
           {/* Section Title */}
           <h2 className="text-sm font-semibold">Reports</h2>
 
-          {/* Annual Basic Report - 所有用户可见 */}
+          {/* Annual Report - all users can access */}
           <Link 
-            href={`/report/annual-basic${profile.birthDate ? `?birthDate=${encodeURIComponent(profile.birthDate)}` : profile.birthInfo?.date ? `?birthDate=${encodeURIComponent(profile.birthInfo.date)}` : ''}`} 
+            href={`/report/annual-premium${profile.birthDate ? `?birthDate=${encodeURIComponent(profile.birthDate)}` : profile.birthInfo?.date ? `?birthDate=${encodeURIComponent(profile.birthInfo.date)}` : ''}`} 
             className="bg-gradient-to-br from-purple-600/30 to-purple-800/30 p-4 rounded-xl flex justify-between items-start no-underline"
           >
             <div className="leading-tight">
-              <p className="text-sm font-medium">Annual Basic Report</p>
+              <p className="text-sm font-medium">Annual Energy Report</p>
               <p className="text-[11px] text-purple-200">2025</p>
             </div>
-            <span className="text-[10px] px-2 py-0.5 h-fit rounded-full bg-white/10 text-purple-200 border border-purple-400/50 self-center">FREE</span>
-          </Link>
-          
-          {/* Annual Plus Report - Plus或Pro以上用户可见 */}
-          {(profile.subscription?.status === 'plus' || profile.subscription?.status === 'pro' || profile.subscription?.status === 'premium') && (
-            <Link 
-              href={`/report/annual-plus${profile.birthDate ? `?birthDate=${encodeURIComponent(profile.birthDate)}` : profile.birthInfo?.date ? `?birthDate=${encodeURIComponent(profile.birthInfo.date)}` : ''}`}
-              className="bg-gradient-to-br from-purple-600/30 to-purple-800/30 p-4 rounded-xl flex justify-between items-start no-underline"
-            >
-              <div className="leading-tight">
-                <p className="text-sm font-medium">Annual Plus Report</p>
-                <p className="text-[11px] text-purple-200">2025</p>
-              </div>
+            {(!profile.subscription || profile.subscription.status === 'free') && (
+              <span className="text-[10px] px-2 py-0.5 h-fit rounded-full bg-white/10 text-purple-200 border border-purple-400/50 self-center">FREE</span>
+            )}
+            {profile.subscription?.status === 'plus' && (
               <span className="text-[10px] px-2 py-0.5 h-fit rounded-full bg-purple-600/50 text-white border border-purple-500 self-center">PLUS</span>
-            </Link>
-          )}
-
-          {/* Annual Pro Report - Pro或Premium用户可见 */}
-          {(profile.subscription?.status === 'pro' || profile.subscription?.status === 'premium') && (
-            <Link 
-              href={`/report/annual-premium${profile.birthDate ? `?birthDate=${encodeURIComponent(profile.birthDate)}` : profile.birthInfo?.date ? `?birthDate=${encodeURIComponent(profile.birthInfo.date)}` : ''}`}
-              className="bg-gradient-to-br from-purple-600/30 to-purple-800/30 p-4 rounded-xl flex justify-between items-start no-underline"
-            >
-              <div className="leading-tight">
-                <p className="text-sm font-medium">Annual Pro Report</p>
-                <p className="text-[11px] text-purple-200">2025</p>
-              </div>
+            )}
+            {profile.subscription?.status === 'pro' && (
               <span className="text-[10px] px-2 py-0.5 h-fit rounded-full bg-gradient-to-r from-purple-700 to-indigo-700 text-white self-center">PRO</span>
-            </Link>
-          )}
-
-          {/* Annual Premium Report - 仅Premium用户可见 */}
-          {profile.subscription?.status === 'premium' && (
-            <Link 
-              href={`/energy-report${profile.birthDate ? `?birthDate=${encodeURIComponent(profile.birthDate)}` : profile.birthInfo?.date ? `?birthDate=${encodeURIComponent(profile.birthInfo.date)}` : ''}`} 
-              className="bg-gradient-to-br from-purple-600/30 to-purple-800/30 p-4 rounded-xl flex justify-between items-center no-underline"
-            >
-              <div className="leading-tight">
-                <p className="text-sm font-medium">Annual Premium Report</p>
-                <p className="text-[11px] text-purple-200">2025</p>
-              </div>
-              <span className="text-[10px] px-2 py-0.5 h-fit rounded-full bg-gradient-to-r from-purple-800 to-indigo-800 text-white self-center">PREMIUM</span>
-            </Link>
-          )}
-          
-          {/* 旧版年度报告链接 - 隐藏 */}
-          {false && (
-            <Link 
-              href={`/energy-report${profile.birthDate ? `?birthDate=${encodeURIComponent(profile.birthDate)}` : profile.birthInfo?.date ? `?birthDate=${encodeURIComponent(profile.birthInfo.date)}` : ''}`} 
-              className="bg-gradient-to-br from-purple-600/30 to-purple-800/30 p-4 rounded-xl flex justify-between items-center no-underline opacity-70 hover:opacity-100 transition-opacity"
-            >
-              <p className="text-sm font-medium">Legacy Energy Report 2025</p>
-            </Link>
-          )}
+            )}
+          </Link>
 
           {/* Monthly Deep Reports */}
           <div className="space-y-2">
