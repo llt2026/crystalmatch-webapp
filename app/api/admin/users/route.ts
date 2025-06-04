@@ -57,14 +57,13 @@ export async function GET(request: NextRequest) {
 
     // 转换数据结构供前端使用
     const serializedUsers = users.map((u: any) => {
-      const latestSub = u.subscriptions?.[0];
       return {
         id: u.id,
         email: u.email,
         name: u.name || '',
         createdAt: u.createdAt,
         lastLogin: u.lastLoginAt,
-        subscriptionStatus: latestSub ? latestSub.status : 'none',
+        subscriptionStatus: u.subscriptionStatus || 'free',
       };
     });
 

@@ -24,7 +24,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     const { id } = params;
     const { subscriptionStatus } = await request.json();
     
-    const validStatuses = ['free', 'monthly', 'yearly', 'none'];
+    const validStatuses = ['free', 'plus', 'pro', 'none'];
     if (!validStatuses.includes(subscriptionStatus)) {
       return NextResponse.json(
         { error: 'Invalid subscription status' }, 
@@ -33,12 +33,9 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     }
     
     let expiresAt = null;
-    if (subscriptionStatus === 'monthly') {
+    if (subscriptionStatus === 'plus' || subscriptionStatus === 'pro') {
       expiresAt = new Date();
       expiresAt.setMonth(expiresAt.getMonth() + 1);
-    } else if (subscriptionStatus === 'yearly') {
-      expiresAt = new Date();
-      expiresAt.setFullYear(expiresAt.getFullYear() + 1);
     }
     
     const updatedUser = await prisma.user.update({

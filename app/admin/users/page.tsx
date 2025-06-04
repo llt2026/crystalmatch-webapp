@@ -12,7 +12,7 @@ interface User {
   name: string;
   createdAt: string;
   lastLogin: string;
-  subscriptionStatus: 'free' | 'monthly' | 'yearly' | 'none';
+  subscriptionStatus: 'free' | 'plus' | 'pro' | 'none';
 }
 
 export default function AdminUsersPage() {
@@ -106,7 +106,7 @@ export default function AdminUsersPage() {
       // 更新本地状态
       setUsers(users.map(user => 
         user.id === userId 
-          ? { ...user, subscriptionStatus: newStatus as 'free' | 'monthly' | 'yearly' | 'none' } 
+          ? { ...user, subscriptionStatus: newStatus as 'free' | 'plus' | 'pro' | 'none' } 
           : user
       ));
 
@@ -120,9 +120,9 @@ export default function AdminUsersPage() {
   // 订阅状态样式
   const getStatusStyle = (status: string) => {
     switch (status) {
-      case 'yearly':
+      case 'pro':
         return 'bg-purple-100 text-purple-800';
-      case 'monthly':
+      case 'plus':
         return 'bg-blue-100 text-blue-800';
       case 'free':
         return 'bg-green-100 text-green-800';
@@ -134,10 +134,10 @@ export default function AdminUsersPage() {
   // 订阅状态文本
   const getStatusText = (status: string) => {
     switch (status) {
-      case 'yearly':
-        return '年度会员';
-      case 'monthly':
-        return '月度会员';
+      case 'pro':
+        return 'Pro会员';
+      case 'plus':
+        return 'Plus会员';
       case 'free':
         return '免费用户';
       default:
@@ -266,8 +266,8 @@ export default function AdminUsersPage() {
                             className="px-2 py-1 text-xs rounded-md bg-purple-900/50 text-white border border-purple-500/30 focus:outline-none focus:border-purple-500"
                           >
                             <option value="free">免费用户</option>
-                            <option value="monthly">月度会员</option>
-                            <option value="yearly">年度会员</option>
+                            <option value="plus">Plus会员</option>
+                            <option value="pro">Pro会员</option>
                             <option value="none">未订阅</option>
                           </select>
                         </td>
