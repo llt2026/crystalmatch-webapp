@@ -91,16 +91,24 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: 'User not found' }, { status: 404 });
       }
 
+      const birthInfo = user.birthInfo as any || {};
+      const birthDateIso = birthInfo.birthdate || birthInfo.date || undefined;
+
       const userProfile = {
-        name: user.name || 'Unknown User',
+        // 如果数据库未存储name，则回退使用邮箱前缀，避免出现"Unknown User"
+        name: user.name || (user.email?.split('@')[0] ?? 'User'),
         email: user.email,
-        avatar: user.avatarUrl || '',
+        // avatar字段
+        avatar: user.avatar || '',
+        // 供前端兼容：既提供扁平birthDate，也提供birthInfo对象
+        birthDate: birthDateIso,
         birthInfo: {
-          date: user.birthDate ? user.birthDate.toISOString() : undefined,
+          date: birthDateIso,
+          gender: birthInfo.gender,
         },
         subscription: {
-          status: user.subscriptionStatus as 'free' | 'premium',
-          expiresAt: user.subscriptionExpiresAt?.toISOString() || undefined,
+          status: (user as any).subscriptionStatus ?? 'free',
+          expiresAt: (user as any).subscriptionExpiresAt?.toISOString() ?? undefined,
         },
         joinedAt: user.createdAt.toISOString(),
       };
