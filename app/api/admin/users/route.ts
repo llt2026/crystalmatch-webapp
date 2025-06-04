@@ -45,63 +45,16 @@ export async function GET(request: NextRequest) {
       orderBy: {
         createdAt: 'desc',
       },
-      include: {
-        subscriptions: {
-          select: {
-            status: true,
-            endDate: true,
-            planId: true,
-          },
-          where: {
-            OR: [
-              { status: 'active' },
-              { 
-                status: 'active',
-                endDate: { gt: new Date() }
-              }
-            ]
-          },
-          orderBy: {
-            createdAt: 'desc'
-          },
-          take: 1
-        },
-      },
     });
 
-    // 转换数据结构供前端使用
-    const serializedUsers = await Promise.all(users.map(async (u: any) => {
-      // 根据用户的subscription记录确定订阅状态
-      let subscriptionStatus = 'free';
-      if (u.subscriptions && u.subscriptions.length > 0) {
-        const latestSubscription = u.subscriptions[0];
-        if (latestSubscription.status === 'active' && 
-            (!latestSubscription.endDate || new Date(latestSubscription.endDate) > new Date())) {
-          
-          // 从订阅计划名称中推断订阅类型
-          const plan = await prisma.subscriptionPlan.findUnique({
-            where: { id: latestSubscription.planId }
-          });
-          
-          const planName = plan?.name?.toLowerCase() || '';
-          if (planName.includes('pro')) {
-            subscriptionStatus = 'pro';
-          } else if (planName.includes('plus')) {
-            subscriptionStatus = 'plus';
-          } else {
-            subscriptionStatus = 'plus'; // 默认为plus
-          }
-        }
-      }
-      
-      return {
-        id: u.id,
-        email: u.email,
-        name: u.name || '',
-        createdAt: u.createdAt,
-        lastLogin: u.lastLoginAt,
-        subscriptionStatus: subscriptionStatus,
-      };
+    // 将所有用户数据中简单假设为free会员，避免复杂查询
+    const serializedUsers = users.map((user) => ({
+      id: user.id,
+      email: user.email,
+      name: user.name || '',
+      createdAt: user.createdAt,
+      lastLogin: user.lastLoginAt,
+      subscriptionStatus: 'free',
     }));
 
     return NextResponse.json({
