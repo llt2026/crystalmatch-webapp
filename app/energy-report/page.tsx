@@ -183,7 +183,7 @@ export default function EnergyReportPage() {
           strength: userTraits.strength,
           weakness: userTraits.weakness,
           yearCrystal: userCrystal,
-          birthDate: userData.birthDate || '1990-01-01T00:00:00.000Z',
+          birthDate: userData.birthDate || (userData as any).birthInfo?.date || '1990-01-01T00:00:00.000Z',
           subscriptionTier: userData.subscriptionTier || 'yearly'
         });
       } catch (err) {
@@ -237,7 +237,15 @@ export default function EnergyReportPage() {
             </div>
           )}
           
-          <h1 className="text-5xl font-bold text-white">{userData.name}</h1>
+          <div className="flex flex-col">
+            <h1 className="text-5xl font-bold text-white leading-none">{userData.name}</h1>
+            {/* Birthday below name */}
+            <p className="text-purple-300 text-sm mt-1">
+              {new Date(userData.birthDate).toLocaleDateString('en-US', {
+                month: 'short', day: 'numeric', year: 'numeric'
+              })}
+            </p>
+          </div>
         </div>
         
         <div className="bg-purple-800/80 rounded-lg p-4 w-full text-center">
