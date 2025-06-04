@@ -55,8 +55,12 @@ export default function ProfilePage() {
         
         setProfile(userData);
       } catch (err) {
-        console.error('无法获取用户数据:', err);
-        setError('无法获取用户信息，请重试或联系客服');
+        console.error('Failed to fetch user data:', err);
+        if ((err as any).message?.includes('401')) {
+          setError('Unauthorized. Please sign in to view your profile.');
+        } else {
+          setError('Unable to fetch user info. Please try again or contact support.');
+        }
         
         // 保持加载状态为false，但不设置profile，这样会显示错误信息
       } finally {
@@ -81,14 +85,23 @@ export default function ProfilePage() {
     return (
       <main className="min-h-screen bg-gradient-to-br from-purple-900 to-black flex items-center justify-center p-4">
         <div className="bg-black/40 rounded-lg p-6 max-w-md text-center">
-          <h2 className="text-xl text-red-400 mb-4">无法加载用户数据</h2>
-          <p className="text-white mb-6">{error || '请检查您的网络连接并重试'}</p>
-          <button 
-            onClick={() => window.location.reload()} 
-            className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700"
-          >
-            重试
-          </button>
+          <h2 className="text-xl text-red-400 mb-4">Unable to load user data</h2>
+          <p className="text-white mb-6">{error || 'Please check your network connection and retry'}</p>
+          {error?.includes('Unauthorized') ? (
+            <button
+              onClick={() => router.push('/sign-in')}
+              className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700"
+            >
+              Sign In
+            </button>
+          ) : (
+            <button 
+              onClick={() => window.location.reload()} 
+              className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700"
+            >
+              Retry
+            </button>
+          )}
         </div>
       </main>
     );
