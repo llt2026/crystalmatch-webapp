@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
           select: {
             status: true,
             endDate: true,
-            planType: true,
+            planId: true,
           },
           where: {
             OR: [
@@ -70,14 +70,27 @@ export async function GET(request: NextRequest) {
     });
 
     // 转换数据结构供前端使用
-    const serializedUsers = users.map((u: any) => {
+    const serializedUsers = await Promise.all(users.map(async (u: any) => {
       // 根据用户的subscription记录确定订阅状态
       let subscriptionStatus = 'free';
       if (u.subscriptions && u.subscriptions.length > 0) {
         const latestSubscription = u.subscriptions[0];
         if (latestSubscription.status === 'active' && 
             (!latestSubscription.endDate || new Date(latestSubscription.endDate) > new Date())) {
-          subscriptionStatus = latestSubscription.planType || 'plus';
+          
+          // 从订阅计划名称中推断订阅类型
+          const plan = await prisma.subscriptionPlan.findUnique({
+            where: { id: latestSubscription.planId }
+          });
+          
+          const planName = plan?.name?.toLowerCase() || '';
+          if (planName.includes('pro')) {
+            subscriptionStatus = 'pro';
+          } else if (planName.includes('plus')) {
+            subscriptionStatus = 'plus';
+          } else {
+            subscriptionStatus = 'plus'; // 默认为plus
+          }
         }
       }
       
@@ -89,7 +102,7 @@ export async function GET(request: NextRequest) {
         lastLogin: u.lastLoginAt,
         subscriptionStatus: subscriptionStatus,
       };
-    });
+    }));
 
     return NextResponse.json({
       users: serializedUsers,

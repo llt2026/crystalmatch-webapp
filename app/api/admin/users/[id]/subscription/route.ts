@@ -86,8 +86,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
           planId: planId,
           status: 'active',
           startDate: new Date(),
-          endDate: expiresAt,
-          planType: subscriptionStatus  // 添加planType字段以便于查询
+          endDate: expiresAt
         }
       });
     }

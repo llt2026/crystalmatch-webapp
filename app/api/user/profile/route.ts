@@ -133,7 +133,19 @@ export async function GET(request: NextRequest) {
         const latestSubscription = user.subscriptions[0];
         if (latestSubscription.status === 'active' && 
             (!latestSubscription.endDate || new Date(latestSubscription.endDate) > new Date())) {
-          subscriptionStatus = latestSubscription.planType || 'plus';
+          // 从订阅计划名称中推断订阅类型
+          const planName = (await prisma.subscriptionPlan.findUnique({
+            where: { id: latestSubscription.planId }
+          }))?.name?.toLowerCase() || '';
+          
+          if (planName.includes('pro')) {
+            subscriptionStatus = 'pro';
+          } else if (planName.includes('plus')) {
+            subscriptionStatus = 'plus';
+          } else {
+            subscriptionStatus = 'plus'; // 默认为plus
+          }
+          
           subscriptionExpiresAt = latestSubscription.endDate;
         }
       }
