@@ -109,16 +109,21 @@ export default function EnergyReportPage() {
         // 从API获取用户数据
         let userData = null;
         try {
+          // 请求前故意加上时间戳，避免浏览器缓存
+          const ts = new Date().getTime();
           const userRes = await fetch('/api/user/profile', { 
             headers,
             credentials: 'include',
-            cache: 'no-store'
+            cache: 'no-store', 
+            method: 'GET',
+            next: { revalidate: 0 }
           });
           if (!userRes.ok) {
             throw new Error(`获取用户数据失败: ${userRes.status}`);
           }
           userData = await userRes.json();
-          console.log('成功获取用户数据:', userData);
+          console.log('成功获取用户数据(完整):', JSON.stringify(userData));
+          console.log('生日信息:', userData.birthDate, userData.birthInfo?.date, userData.birthInfo?.birthdate);
         } catch (userError) {
           console.error('获取用户数据出错:', userError);
           // 继续尝试其他API调用，而不是立即返回错误

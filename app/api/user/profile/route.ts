@@ -91,8 +91,20 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: 'User not found' }, { status: 404 });
       }
 
-      const birthInfo = user.birthInfo as any || {};
+      // 完整显示birthInfo内容
+      console.log('用户birthInfo原始数据:', JSON.stringify(user.birthInfo));
+      let birthInfo;
+      try {
+        birthInfo = (typeof user.birthInfo === 'string') 
+          ? JSON.parse(user.birthInfo as string) 
+          : (user.birthInfo || {});
+      } catch (e) {
+        console.error('解析birthInfo失败:', e);
+        birthInfo = {};
+      }
+      
       const birthDateIso = birthInfo.birthdate || birthInfo.date || undefined;
+      console.log('提取到的birthDateIso:', birthDateIso);
 
       const userProfile = {
         // 唯一ID，供前端逻辑使用
