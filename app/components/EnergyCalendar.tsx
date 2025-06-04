@@ -16,9 +16,9 @@ const EnergyCalendar: React.FC<EnergyCalendarProps> = ({ birthDate }) => {
   // 将数字月份转换为英文月份名称
   const getMonthName = (month: number): string => {
     const months = [
-      'January', 'February', 'March', 'April',
-      'May', 'June', 'July', 'August',
-      'September', 'October', 'November', 'December'
+      'Jan', 'Feb', 'Mar', 'Apr',
+      'May', 'Jun', 'Jul', 'Aug',
+      'Sep', 'Oct', 'Nov', 'Dec'
     ];
     return months[month - 1];
   };
