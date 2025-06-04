@@ -42,7 +42,7 @@ export default function RootLayout({
         <meta name="theme-color" content="#4c1d95" />
         <meta name="description" content="Discover your energy signature through your birth information and find the crystals that resonate with your unique vibration." />
         <link rel="manifest" href="/manifest.json" />
-        <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+        <link rel="apple-touch-icon" href="/images/logo.png" />
         <title>CrystalMatch - Find Your Perfect Crystal Match</title>
       </head>
       <body>
