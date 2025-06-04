@@ -85,7 +85,26 @@ export async function GET(request: NextRequest) {
     }
 
     try {
-      const user = await prisma.user.findUnique({ where: { id: userId } });
+      const user = await prisma.user.findUnique({ 
+        where: { id: userId },
+        include: {
+          subscriptions: {
+            where: {
+              OR: [
+                { status: 'active' },
+                { 
+                  status: 'active',
+                  endDate: { gt: new Date() }
+                }
+              ]
+            },
+            orderBy: {
+              createdAt: 'desc'
+            },
+            take: 1
+          }
+        }
+      });
 
       if (!user) {
         return NextResponse.json({ error: 'User not found' }, { status: 404 });
@@ -106,6 +125,19 @@ export async function GET(request: NextRequest) {
       const birthDateIso = birthInfo.birthdate || birthInfo.date || undefined;
       console.log('提取到的birthDateIso:', birthDateIso);
 
+      // 确定订阅状态
+      let subscriptionStatus = 'free';
+      let subscriptionExpiresAt = undefined;
+      
+      if (user.subscriptions && user.subscriptions.length > 0) {
+        const latestSubscription = user.subscriptions[0];
+        if (latestSubscription.status === 'active' && 
+            (!latestSubscription.endDate || new Date(latestSubscription.endDate) > new Date())) {
+          subscriptionStatus = latestSubscription.planType || 'plus';
+          subscriptionExpiresAt = latestSubscription.endDate;
+        }
+      }
+
       const userProfile = {
         // 唯一ID，供前端逻辑使用
         id: user.id,
@@ -121,8 +153,8 @@ export async function GET(request: NextRequest) {
           gender: birthInfo.gender,
         },
         subscription: {
-          status: (user as any).subscriptionStatus ?? 'free',
-          expiresAt: (user as any).subscriptionExpiresAt?.toISOString() ?? undefined,
+          status: subscriptionStatus,
+          expiresAt: subscriptionExpiresAt?.toISOString() ?? undefined,
         },
         joinedAt: user.createdAt.toISOString(),
       };

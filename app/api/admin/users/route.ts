@@ -50,7 +50,21 @@ export async function GET(request: NextRequest) {
           select: {
             status: true,
             endDate: true,
+            planType: true,
           },
+          where: {
+            OR: [
+              { status: 'active' },
+              { 
+                status: 'active',
+                endDate: { gt: new Date() }
+              }
+            ]
+          },
+          orderBy: {
+            createdAt: 'desc'
+          },
+          take: 1
         },
       },
     });
@@ -60,11 +74,10 @@ export async function GET(request: NextRequest) {
       // 根据用户的subscription记录确定订阅状态
       let subscriptionStatus = 'free';
       if (u.subscriptions && u.subscriptions.length > 0) {
-        const activeSubscription = u.subscriptions.find((s: any) => 
-          s.status === 'active' && (!s.endDate || new Date(s.endDate) > new Date())
-        );
-        if (activeSubscription) {
-          subscriptionStatus = activeSubscription.planType || 'plus';
+        const latestSubscription = u.subscriptions[0];
+        if (latestSubscription.status === 'active' && 
+            (!latestSubscription.endDate || new Date(latestSubscription.endDate) > new Date())) {
+          subscriptionStatus = latestSubscription.planType || 'plus';
         }
       }
       
