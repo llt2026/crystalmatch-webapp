@@ -72,8 +72,20 @@ export async function GET(request: NextRequest) {
     const jwtPayload = await getJwtPayload(request);
 
     if (!jwtPayload) {
-      console.log('未登录或token无效，返回401');
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      console.log('未登录或token无效，返回访客用户数据');
+      // 返回默认访客用户信息而非401错误
+      return NextResponse.json({
+        name: "Guest User",
+        email: "guest@example.com",
+        avatar: "",
+        birthInfo: {
+          date: "1990-01-01T00:00:00.000Z"
+        },
+        subscription: {
+          status: 'free'
+        },
+        isGuest: true // 标记为访客账户
+      });
     }
 
     // 提取我们关心的字段
