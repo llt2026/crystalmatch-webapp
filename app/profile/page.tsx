@@ -7,6 +7,7 @@ import Image from 'next/image';
 import { useTranslation } from '../utils/useTranslation';
 
 interface UserProfile {
+  id?: string;  // 添加id字段，使其可选
   name: string;
   email: string;
   avatar?: string;
@@ -48,15 +49,68 @@ export default function ProfilePage() {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const response = await fetch('/api/user/profile');
-        if (!response.ok) {
-          throw new Error('Failed to fetch profile');
+        // 尝试从多个位置获取token
+        let token = null;
+        if (typeof window !== 'undefined') {
+          // 依次尝试从localStorage不同键名获取
+          const possibleKeys = ['authToken', 'token', 'jwt', 'crystalMatchToken'];
+          for (const key of possibleKeys) {
+            const savedToken = localStorage.getItem(key);
+            if (savedToken) {
+              console.log(`从localStorage[${key}]获取到token: ${savedToken}`);
+              token = savedToken;
+              break;
+            }
+          }
         }
+
+        // 设置请求头
+        const headers: Record<string,string> = token ? { 'Authorization': `Bearer ${token}` } : {};
+        console.log('使用headers:', headers);
+        
+        // 尝试获取用户信息
+        const response = await fetch('/api/user/profile', { 
+          method: 'GET',
+          headers,
+          cache: 'no-store'
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch profile: ${response.status}`);
+        }
+        
         const data = await response.json();
+        console.log('成功获取API用户数据:', data);
+        
+        if (!data || !data.name) {
+          throw new Error('API返回的用户数据无效');
+        }
+        
         setProfile(data);
       } catch (err) {
-        setError(t('errors.networkError'));
-        console.error(err);
+        console.error('获取用户数据失败:', err);
+        
+        // 使用默认数据
+        console.warn('使用默认测试用户数据');
+        const testProfile: UserProfile = {
+          id: 'test-user',
+          name: "Test User", // 使用与图片一致的测试用户名
+          email: "user@example.com",
+          location: {
+            country: "USA",
+            state: "California",
+            city: "Los Angeles"
+          },
+          subscription: {
+            status: 'premium'
+          },
+          reportsCount: 2,
+          joinedAt: new Date().toISOString(),
+          birthInfo: {
+            date: "1990-01-01T00:00:00.000Z" // 默认出生日期
+          }
+        };
+        setProfile(testProfile);
       } finally {
         setIsLoading(false);
       }
@@ -64,32 +118,6 @@ export default function ProfilePage() {
 
     fetchProfile();
   }, []);
-
-  // 确保有用户数据 - 如果API获取失败则使用默认数据
-  if (!profile && !isLoading) {
-    console.warn('API无法获取用户数据，使用应急默认数据');
-    // 生成唯一ID确保一致性
-    const tempId = `temp-${new Date().getTime()}-${Math.floor(Math.random() * 1000)}`;
-    const tempProfile: UserProfile = {
-      id: tempId,
-      name: "Crystal User", // 更改默认用户名
-      email: "user@crystalmatch.com",
-      location: {
-        country: "USA",
-        state: "California",
-        city: "Los Angeles"
-      },
-      subscription: {
-        status: 'premium'
-      },
-      reportsCount: 5,
-      joinedAt: new Date().toISOString(),
-      birthInfo: {
-        date: "1992-06-15T00:00:00.000Z" // 设置一个默认生日
-      }
-    };
-    setProfile(tempProfile);
-  }
 
   if (isLoading) {
     return (
@@ -99,16 +127,16 @@ export default function ProfilePage() {
     );
   }
 
-  if (error || !profile) {
+  if (!profile) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-900 to-black p-4">
         <div className="text-red-400 text-center">
           <p className="text-lg sm:text-xl mb-4">{error || t('errors.networkError')}</p>
           <button
-            onClick={() => router.push('/dashboard')}
+            onClick={() => router.push('/')}
             className="px-4 sm:px-6 py-2 sm:py-3 bg-purple-600 text-white rounded-lg text-sm sm:text-base hover:bg-purple-700 transition-colors"
           >
-            {t('common.cancel')}
+            返回首页
           </button>
         </div>
       </div>
@@ -128,13 +156,16 @@ export default function ProfilePage() {
         <div className="bg-black/30 backdrop-blur-xl rounded-2xl p-5 shadow-xl">
           {/* 修改为水平布局 */}
           <div className="flex flex-row items-center">
-            {/* Avatar - 始终使用我们的默认头像 */}
+            {/* Avatar - 始终使用默认头像 */}
             <div className="relative w-20 h-20 flex-shrink-0 mr-4">
+              {/* 强制使用本地默认头像 */}
               <Image 
                 src="/images/avatars/default-avatar.png" 
                 alt="User Avatar" 
-                fill 
+                width={80}
+                height={80}
                 className="rounded-full" 
+                priority
               />
             </div>
             {/* 用户信息 - 右侧垂直布局 */}
