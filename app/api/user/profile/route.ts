@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic'; // 确保 API 路由始终动态执行，避免构建期缓存
 import { jwtVerify } from 'jose';
+import { prisma } from '@/app/lib/prisma';
 
 type JwtPayload = Record<string, any>;
 
@@ -73,38 +74,42 @@ export async function GET(request: NextRequest) {
 
     if (!jwtPayload) {
       console.log('未登录或token无效，返回访客用户数据');
-      // 返回默认访客用户信息而非401错误
-      return NextResponse.json({
-        name: "Guest User",
-        email: "guest@example.com",
-        avatar: "",
-        birthInfo: {
-          date: "1990-01-01T00:00:00.000Z"
-        },
-        subscription: {
-          status: 'free'
-        },
-        isGuest: true // 标记为访客账户
-      });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // 提取我们关心的字段
-    const userProfile = {
-      name: jwtPayload.name || jwtPayload.fullName || 'Unknown User',
-      email: jwtPayload.email || '',
-      avatar: jwtPayload.avatar || '',
-      birthInfo: {
-        date: jwtPayload.birthDate || jwtPayload.dob || undefined,
-      },
-      subscription: {
-        status: jwtPayload.subscriptionStatus || 'free',
-        expiresAt: jwtPayload.subscriptionExpiresAt || undefined,
-      },
-      joinedAt: jwtPayload.iat ? new Date(jwtPayload.iat * 1000).toISOString() : undefined,
-      _raw: jwtPayload,
-    };
+    // 查询数据库获取完整用户信息
+    const userId = (jwtPayload.userId || jwtPayload.sub || '') as string;
 
-    return NextResponse.json(userProfile);
+    if (!userId) {
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+    }
+
+    try {
+      const user = await prisma.user.findUnique({ where: { id: userId } });
+
+      if (!user) {
+        return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      }
+
+      const userProfile = {
+        name: user.name || 'Unknown User',
+        email: user.email,
+        avatar: user.avatarUrl || '',
+        birthInfo: {
+          date: user.birthDate ? user.birthDate.toISOString() : undefined,
+        },
+        subscription: {
+          status: user.subscriptionStatus as 'free' | 'premium',
+          expiresAt: user.subscriptionExpiresAt?.toISOString() || undefined,
+        },
+        joinedAt: user.createdAt.toISOString(),
+      };
+
+      return NextResponse.json(userProfile);
+    } catch (err) {
+      console.error('DB error:', err);
+      return NextResponse.json({ error: 'Server error' }, { status: 500 });
+    }
   } catch (error) {
     console.error('Error fetching user profile:', error);
     return NextResponse.json(
