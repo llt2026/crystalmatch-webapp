@@ -134,21 +134,12 @@ export default function ProfilePage() {
         <div className="bg-black/30 backdrop-blur-xl rounded-2xl p-5 shadow-xl">
           {/* 水平布局 */}
           <div className="flex flex-row items-center">
-            {/* 默认头像 - 使用普通img标签而非Next.js Image组件 */}
-            <div className="w-20 h-20 flex-shrink-0 mr-4 relative overflow-hidden rounded-full">
-              <img 
-                src="/images/avatars/default-avatar.png" 
-                alt={`${profile.name}的头像`}
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  // 如果加载失败，显示首字母头像
-                  const target = e.target as HTMLImageElement;
-                  const parent = target.parentElement;
-                  if (parent) {
-                    parent.innerHTML = `<div class="w-full h-full bg-purple-700 flex items-center justify-center text-white text-3xl font-bold">${profile.name.charAt(0).toUpperCase()}</div>`;
-                  }
-                }}
-              />
+            {/* 默认头像 - 使用首字母显示 */}
+            <div className="w-20 h-20 flex-shrink-0 mr-4 relative overflow-hidden rounded-full bg-purple-700 flex items-center justify-center">
+              {/* 完全移除img标签，直接使用首字母头像，避免404错误 */}
+              <span className="text-3xl text-white font-bold">
+                {profile.name.charAt(0).toUpperCase()}
+              </span>
             </div>
             {/* 用户信息 */}
             <div className="flex flex-col items-start text-left">
