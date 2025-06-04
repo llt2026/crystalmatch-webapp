@@ -510,8 +510,12 @@ export async function calculateEnergyCalendar(birthDate: string): Promise<Energy
       const startDay = currentSegment.startDate.getDate();
       const endMonth = currentSegment.endDate.getMonth() + 1;
       const endDay = currentSegment.endDate.getDate();
-      
-      const label = `${startMonth}/${startDay}${startMonth !== endMonth || startDay !== endDay ? ` - ${endMonth}/${endDay}` : ''}`;
+      const startYear = currentSegment.startDate.getFullYear();
+      const endYear = currentSegment.endDate.getFullYear();
+      const label = `${startMonth}/${startDay}/${startYear}` +
+        (startMonth !== endMonth || startDay !== endDay || startYear !== endYear
+          ? ` - ${endMonth}/${endDay}/${endYear}`
+          : '');
       
       // 添加到结果数组
       calendarData.push({
@@ -592,8 +596,12 @@ export async function calculateEnergyCalendar(birthDate: string): Promise<Energy
     endDate.setDate(endDate.getDate() + 30);
     const endMonth = endDate.getMonth() + 1;
     const endDay = endDate.getDate();
-    
-    const label = `${startMonth}/${startDay} - ${endMonth}/${endDay}`;
+    const startYear = currentSegment.startDate.getFullYear();
+    const endYear = endDate.getFullYear();
+    const label = `${startMonth}/${startDay}/${startYear}` +
+      (startMonth !== endMonth || startDay !== endDay || startYear !== endYear
+        ? ` - ${endMonth}/${endDay}/${endYear}`
+        : '');
     
     calendarData.push({
       month: label,
@@ -627,8 +635,12 @@ export async function calculateEnergyCalendar(birthDate: string): Promise<Energy
     const startDay = nextStartDate.getDate();
     const endMonth = nextEndDate.getMonth() + 1;
     const endDay = nextEndDate.getDate();
-    
-    const label = `${startMonth}/${startDay} - ${endMonth}/${endDay}`;
+    const startYear = nextStartDate.getFullYear();
+    const endYear = nextEndDate.getFullYear();
+    const label = `${startMonth}/${startDay}/${startYear}` +
+      (startMonth !== endMonth || startDay !== endDay || startYear !== endYear
+        ? ` - ${endMonth}/${endDay}/${endYear}`
+        : '');
     
     // 生成一个随机能量变化（-5%到+5%之间）
     const randomChange = Math.round((Math.random() * 10 - 5) * 10) / 10;

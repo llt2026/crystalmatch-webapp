@@ -62,27 +62,27 @@ const EnergyCalendar: React.FC<EnergyCalendarProps> = ({ birthDate }) => {
   const formatDateRange = (dateStr: string): string => {
     if (!dateStr) return '';
     
-    // 处理格式如"6/3 - 6/4"的日期字符串
+    // 处理格式如"6/3/2025" 或 "6/3/2025 - 7/4/2025"
     const parts = dateStr.split(' - ');
-    
+
+    const parsePart = (part: string) => {
+      const [m, d, y] = part.split('/').map(Number);
+      return { month: m, day: d, year: y };
+    };
+
     if (parts.length === 1) {
-      // 单日期，例如"6/3"
-      const [month, day] = parts[0].split('/').map(Number);
-      const currentYear = new Date().getFullYear();
-      return `${getMonthName(month)} ${day}, ${currentYear}`;
+      const { month, day, year } = parsePart(parts[0]);
+      return `${getMonthName(month)} ${day}, ${year}`;
     } else {
-      // 日期范围，例如"6/3 - 6/4"
-      const [startMonth, startDay] = parts[0].split('/').map(Number);
-      const [endMonth, endDay] = parts[1].split('/').map(Number);
-      const currentYear = new Date().getFullYear();
-      
-      if (startMonth === endMonth) {
-        // 同月份，例如"June 3-4, 2025"
-        return `${getMonthName(startMonth)} ${startDay}-${endDay}, ${currentYear}`;
-      } else {
-        // 跨月份，例如"June 28 - July 4, 2025"
-        return `${getMonthName(startMonth)} ${startDay} - ${getMonthName(endMonth)} ${endDay}, ${currentYear}`;
+      const start = parsePart(parts[0]);
+      const end = parsePart(parts[1]);
+
+      if (start.month === end.month && start.year === end.year) {
+        // 同月同年
+        return `${getMonthName(start.month)} ${start.day}-${end.day}, ${start.year}`;
       }
+      // 跨月或跨年
+      return `${getMonthName(start.month)} ${start.day}, ${start.year} - ${getMonthName(end.month)} ${end.day}, ${end.year}`;
     }
   };
 
