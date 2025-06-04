@@ -99,35 +99,40 @@ export default function ProfilePage() {
       </Link>
       <div className="max-w-xs sm:max-w-sm mx-auto space-y-6">
         {/* Header */}
-        <div className="bg-black/30 backdrop-blur-xl rounded-2xl p-5 shadow-xl flex flex-col items-center text-center space-y-2">
-          {/* Avatar */}
-          <div className="relative w-20 h-20">
-            {profile.avatar ? (
-              <Image src={profile.avatar} alt={`${profile.name} avatar`} fill className="rounded-full object-cover" />
-            ) : (
-              <div className="w-full h-full rounded-full bg-purple-500/30 flex items-center justify-center">
-                <span className="text-3xl text-purple-200 font-semibold">
-                  {profile.name.charAt(0).toUpperCase()}
-                </span>
-              </div>
-            )}
-          </div>
-          {/* Name & Email */}
-          <div>
-            <p className="text-lg font-semibold text-white leading-tight">{profile.name}</p>
-            <p className="text-xs text-purple-200">{profile.email}</p>
-          </div>
-          {/* Birth date */}
-          {profile.birthInfo?.date && (
-            <div className="flex items-center gap-1 text-xs text-purple-300">
-              <span className="material-symbols-rounded text-base">calendar_today</span>
-              {new Date(profile.birthInfo.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+        <div className="bg-black/30 backdrop-blur-xl rounded-2xl p-5 shadow-xl">
+          {/* 修改为水平布局 */}
+          <div className="flex flex-row items-center">
+            {/* Avatar - 始终使用我们的默认头像 */}
+            <div className="relative w-20 h-20 flex-shrink-0 mr-4">
+              <Image 
+                src="/images/avatars/default-avatar.svg" 
+                alt="User Avatar" 
+                fill 
+                className="rounded-full" 
+              />
             </div>
-          )}
-          {/* Subscription badge */}
-          {profile.subscription.status === 'premium' && (
-            <span className="px-2 py-0.5 rounded-full text-[10px] bg-purple-700 text-white">PREMIUM</span>
-          )}
+            {/* 用户信息 - 右侧垂直布局 */}
+            <div className="flex flex-col items-start text-left">
+              {/* 用户名 */}
+              <p className="text-lg font-semibold text-white leading-tight mb-1">{profile.name}</p>
+              
+              {/* 生日信息 - 使用美国格式 MM/DD/YYYY */}
+              {profile.birthInfo?.date && (
+                <p className="text-sm text-purple-200">
+                  {new Date(profile.birthInfo.date).toLocaleDateString('en-US', { 
+                    month: '2-digit', 
+                    day: '2-digit', 
+                    year: 'numeric' 
+                  })}
+                </p>
+              )}
+              
+              {/* 订阅状态标签 */}
+              {profile.subscription.status === 'premium' && (
+                <span className="mt-2 px-2 py-0.5 rounded-full text-[10px] bg-purple-700 text-white">PREMIUM</span>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* UPGRADE Button */}
