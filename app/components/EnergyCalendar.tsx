@@ -6,7 +6,7 @@ import LoadingSpinner from './LoadingSpinner';
 
 interface EnergyCalendarProps {
   birthDate: string;
-  subscriptionTier?: 'free' | 'plus' | 'pro';
+  subscriptionTier?: 'free' | 'plus' | 'pro' | 'monthly' | 'yearly' | 'premium';
 }
 
 // 扩展EnergyCalendarItem接口，添加我们需要的额外字段
@@ -50,10 +50,13 @@ const EnergyCalendar: React.FC<EnergyCalendarProps> = ({ birthDate, subscription
   const [error, setError] = useState<string | null>(null);
 
   // 判断用户是否可以查看水晶列
-  const canViewCrystal = subscriptionTier === 'plus' || subscriptionTier === 'pro';
+  const canViewCrystal = subscriptionTier === 'plus' || subscriptionTier === 'pro' || 
+                         subscriptionTier === 'monthly' || subscriptionTier === 'yearly' || 
+                         subscriptionTier === 'premium';
   
   // 判断用户是否可以查看幸运颜色列
-  const canViewLuckyColors = subscriptionTier === 'pro';
+  const canViewLuckyColors = subscriptionTier === 'pro' || subscriptionTier === 'yearly' || 
+                             subscriptionTier === 'premium';
 
   // 将数字月份转换为英文月份名称
   const getMonthName = (month: number): string => {
