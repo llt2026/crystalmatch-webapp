@@ -191,7 +191,7 @@ export default function EnergyReportPage() {
           strength: userTraits.strength,
           weakness: userTraits.weakness,
           yearCrystal: userCrystal,
-          birthDate: userData.birthDate || (userData as any).birthInfo?.date || '1990-01-01T00:00:00.000Z',
+          birthDate: userData.birthDate || (userData as any).birthInfo?.date || (userData as any).birthInfo?.birthdate || '1990-01-01T00:00:00.000Z',
           subscriptionTier: userData.subscriptionTier || 'yearly'
         });
       } catch (err) {

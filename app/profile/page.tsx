@@ -135,9 +135,9 @@ export default function ProfilePage() {
               <p className="text-lg font-semibold text-white leading-tight mb-1">{profile.name}</p>
               
               {/* 生日信息 - 从真实数据中获取并格式化为美区格式 (MM/DD/YYYY) */}
-              {(profile.birthDate || profile.birthInfo?.date) && (
+              {(profile.birthDate || profile.birthInfo?.date || (profile as any).birthInfo?.birthdate) && (
                 <p className="text-sm text-purple-200">
-                  {new Date(profile.birthDate || profile.birthInfo?.date || '').toLocaleDateString('en-US', { 
+                  {new Date(profile.birthDate || profile.birthInfo?.date || (profile as any).birthInfo?.birthdate || '').toLocaleDateString('en-US', { 
                     month: '2-digit', 
                     day: '2-digit', 
                     year: 'numeric' 
