@@ -6,7 +6,7 @@ import LoadingSpinner from './LoadingSpinner';
 
 interface EnergyCalendarProps {
   birthDate: string;
-  subscriptionTier?: 'free' | 'monthly' | 'yearly';
+  subscriptionTier?: 'free' | 'plus' | 'pro';
 }
 
 // 扩展EnergyCalendarItem接口，添加我们需要的额外字段
@@ -50,10 +50,10 @@ const EnergyCalendar: React.FC<EnergyCalendarProps> = ({ birthDate, subscription
   const [error, setError] = useState<string | null>(null);
 
   // 判断用户是否可以查看水晶列
-  const canViewCrystal = subscriptionTier === 'monthly' || subscriptionTier === 'yearly';
+  const canViewCrystal = subscriptionTier === 'plus' || subscriptionTier === 'pro';
   
   // 判断用户是否可以查看幸运颜色列
-  const canViewLuckyColors = subscriptionTier === 'yearly';
+  const canViewLuckyColors = subscriptionTier === 'pro';
 
   // 将数字月份转换为英文月份名称
   const getMonthName = (month: number): string => {
@@ -243,7 +243,7 @@ const EnergyCalendar: React.FC<EnergyCalendarProps> = ({ birthDate, subscription
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1 text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
                         <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
                       </svg>
-                      <span className="text-yellow-500">Monthly</span>
+                      <span className="text-yellow-500">PLUS</span>
                     </div>
                   )}
                 </td>
@@ -255,7 +255,7 @@ const EnergyCalendar: React.FC<EnergyCalendarProps> = ({ birthDate, subscription
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1 text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
                         <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
                       </svg>
-                      <span className="text-yellow-500">Yearly</span>
+                      <span className="text-yellow-500">PRO</span>
                     </div>
                   )}
                 </td>

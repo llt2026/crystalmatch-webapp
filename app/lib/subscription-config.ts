@@ -1,7 +1,7 @@
 /**
  * 订阅级别定义
  */
-export type SubscriptionTier = 'free' | 'monthly' | 'yearly';
+export type SubscriptionTier = 'free' | 'plus' | 'pro';
 
 /**
  * 订阅功能配置
@@ -10,16 +10,16 @@ export const SUBSCRIPTION_FEATURES = {
   // 五行雷达图 - 所有级别都可用
   fiveElementsRadar: {
     free: true,
-    monthly: true,
-    yearly: true,
+    plus: true,
+    pro: true,
     description: "Five Elements Radar"
   },
   
   // 优势特质 x 4 - 所有级别都可用
   strengthChips: {
     free: true,
-    monthly: true,
-    yearly: true,
+    plus: true,
+    pro: true,
     count: 4,
     description: "Strength Traits"
   },
@@ -27,8 +27,8 @@ export const SUBSCRIPTION_FEATURES = {
   // 劣势特质 x 4 - 所有级别都可用
   weaknessChips: {
     free: true,
-    monthly: true,
-    yearly: true,
+    plus: true,
+    pro: true,
     count: 4,
     description: "Weakness Traits"
   },
@@ -36,56 +36,56 @@ export const SUBSCRIPTION_FEATURES = {
   // 补缺水晶 - 不同级别有不同限制
   crystalRecommendation: {
     free: "overall birth chart crystal only",
-    monthly: "current month's weakest element",
-    yearly: "all months' weakest elements",
+    plus: "current month's weakest element",
+    pro: "all months' weakest elements",
     description: "Crystal Recommendation"
   },
   
   // 12个月能量表 - 免费仅显示当月
   energyCalendar: {
     free: "current month only",
-    monthly: "all 12 months",
-    yearly: "all 12 months",
+    plus: "all 12 months",
+    pro: "all 12 months",
     description: "12-Month Energy Table"
   },
   
   // 12个月水晶表 - 不同级别有不同限制
   crystalCalendar: {
     free: "overall birth chart crystal only",
-    monthly: "current month visible, future months locked",
-    yearly: "all months visible",
+    plus: "current month visible, future months locked",
+    pro: "all months visible",
     description: "12-Month Crystal Table"
   },
   
   // 月度深度报告 - 免费无此功能
   monthlyReport: {
     free: false,
-    monthly: "current month only",
-    yearly: "generated on 1st of each month",
+    plus: "current month only",
+    pro: "generated on 1st of each month",
     description: "Monthly Detailed Report"
   },
   
   // 月末注意事件 - 免费无此功能
   monthEndAlerts: {
     free: false,
-    monthly: true,
-    yearly: true,
+    plus: true,
+    pro: true,
     description: "Month-End Reminders"
   },
   
   // 退款窗口
   refundWindow: {
     free: "N/A",
-    monthly: "Within 14 days",
-    yearly: "Within 14 days (not after monthly report generation)",
+    plus: "Within 14 days",
+    pro: "Within 14 days (not after monthly report generation)",
     description: "Refund Window"
   },
   
   // 价格
   price: {
     free: "$0",
-    monthly: "$4.99/month",
-    yearly: "$49.99/year",
+    plus: "$4.99/month",
+    pro: "$49.99/year",
     description: "Pricing"
   }
 };
@@ -113,8 +113,8 @@ export function getVisibleEnergyMonths(tier: SubscriptionTier): number {
   switch (tier) {
     case 'free':
       return 1; // 只显示当前月
-    case 'monthly':
-    case 'yearly':
+    case 'plus':
+    case 'pro':
       return 12; // 显示所有12个月
     default:
       return 1;
@@ -130,9 +130,9 @@ export function getVisibleCrystalMonths(tier: SubscriptionTier): number | 'curre
   switch (tier) {
     case 'free':
       return 'none'; // 只显示总体水晶推荐，不显示月度水晶
-    case 'monthly':
+    case 'plus':
       return 'current'; // 只显示当前月
-    case 'yearly':
+    case 'pro':
       return 12; // 显示所有12个月
     default:
       return 'none';
@@ -163,8 +163,8 @@ export const SUBSCRIPTION_TIERS = [
     recommended: false
   },
   {
-    id: 'monthly',
-    name: 'Monthly Plan',
+    id: 'plus',
+    name: 'Plus Plan',
     price: '$4.99',
     period: 'per month',
     features: [
@@ -178,16 +178,16 @@ export const SUBSCRIPTION_TIERS = [
       'Future months crystal recommendations locked',
       'Reports generated for current month only'
     ],
-    buttonText: 'Subscribe Monthly',
+    buttonText: 'Subscribe Plus',
     recommended: false
   },
   {
-    id: 'yearly',
-    name: 'Annual Plan',
+    id: 'pro',
+    name: 'Pro Plan',
     price: '$49.99',
     period: 'per year',
     features: [
-      'Everything in Monthly +',
+      'Everything in Plus +',
       'All 12 Months Crystal Recommendations',
       'Monthly Reports Generated on 1st',
       'Save over 16% compared to monthly'
@@ -195,7 +195,7 @@ export const SUBSCRIPTION_TIERS = [
     limitations: [
       'Annual commitment'
     ],
-    buttonText: 'Subscribe Yearly',
+    buttonText: 'Subscribe Pro',
     recommended: true
   }
 ]; 

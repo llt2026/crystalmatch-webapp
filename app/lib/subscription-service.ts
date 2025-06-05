@@ -12,7 +12,7 @@ const TIER_LIMITS = {
     allowFullReport: false,
     allowFuturePredictions: false
   },
-  monthly: {
+  plus: {
     requestsPerMonth: Infinity,
     modelType: "gpt-4.1",
     maxTokens: 2500,
@@ -20,7 +20,7 @@ const TIER_LIMITS = {
     allowFullReport: true,
     allowFuturePredictions: true
   },
-  yearly: {
+  pro: {
     requestsPerMonth: Infinity,
     modelType: "gpt-4o",
     maxTokens: 4500,
@@ -125,13 +125,13 @@ export function generatePromptTemplate(tier: SubscriptionTier, energyContext: an
   👉 That's why it's essential to adjust monthly—with the right focus, crystals, and small rituals—to stay balanced and empowered.
   `;
   
-  // 月度订阅版 - 使用新的提示词模板
-  if (tier === 'monthly') {
+  // Plus会员版(原Monthly) - 使用月度提示词模板
+  if (tier === 'plus') {
     return generateMonthlyUserPrompt(energyContext);
   }
   
-  // 年度订阅版 - 使用新的提示词模板
-  if (tier === 'yearly') {
+  // Pro会员版(原Yearly) - 使用年度提示词模板
+  if (tier === 'pro') {
     return generateAnnualUserPrompt(energyContext);
   }
   

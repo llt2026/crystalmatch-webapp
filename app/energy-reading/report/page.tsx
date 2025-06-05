@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 // 模拟用户订阅状态，实际应用中应从API或上下文获取
-const MOCK_USER_TIER: 'free' | 'monthly' | 'yearly' = 'free';
+const MOCK_USER_TIER: 'free' | 'plus' | 'pro' = 'free';
 
 // 月份数据
 const months = [
@@ -41,8 +41,8 @@ function EnergyScoreTable({ currentMonth, userTier }: { currentMonth: string, us
   // 处理月份行动按钮点击
   const handleActionClick = (monthId: string) => {
     // 检查用户是否有权限查看此月份
-    const canView = userTier === 'yearly' || 
-                   (userTier === 'monthly' && monthId === currentMonth);
+    const canView = userTier === 'pro' || 
+                   (userTier === 'plus' && monthId === currentMonth);
     
     if (canView) {
       // 导航到月度报告页面
@@ -61,9 +61,9 @@ function EnergyScoreTable({ currentMonth, userTier }: { currentMonth: string, us
   
   // 确定行动按钮文本和当前月份高亮
   const getActionButton = (monthId: string) => {
-    if (userTier === 'yearly') {
+    if (userTier === 'pro') {
       return <button onClick={() => handleActionClick(monthId)} className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-sm font-medium">🔍 View</button>;
-    } else if (userTier === 'monthly' && monthId === currentMonth) {
+    } else if (userTier === 'plus' && monthId === currentMonth) {
       return <button onClick={() => handleActionClick(monthId)} className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-sm font-medium">🔍 View</button>;
     } else {
       return <button onClick={() => handleActionClick(monthId)} className="bg-amber-50 text-amber-700 px-3 py-1 rounded-full text-sm font-medium">🔓 Unlock</button>;
@@ -116,7 +116,7 @@ function EnergyScoreTable({ currentMonth, userTier }: { currentMonth: string, us
 }
 
 export default function EnergyReportPage() {
-  const [userTier, setUserTier] = useState<'free' | 'monthly' | 'yearly'>(MOCK_USER_TIER);
+  const [userTier, setUserTier] = useState<'free' | 'plus' | 'pro'>(MOCK_USER_TIER);
   const [loading, setLoading] = useState(true);
   
   // 获取当前月份，格式为 YYYY-MM
@@ -242,6 +242,16 @@ export default function EnergyReportPage() {
             </button>
             <p className="mt-2 text-sm text-gray-600">Starting at just $4.99/month</p>
           </div>
+        )}
+      </div>
+      
+      <div className="flex justify-center mt-8">
+        {userTier === 'free' && (
+          <Link href="/subscription">
+            <a className="inline-flex items-center px-4 py-2 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+              Upgrade to PRO for Full Access 🚀
+            </a>
+          </Link>
         )}
       </div>
     </div>

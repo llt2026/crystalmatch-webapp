@@ -84,8 +84,8 @@ export default function SubscriptionPage() {
             <tr className="bg-gray-100">
               <th className="py-3 px-4 text-left border-b">Feature</th>
               <th className="py-3 px-4 text-center border-b">Free Snapshot</th>
-              <th className="py-3 px-4 text-center border-b">Monthly Plan $4.99</th>
-              <th className="py-3 px-4 text-center border-b">Annual Plan</th>
+              <th className="py-3 px-4 text-center border-b">Plus Plan $4.99</th>
+              <th className="py-3 px-4 text-center border-b">Pro Plan</th>
             </tr>
           </thead>
           <tbody>
@@ -104,25 +104,25 @@ export default function SubscriptionPage() {
                   )}
                 </td>
                 <td className="py-3 px-4 text-center border-b">
-                  {typeof feature.monthly === 'boolean' ? (
-                    feature.monthly ? (
+                  {typeof feature.plus === 'boolean' ? (
+                    feature.plus ? (
                       <span className="text-green-500">✓</span>
                     ) : (
                       <span className="text-gray-300">—</span>
                     )
                   ) : (
-                    <span className="text-sm">{feature.monthly}</span>
+                    <span className="text-sm">{feature.plus}</span>
                   )}
                 </td>
                 <td className="py-3 px-4 text-center border-b">
-                  {typeof feature.yearly === 'boolean' ? (
-                    feature.yearly ? (
+                  {typeof feature.pro === 'boolean' ? (
+                    feature.pro ? (
                       <span className="text-green-500">✓</span>
                     ) : (
                       <span className="text-gray-300">—</span>
                     )
                   ) : (
-                    <span className="text-sm">{feature.yearly}</span>
+                    <span className="text-sm">{feature.pro}</span>
                   )}
                 </td>
               </tr>
@@ -138,17 +138,17 @@ export default function SubscriptionPage() {
         <div className="space-y-4 max-w-3xl mx-auto">
           <div className="border border-gray-200 rounded-lg p-4">
             <h3 className="font-medium mb-2">How do the subscription plans work?</h3>
-            <p className="text-gray-600">Monthly plans are charged every 30 days, while annual plans offer a discounted rate and are charged once per year. Both plans include automatic renewal, which you can cancel anytime.</p>
+            <p className="text-gray-600">Plus plans are charged every 30 days, while Pro plans offer a discounted rate and are charged once per year. Both plans include automatic renewal, which you can cancel anytime.</p>
           </div>
           
           <div className="border border-gray-200 rounded-lg p-4">
             <h3 className="font-medium mb-2">Can I cancel my subscription?</h3>
-            <p className="text-gray-600">Yes, you can cancel your subscription at any time. Monthly plans have a 14-day refund window. Annual plans have a 14-day refund window, but you can't request a refund after monthly reports have been generated.</p>
+            <p className="text-gray-600">Yes, you can cancel your subscription at any time. Plus plans have a 14-day refund window. Pro plans have a 14-day refund window, but you can't request a refund after monthly reports have been generated.</p>
           </div>
           
           <div className="border border-gray-200 rounded-lg p-4">
-            <h3 className="font-medium mb-2">What's the difference between monthly and annual plans?</h3>
-            <p className="text-gray-600">Annual plans provide access to all 12 months of crystal recommendations and save over 16% compared to paying monthly. Monthly plans only provide current month crystal recommendations but still give you access to the full energy calendar.</p>
+            <h3 className="font-medium mb-2">What's the difference between Plus and Pro plans?</h3>
+            <p className="text-gray-600">Pro plans provide access to all 12 months of crystal recommendations and save over 16% compared to paying monthly. Plus plans only provide current month crystal recommendations but still give you access to the full energy calendar.</p>
           </div>
         </div>
       </div>

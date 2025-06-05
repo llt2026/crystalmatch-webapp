@@ -143,8 +143,8 @@ async function getUserSubscriptionTier(request: NextRequest): Promise<Subscripti
     
     // 尝试获取订阅信息（简化版，实际情况应验证token并从数据库查询）
     // 这里只是示例，假设auth header包含tier=xxx
-    if (authHeader.includes('tier=monthly')) return 'monthly';
-    if (authHeader.includes('tier=yearly')) return 'yearly';
+    if (authHeader.includes('tier=plus')) return 'plus';
+    if (authHeader.includes('tier=pro')) return 'pro';
     
     return 'free';
   } catch (error) {
@@ -193,7 +193,7 @@ export async function POST(request: NextRequest) {
     const userRequestCount = await getUserRequestCount(userId);
     
     // 检查用户是否还有剩余请求次数
-    if (!hasRemainingRequests(subscriptionTier, userRequestCount)) {
+    if (!hasRemainingRequests(normalizeSubscriptionTier(subscriptionTier), userRequestCount)) {
       return NextResponse.json({ 
         error: "已达到本月请求次数上限，请升级订阅计划",
         currentTier: subscriptionTier,
@@ -227,11 +227,11 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({
           report: cachedReport.report,
           energyContext: cachedReport.energyContext,
-          tier: subscriptionTier,
+          tier: normalizeSubscriptionTier(subscriptionTier),
           fromCache: true,
           usage: {
             total: userRequestCount,
-            remaining: subscriptionTier === 'free' ? 3 - userRequestCount : null
+            remaining: normalizeSubscriptionTier(subscriptionTier) === 'free' ? 3 - userRequestCount : null
           }
         });
       }
@@ -281,7 +281,7 @@ export async function POST(request: NextRequest) {
         messages: [
           {
             role: "system", 
-            content: subscriptionTier === 'yearly' ? 
+            content: normalizeSubscriptionTier(subscriptionTier) === 'pro' ? 
               "你是一位精通八字和能量分析的高级咨询师，专长于提供深度年度能量预测和个性化指导。你的分析极其全面，包含季度能量变化、关键日期和高级能量平衡方法。请提供详尽的年度能量报告，重点关注用户的能量周期、关键转折点和个性化的平衡策略。" : 
               "你是一位专业的能量咨询师，擅长分析八字和当前能量，给予用户实用的能量平衡建议。"
           },
@@ -310,11 +310,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ 
         report,
         energyContext,
-        tier: subscriptionTier,
+        tier: normalizeSubscriptionTier(subscriptionTier),
         fromCache: false,
         usage: {
           total: userRequestCount + 1,
-          remaining: subscriptionTier === 'free' ? 3 - (userRequestCount + 1) : null
+          remaining: normalizeSubscriptionTier(subscriptionTier) === 'free' ? 3 - (userRequestCount + 1) : null
         }
       });
       
@@ -350,6 +350,9 @@ export async function POST(request: NextRequest) {
  * 解析GPT响应，提取结构化信息
  */
 function parseGptResponse(content: string, context: any, tier: SubscriptionTier): any {
+  // 标准化会员类型
+  const normalizedTier = normalizeSubscriptionTier(tier);
+  
   // 分割段落
   const paragraphs = content.split('\n\n').filter(p => p.trim() !== '');
   
@@ -362,14 +365,14 @@ function parseGptResponse(content: string, context: any, tier: SubscriptionTier)
   };
   
   // 添加订阅特有字段
-  if (tier === 'monthly' || tier === 'yearly') {
+  if (normalizedTier === 'plus' || normalizedTier === 'pro') {
     result.energyCycle = '';
     result.energyMethods = [];
     result.rituals = [];
   }
   
   // 添加年度订阅特有的字段
-  if (tier === 'yearly') {
+  if (normalizedTier === 'pro') {
     result.keyDates = [];
     result.strengths = [];
     result.challenges = [];
@@ -377,18 +380,10 @@ function parseGptResponse(content: string, context: any, tier: SubscriptionTier)
     result.balancingPlan = [];
     result.advancedRituals = [];
     result.crystalPlan = {};
-    result.growthPath = '';
-    
-    // 新版年度订阅特有字段
-    result.yearSummary = '';
-    result.quarterSnapshots = [];
-    result.monthSummaryTable = [];
-    result.keyEnergyDays = [];
-    result.navigationNote = '';
   }
   
   // 解析逻辑 - 免费版
-  if (tier === 'free') {
+  if (normalizedTier === 'free') {
     // 为新的英文格式提示词添加解析逻辑
     // 尝试提取能量分析段落（第一部分）
     const paragraphs = content.split('\n\n').filter(p => p.trim() !== '');
@@ -427,7 +422,7 @@ function parseGptResponse(content: string, context: any, tier: SubscriptionTier)
   }
   
   // 解析逻辑 - 月度订阅 (新版本 - 英文格式)
-  else if (tier === 'monthly') {
+  else if (normalizedTier === 'plus') {
     // 尝试提取12个月能量表格
     const tableMatch = content.match(/Month\s*\|\s*Energy Type\s*\|\s*Score[\s\S]*?(?=\n\n|$)/i);
     if (tableMatch) {
@@ -502,7 +497,7 @@ function parseGptResponse(content: string, context: any, tier: SubscriptionTier)
   }
   
   // 解析逻辑 - 年度订阅
-  else if (tier === 'yearly') {
+  else if (normalizedTier === 'pro') {
     // 尝试提取年度总结
     const yearSummaryMatch = content.match(/Year Summary[\s\S]*?(?=Quarter Snapshots|$)/i);
     if (yearSummaryMatch) {
@@ -651,7 +646,7 @@ function parseGptResponse(content: string, context: any, tier: SubscriptionTier)
       ],
       crystalRecommendations: ['Clear Quartz: Amplifies your natural energy while helping to balance areas where you may feel depleted.']
     },
-    monthly: {
+    plus: {
       analysis: 'This month brings a blend of creative inspiration and practical focus. Your natural Wood energy resonates well with May\'s growth patterns, making this an excellent time for new projects and personal development.',
       energyCycle: 'May shows strong energy peaks around the 15th and 22nd, perfect for important decisions or starting new initiatives.',
       energyMethods: [
@@ -669,7 +664,7 @@ function parseGptResponse(content: string, context: any, tier: SubscriptionTier)
         'Clear Quartz: Clarifies thinking and amplifies your intentions during this high-potential month'
       ]
     },
-    yearly: {
+    pro: {
       yearSummary: '2025 brings a powerful blend of Wood and Water energies that align well with your dominant Wood element, creating opportunities for growth and expansion in both personal and professional realms. The first half of the year emphasizes creative projects and relationship building, while the second half shifts toward implementation and consolidation of gains. To balance your missing Water element, establish a consistent meditation practice with blue crystals nearby, ideally near a small water feature in your home or office.',
       quarterSnapshots: [
         'Q1: Strong creative energy with peaks in February. Focus on brainstorming and laying foundations for major projects.',
@@ -733,45 +728,45 @@ function parseGptResponse(content: string, context: any, tier: SubscriptionTier)
   };
   
   // 根据订阅级别补充默认值
-  if (tier === 'free') {
+  if (normalizedTier === 'free') {
     if (!result.analysis) result.analysis = defaultValues.free.analysis;
     if (result.monthlyTips.length === 0) result.monthlyTips = defaultValues.free.monthlyTips;
     if (result.crystalRecommendations.length === 0) result.crystalRecommendations = defaultValues.free.crystalRecommendations;
-  } else if (tier === 'monthly') {
-    if (!result.analysis) result.analysis = defaultValues.monthly.analysis;
-    if (!result.energyCycle) result.energyCycle = defaultValues.monthly.energyCycle;
+  } else if (normalizedTier === 'plus') {
+    if (!result.analysis) result.analysis = defaultValues.plus.analysis;
+    if (!result.energyCycle) result.energyCycle = defaultValues.plus.energyCycle;
     if (result.monthlyTips.length === 0) result.monthlyTips = defaultValues.free.monthlyTips;
-    if (result.energyMethods.length === 0) result.energyMethods = defaultValues.monthly.energyMethods;
-    if (result.rituals.length === 0) result.rituals = defaultValues.monthly.rituals;
-    if (result.crystalRecommendations.length === 0) result.crystalRecommendations = defaultValues.monthly.crystalRecommendations;
-  } else if (tier === 'yearly') {
-    if (!result.analysis) result.analysis = defaultValues.yearly.analysis;
-    if (!result.yearSummary) result.yearSummary = defaultValues.yearly.yearSummary;
-    if (result.quarterSnapshots.length === 0) result.quarterSnapshots = defaultValues.yearly.quarterSnapshots;
-    if (result.monthlyTips.length === 0) result.monthlyTips = defaultValues.yearly.monthlyTips;
-    if (result.keyDates.length === 0) result.keyDates = defaultValues.yearly.keyDates;
-    if (result.strengths.length === 0) result.strengths = defaultValues.yearly.strengths;
-    if (result.challenges.length === 0) result.challenges = defaultValues.yearly.challenges;
-    if (!result.quarterlyForecast) result.quarterlyForecast = defaultValues.yearly.quarterlyForecast;
-    if (result.balancingPlan.length === 0) result.balancingPlan = defaultValues.yearly.balancingPlan;
-    if (result.crystalRecommendations.length === 0) result.crystalRecommendations = defaultValues.yearly.crystalRecommendations;
-    if (result.monthSummaryTable.length === 0) result.monthSummaryTable = defaultValues.yearly.monthSummaryTable;
-    if (!result.navigationNote) result.navigationNote = defaultValues.yearly.navigationNote;
-    if (!result.energyCycle) result.energyCycle = defaultValues.yearly.energyCycle;
-    if (result.energyMethods.length === 0) result.energyMethods = defaultValues.yearly.energyMethods;
-    if (result.rituals.length === 0) result.rituals = defaultValues.yearly.rituals;
-    if (result.advancedRituals.length === 0) result.advancedRituals = defaultValues.yearly.advancedRituals;
+    if (result.energyMethods.length === 0) result.energyMethods = defaultValues.plus.energyMethods;
+    if (result.rituals.length === 0) result.rituals = defaultValues.plus.rituals;
+    if (result.crystalRecommendations.length === 0) result.crystalRecommendations = defaultValues.plus.crystalRecommendations;
+  } else if (normalizedTier === 'pro') {
+    if (!result.analysis) result.analysis = defaultValues.pro.analysis;
+    if (!result.yearSummary) result.yearSummary = defaultValues.pro.yearSummary;
+    if (result.quarterSnapshots.length === 0) result.quarterSnapshots = defaultValues.pro.quarterSnapshots;
+    if (result.monthlyTips.length === 0) result.monthlyTips = defaultValues.pro.monthlyTips;
+    if (result.keyDates.length === 0) result.keyDates = defaultValues.pro.keyDates;
+    if (result.strengths.length === 0) result.strengths = defaultValues.pro.strengths;
+    if (result.challenges.length === 0) result.challenges = defaultValues.pro.challenges;
+    if (!result.quarterlyForecast) result.quarterlyForecast = defaultValues.pro.quarterlyForecast;
+    if (result.balancingPlan.length === 0) result.balancingPlan = defaultValues.pro.balancingPlan;
+    if (result.crystalRecommendations.length === 0) result.crystalRecommendations = defaultValues.pro.crystalRecommendations;
+    if (result.monthSummaryTable.length === 0) result.monthSummaryTable = defaultValues.pro.monthSummaryTable;
+    if (!result.navigationNote) result.navigationNote = defaultValues.pro.navigationNote;
+    if (!result.energyCycle) result.energyCycle = defaultValues.pro.energyCycle;
+    if (result.energyMethods.length === 0) result.energyMethods = defaultValues.pro.energyMethods;
+    if (result.rituals.length === 0) result.rituals = defaultValues.pro.rituals;
+    if (result.advancedRituals.length === 0) result.advancedRituals = defaultValues.pro.advancedRituals;
     if (!result.crystalPlan || Object.keys(result.crystalPlan).length === 0) {
-      result.crystalPlan = defaultValues.yearly.crystalPlan;
+      result.crystalPlan = defaultValues.pro.crystalPlan;
     } else {
       if (!result.crystalPlan.crystals || result.crystalPlan.crystals.length === 0) {
-        result.crystalPlan.crystals = defaultValues.yearly.crystalPlan.crystals;
+        result.crystalPlan.crystals = defaultValues.pro.crystalPlan.crystals;
       }
-      if (!result.crystalPlan.usage) result.crystalPlan.usage = defaultValues.yearly.crystalPlan.usage;
-      if (!result.crystalPlan.cleansing) result.crystalPlan.cleansing = defaultValues.yearly.crystalPlan.cleansing;
-      if (!result.crystalPlan.placement) result.crystalPlan.placement = defaultValues.yearly.crystalPlan.placement;
+      if (!result.crystalPlan.usage) result.crystalPlan.usage = defaultValues.pro.crystalPlan.usage;
+      if (!result.crystalPlan.cleansing) result.crystalPlan.cleansing = defaultValues.pro.crystalPlan.cleansing;
+      if (!result.crystalPlan.placement) result.crystalPlan.placement = defaultValues.pro.crystalPlan.placement;
     }
-    if (!result.growthPath) result.growthPath = defaultValues.yearly.growthPath;
+    if (!result.growthPath) result.growthPath = defaultValues.pro.growthPath;
   }
   
   return result;
@@ -798,82 +793,73 @@ function generateMockReport(context: any, tier: SubscriptionTier): any {
   };
   
   // 月度订阅附加内容
-  if (tier === 'monthly' || tier === 'yearly') {
+  if (normalizeSubscriptionTier(tier) === 'plus' || normalizeSubscriptionTier(tier) === 'pro') {
     Object.assign(baseReport, {
       energyCycle: `本月${context.currentMonth.pillar}能量呈现波动上升趋势，中旬将达到高峰。${context.currentMonth.start.substring(5)}日和${parseInt(context.currentMonth.start.substring(5)) + 15}日是关键能量日，适合重要决策和新开始。`,
       energyMethods: [
-        '每天清晨进行5分钟的深呼吸练习，激活身体能量',
-        `工作环境中摆放${context.currentMonth.element}元素相关物品，增强能量共振`,
-        '饮食中增加应季食物，支持身体能量平衡',
-        '每周至少安排两次户外活动，吸收自然能量'
+        '增加早晨阳光暴露时间以促进生物钟稳定',
+        '尝试冷水浸浴提升精力和自律性',
+        '每天1-2次深呼吸练习缓解压力'
       ],
       rituals: [
-        '晨间能量唤醒：起床后，面向东方，双手捧水洗脸三次，同时默念"新的一天，新的能量"，帮助激活一天的活力',
-        '夜间能量梳理：睡前点燃香薰蜡烛，冥想5分钟，回顾当天经历，释放负面能量，保留正面体验'
-      ],
-      crystalRecommendations: [
-        `${context.currentMonth.element === '木' ? '绿幽灵' : 
-          context.currentMonth.element === '火' ? '红玛瑙' : 
-          context.currentMonth.element === '土' ? '黄水晶' : 
-          context.currentMonth.element === '金' ? '白水晶' : '青金石'}：增强当前月份主导能量`,
-        '紫水晶：提升精神能量，可放在床头或随身携带',
-        '黑曜石：防御负能量，放在家门入口处'
+        '每周一次的"能量重置"：寻找一个安静的空间，清理周围环境，点燃熏香，进行20分钟冥想，专注于让负面能量流走，迎接新的活力。',
+        '月中"能量提升"仪式：在月中能量峰值日，准备一杯温热的姜茶，手持本月推荐水晶，设定明确意图，进行5-10分钟意象化练习。'
       ]
     });
   }
   
   // 年度订阅附加内容
-  if (tier === 'yearly') {
+  if (normalizeSubscriptionTier(tier) === 'pro') {
     Object.assign(baseReport, {
       strengths: [
-        `创造性思维：您的${context.bazi.yearPillar}年柱与当前${context.currentYear.pillar}年能量形成良好互动，激发创新能力`,
-        `适应能力：${context.bazi.monthPillar}月柱显示您有较强的适应能力，能够在变化环境中迅速调整`,
-        `人际魅力：${context.bazi.dayPillar}日柱增强了您的人际魅力，有助于建立有价值的人际关系`
+        '核心优势：对变化的高适应性',
+        '天赋表达：创新思维与解决问题',
+        '能量特质：快速恢复与内在韧性',
+        '人际关系：温和包容的交流风格'
       ],
       challenges: [
-        '情绪波动：当前能量可能导致情绪起伏，需要通过冥想等方式保持平衡',
-        '决策压力：多重选择可能造成决策困难，建议设定明确标准',
-        '能量分散：兴趣广泛可能导致精力分散，需要学会聚焦重点'
+        '过度分析导致犹豫不决',
+        '在压力下情绪波动较大',
+        '难以建立长期规律作息',
+        '过度承担他人情绪负担'
       ],
-      quarterlyForecast: `根据当前${context.currentYear.pillar}年的能量走势，未来三个月整体能量呈上升趋势。${parseInt(context.currentMonth.start.substring(5)) + 30}日将是关键转折点，带来新的机遇；下月中旬可能面临挑战，需要保持警觉；两个月后将迎来能量高峰，适合重要项目的推进和完成。`,
+      keyDates: [
+        '3月15日-18日：重要转折期，适合重大决定',
+        '5月2日-5日：能量高峰期，开启新项目的理想时机',
+        '8月10日-15日：反思与调整的关键期，避免重大决策',
+        '11月20日-25日：年末能量整合期，为来年做准备'
+      ],
+      quarterlyForecast: '第一季度（1-3月）：以稳定为主，适合打基础；第二季度（4-6月）：创造力爆发期，新想法涌现；第三季度（7-9月）：执行与落实期，将计划付诸行动；第四季度（10-12月）：收获与反思期，为来年规划做准备。',
       balancingPlan: [
-        '饮食调整：增加应季食物摄入，减少刺激性食物，保持能量稳定',
-        '运动建议：每周进行3次有氧运动和2次力量训练，平衡身体能量',
-        `环境调整：在家中${context.currentMonth.element === '木' ? '东' : 
-          context.currentMonth.element === '火' ? '南' : 
-          context.currentMonth.element === '土' ? '中央' : 
-          context.currentMonth.element === '金' ? '西' : '北'}方位摆放相应元素物品，增强能量场`,
-        '社交策略：每月参与一次团体活动，增强人际能量交流',
-        '工作安排：上午处理创意工作，下午处理常规任务，符合能量流动规律'
-      ],
-      advancedRituals: [
-        '五行能量平衡仪式：准备五种代表五行的物品（木：绿植；火：蜡烛；土：水晶；金：金属物品；水：清水），每周日早晨摆放成五角形，点燃蜡烛，冥想15分钟，想象能量在体内平衡流动。',
-        '满月能量净化：每月满月之夜，将重要水晶放在月光下充能，同时进行20分钟冥想，释放过去一个月积累的负面能量。',
-        '季节转换仪式：在季节交替时（立春、立夏、立秋、立冬），准备与新季节对应的精油和花草，进行能量转换冥想，帮助身心适应新季节的能量变化。'
-      ],
-      crystalPlan: {
-        crystals: [
-          `${context.currentMonth.element === '木' ? '绿幽灵' : 
-            context.currentMonth.element === '火' ? '红玛瑙' : 
-            context.currentMonth.element === '土' ? '黄水晶' : 
-            context.currentMonth.element === '金' ? '白水晶' : '青金石'}：增强当前月份主导能量`,
-          '紫水晶：提升精神能量和直觉',
-          '黄水晶：增强自信和个人魅力',
-          '黑曜石：防御负能量',
-          '月光石：增强直觉和梦境清晰度'
-        ],
-        usage: '将主要水晶组合使用，可以在家中不同区域摆放，形成能量场网络。工作场所可放置绿幽灵和黄水晶，卧室适合紫水晶和月光石，入口处放置黑曜石。',
-        cleansing: '每月满月时，用流水冲洗所有水晶，然后放置在月光下充能。也可以使用鼠尾草熏烟净化，或埋入海盐中24小时。',
-        placement: '主要水晶可随身佩戴，形成贴身能量保护。家中应在能量流动处（如窗台、门口、床头）摆放相应水晶，形成能量场。'
-      },
-      growthPath: `您的长期能量成长应聚焦于${context.currentMonth.element}元素的培养和${
-        context.currentMonth.element === '木' ? '金' : 
-        context.currentMonth.element === '火' ? '水' : 
-        context.currentMonth.element === '土' ? '木' : 
-        context.currentMonth.element === '金' ? '火' : '土'
-      }元素的平衡。通过定期冥想和能量工作，逐步提升能量场的稳定性。每季度进行一次能量评估，关注直觉增强、情绪稳定性和创造力提升等指标。持之以恒，两年内可达到明显的能量场提升。`
+        '建立早晨能量唤醒仪式（5-10分钟冥想+阳光浴）',
+        '工作日中午短暂户外散步（15-20分钟）',
+        '每周安排1天"数字断连"时间',
+        '睡前30分钟阅读纸质书籍代替电子设备'
+      ]
     });
   }
   
   return baseReport;
-} 
+}
+
+/**
+ * 处理会员类型兼容性，将旧版类型名称转换为新版
+ * @param tier 会员类型，可能是新版或旧版名称
+ * @returns 标准化的会员类型('free', 'plus', 'pro')
+ */
+function normalizeSubscriptionTier(tier: string): SubscriptionTier {
+  // 处理类型转换
+  if (tier === 'monthly') return 'plus';
+  if (tier === 'yearly') return 'pro';
+  
+  // 确保返回有效的类型
+  if (tier === 'free' || tier === 'plus' || tier === 'pro') {
+    return tier as SubscriptionTier;
+  }
+  
+  // 默认返回免费会员
+  return 'free';
+}
+
+// 在进行比较前使用此函数处理会员类型
+// 例如: if (normalizeSubscriptionTier(tier) === 'plus') { ... } 

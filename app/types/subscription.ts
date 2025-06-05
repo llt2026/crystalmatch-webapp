@@ -1,4 +1,4 @@
-export type SubscriptionTier = 'free' | 'monthly' | 'yearly';
+export type SubscriptionTier = 'free' | 'plus' | 'pro';
 
 export interface SubscriptionPlan {
   id: string;
@@ -23,50 +23,50 @@ export interface UserSubscription {
 export const SUBSCRIPTION_PLANS: Record<SubscriptionTier, SubscriptionPlan> = {
   free: {
     id: 'free-plan',
-    name: '免费版',
-    description: '基础能量分析',
+    name: 'FREE',
+    description: 'Basic Energy Analysis',
     price: 0,
     currency: 'USD',
     interval: 'one-time',
     features: [
-      '基础能量报告',
-      '每月3次查询',
-      '基础水晶推荐'
+      'Basic Energy Report',
+      '3 Queries Per Month',
+      'Basic Crystal Recommendations'
     ]
   },
-  monthly: {
-    id: 'monthly-plan',
-    name: '月度订阅',
-    description: '全面能量分析与建议，按月订阅',
+  plus: {
+    id: 'plus-plan',
+    name: 'PLUS',
+    description: 'Comprehensive Energy Analysis & Recommendations',
     price: 4.99,
     currency: 'USD',
     interval: 'month',
     features: [
-      '高级能量报告',
-      '无限查询次数',
-      '详细水晶推荐',
-      '个性化能量仪式',
-      '月度能量预测',
-      '优先客户支持'
+      'Advanced Energy Report',
+      'Unlimited Queries',
+      'Detailed Crystal Recommendations',
+      'Personalized Energy Rituals',
+      'Monthly Energy Forecast',
+      'Priority Customer Support'
     ]
   },
-  yearly: {
-    id: 'yearly-plan',
-    name: '年度订阅',
-    description: '完整能量解析系统，按年订阅更优惠',
+  pro: {
+    id: 'pro-plan',
+    name: 'PRO',
+    description: 'Complete Energy Analysis System with Premium Benefits',
     price: 49.9,
     currency: 'USD',
     interval: 'year',
     features: [
-      '专业能量报告',
-      '无限查询次数',
-      '详细水晶推荐',
-      '个性化能量仪式',
-      '年度能量走势图',
-      '季度能量预测',
-      'PDF报告下载',
-      '24/7专属客户支持',
-      '两个月免费赠送'
+      'Professional Energy Report',
+      'Unlimited Queries',
+      'Detailed Crystal Recommendations',
+      'Personalized Energy Rituals',
+      'Annual Energy Trend Chart',
+      'Quarterly Energy Forecasts',
+      'PDF Report Download',
+      '24/7 Dedicated Customer Support',
+      'Two Months Free'
     ]
   }
 }; 
