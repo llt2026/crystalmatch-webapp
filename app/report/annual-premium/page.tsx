@@ -30,6 +30,9 @@ type UserData = {
   yearCrystal: CrystalRecommendation;
   birthDate: string;
   subscriptionTier: 'free' | 'plus' | 'pro';
+  subscription?: {
+    status: string;
+  };
 };
 
 // Five Elements crystals mapping - each element has 4 crystals
@@ -193,9 +196,27 @@ export default function AnnualPremiumReport() {
             name: "Guest User",
             email: "guest@crystalmatch.com",
             birthDate: "1990-01-01T00:00:00.000Z",
-            subscriptionTier: "free" // Show appropriate content for free user
+            subscription: {
+              status: "pro" // Show all content for emergency data
+            }
           };
         }
+        
+        // 从API返回中提取订阅状态
+        const subscriptionTier = userData.subscriptionTier || userData.subscription?.status || 'free';
+        console.log('✅ annual-premium 提取的订阅状态:', subscriptionTier, '来源:', userData.subscriptionTier ? 'userData.subscriptionTier' : (userData.subscription?.status ? 'userData.subscription.status' : 'default'));
+        
+        // 创建新的用户数据对象，显式覆盖subscriptionTier属性
+        let userDataForState = {
+          ...userData,
+          subscriptionTier: subscriptionTier // 显式覆盖subscriptionTier属性
+        };
+        
+        console.log('✅ annual-premium 修改后的userData:', {
+          id: userDataForState.id,
+          subscriptionTier: userDataForState.subscriptionTier,
+          hasSubscription: !!userDataForState.subscription
+        });
         
         // Format element data
         const elementValues: ElementData[] = [
@@ -217,16 +238,16 @@ export default function AnnualPremiumReport() {
         
         // Set combined user data
         setUserData({
-          id: userData.id,
-          name: userData.name || 'Guest User',
-          email: userData.email || 'guest@crystalmatch.com',
-          avatar: userData.avatar,
+          id: userDataForState.id,
+          name: userDataForState.name || 'Guest User',
+          email: userDataForState.email || 'guest@crystalmatch.com',
+          avatar: userDataForState.avatar,
           elementValues,
           strength: userTraits.strength,
           weakness: userTraits.weakness,
           yearCrystal: userCrystal,
-          birthDate: urlBirthDate || userData.birthDate || (userData as any).birthInfo?.date || (userData as any).birthInfo?.birthdate || '1990-01-01T00:00:00.000Z',
-          subscriptionTier: userData.subscriptionTier || 'free'
+          birthDate: urlBirthDate || userDataForState.birthDate || (userDataForState as any).birthInfo?.date || (userDataForState as any).birthInfo?.birthdate || '1990-01-01T00:00:00.000Z',
+          subscriptionTier: userDataForState.subscriptionTier
         });
         
         // Load calendar data
