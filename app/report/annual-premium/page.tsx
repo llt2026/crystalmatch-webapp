@@ -455,7 +455,7 @@ export default function AnnualPremiumReport() {
           planetAssociation: userData.yearCrystal.planet || "Earth",
           year: 2025
         }} 
-        isFreeUser={false}
+        isFreeUser={userData.subscriptionTier === 'free'}
         userElement={findWeakestElement(userData.elementValues)}
       />
       
