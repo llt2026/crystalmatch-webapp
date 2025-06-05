@@ -29,7 +29,7 @@ type UserData = {
   };
   yearCrystal: CrystalRecommendation;
   birthDate: string;
-  subscriptionTier: 'free' | 'monthly' | 'yearly';
+  subscriptionTier: 'free' | 'plus' | 'pro';
 };
 
 // Transform element data to element distribution for traits calculation
@@ -182,9 +182,15 @@ export default function EnergyReportPage() {
             name: "Guest User",
             email: "guest@crystalmatch.com",
             birthDate: "1990-01-01T00:00:00.000Z",
-            subscriptionTier: "yearly" // 作为订阅用户显示所有内容
+            subscription: {
+              status: "pro" // 作为PRO会员显示所有内容
+            }
           };
         }
+        
+        // 从API返回中提取订阅状态
+        const subscriptionTier = userData.subscriptionTier || userData.subscription?.status || 'free';
+        console.log('用户订阅状态:', subscriptionTier);
         
         // 格式化元素数据 - 确保总是使用真实元素值
         const elementValues: ElementData[] = [
@@ -215,7 +221,7 @@ export default function EnergyReportPage() {
           weakness: userTraits.weakness,
           yearCrystal: userCrystal,
           birthDate: urlBirthDate || userData.birthDate || (userData as any).birthInfo?.date || (userData as any).birthInfo?.birthdate || '1990-01-01T00:00:00.000Z',
-          subscriptionTier: userData.subscriptionTier || 'yearly'
+          subscriptionTier: subscriptionTier
         });
       } catch (err) {
         console.error("Error fetching user data:", err);
@@ -316,7 +322,7 @@ export default function EnergyReportPage() {
       </div>
       
       {/* Call to action */}
-      {userData.subscriptionTier !== 'yearly' && (
+      {userData.subscriptionTier !== 'pro' && (
         <div className="rounded-lg bg-gradient-to-r from-purple-700 to-indigo-700 p-6 text-center backdrop-blur-sm border border-purple-600/50">
           <h2 className="text-xl md:text-2xl font-semibold mb-4">Unlock Your Full Potential</h2>
           <p className="mb-6">Get detailed monthly guidance and personalized crystal recommendations</p>
