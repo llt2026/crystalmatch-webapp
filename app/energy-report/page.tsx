@@ -184,7 +184,7 @@ export default function EnergyReportPage() {
             email: "guest@crystalmatch.com",
             birthDate: "1990-01-01T00:00:00.000Z",
             subscription: {
-              status: "pro" // 作为PRO会员显示所有内容
+              status: "free" // 默认为免费会员
             }
           };
         }

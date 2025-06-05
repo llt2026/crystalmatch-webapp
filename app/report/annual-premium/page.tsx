@@ -198,7 +198,7 @@ export default function AnnualPremiumReport() {
             email: "guest@crystalmatch.com",
             birthDate: "1990-01-01T00:00:00.000Z",
             subscription: {
-              status: "pro" // Show all content for emergency data
+              status: "free" // Default to free tier
             }
           };
         }
@@ -207,17 +207,10 @@ export default function AnnualPremiumReport() {
         const subscriptionTier = mapSubscriptionToTier(userData.subscriptionTier || userData.subscription?.status);
         console.log('✅ annual-premium 提取的订阅状态:', subscriptionTier, '来源:', userData.subscription?.status);
         
-        // 特殊处理：如果URL包含annual-premium，我们认为这是高级会员页面，应该显示所有内容
-        let finalSubscriptionTier = subscriptionTier;
-        if (window.location.href.includes('annual-premium')) {
-          finalSubscriptionTier = 'pro'; // 强制设置为pro，确保可以看到Lucky Colors
-          console.log('✅ annual-premium页面：强制设置subscriptionTier为pro，原值为:', subscriptionTier);
-        }
-        
         // 创建新的用户数据对象，显式覆盖subscriptionTier属性
         let userDataForState = {
           ...userData,
-          subscriptionTier: finalSubscriptionTier // 使用处理后的订阅状态
+          subscriptionTier: subscriptionTier // 使用映射后的订阅状态
         };
         
         console.log('✅ annual-premium 修改后的userData:', {
