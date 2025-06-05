@@ -848,14 +848,17 @@ function generateMockReport(context: any, tier: SubscriptionTier): any {
  * @returns 标准化的会员类型('free', 'plus', 'pro')
  */
 function normalizeSubscriptionTier(tier: string): SubscriptionTier {
-  // 处理类型转换
-  if (tier === 'monthly') return 'plus';
-  if (tier === 'yearly') return 'pro';
+  if (!tier) return 'free';
   
-  // 确保返回有效的类型
-  if (tier === 'free' || tier === 'plus' || tier === 'pro') {
-    return tier as SubscriptionTier;
-  }
+  const tierLower = tier.toLowerCase();
+  
+  // 精确匹配plus和pro
+  if (tierLower === 'plus') return 'plus';
+  if (tierLower === 'pro') return 'pro';
+  
+  // 特殊情况处理，可能的historical值
+  if (tierLower.includes('premium') || tierLower.includes('yearly')) return 'pro';
+  if (tierLower.includes('monthly')) return 'plus';
   
   // 默认返回免费会员
   return 'free';

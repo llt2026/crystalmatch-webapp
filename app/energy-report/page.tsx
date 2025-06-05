@@ -11,6 +11,7 @@ import { getUserElementTraits } from '../lib/getUserElementTraits';
 import { getUserCrystal, CrystalRecommendation } from '../lib/getUserCrystal';
 import { useRouter } from 'next/navigation';
 import LoadingScreen from '../components/LoadingScreen';
+import { mapSubscriptionToTier } from '../lib/subscription-utils';
 
 // Types for our data
 type UserData = {
@@ -189,8 +190,8 @@ export default function EnergyReportPage() {
         }
         
         // 从API返回中提取订阅状态
-        const subscriptionTier = userData.subscriptionTier || userData.subscription?.status || 'free';
-        console.log('提取的订阅状态:', subscriptionTier, '来源:', userData.subscriptionTier ? 'userData.subscriptionTier' : (userData.subscription?.status ? 'userData.subscription.status' : 'default'));
+        const subscriptionTier = mapSubscriptionToTier(userData.subscriptionTier || userData.subscription?.status);
+        console.log('✅ energy-report 提取的订阅状态:', subscriptionTier, '来源:', userData.subscription?.status);
         
         // 创建新的用户数据对象，显式覆盖subscriptionTier属性
         let userDataForState = {
@@ -198,7 +199,7 @@ export default function EnergyReportPage() {
           subscriptionTier: subscriptionTier // 显式覆盖subscriptionTier属性
         };
         
-        console.log('修改后的userData:', {
+        console.log('✅ energy-report 修改后的userData:', {
           id: userDataForState.id,
           subscriptionTier: userDataForState.subscriptionTier,
           hasSubscription: !!userDataForState.subscription
