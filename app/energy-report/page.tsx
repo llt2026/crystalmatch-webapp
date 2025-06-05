@@ -190,7 +190,7 @@ export default function EnergyReportPage() {
         }
         
         // 从API返回中提取订阅状态
-        const subscriptionTier = mapSubscriptionToTier(userData.subscriptionTier || userData.subscription?.status);
+        const subscriptionTier = mapSubscriptionToTier(userData.subscription?.status || userData.subscriptionTier);
         console.log('✅ energy-report 提取的订阅状态:', subscriptionTier, '来源:', userData.subscription?.status);
         
         // 创建新的用户数据对象，显式覆盖subscriptionTier属性

@@ -203,8 +203,8 @@ export default function AnnualPremiumReport() {
           };
         }
         
-        // 从API返回中提取订阅状态，使用统一的映射函数
-        const subscriptionTier = mapSubscriptionToTier(userData.subscriptionTier || userData.subscription?.status);
+        // 优先使用 subscription.status，其次才回退到旧字段 subscriptionTier，避免历史字段干扰
+        const subscriptionTier = mapSubscriptionToTier(userData.subscription?.status || userData.subscriptionTier);
         console.log('✅ annual-premium 提取的订阅状态:', subscriptionTier, '来源:', userData.subscription?.status);
         
         // 创建新的用户数据对象，显式覆盖subscriptionTier属性
