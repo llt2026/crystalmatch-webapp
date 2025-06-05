@@ -190,7 +190,19 @@ export default function EnergyReportPage() {
         
         // 从API返回中提取订阅状态
         const subscriptionTier = userData.subscriptionTier || userData.subscription?.status || 'free';
-        console.log('用户订阅状态:', subscriptionTier);
+        console.log('提取的订阅状态:', subscriptionTier, '来源:', userData.subscriptionTier ? 'userData.subscriptionTier' : (userData.subscription?.status ? 'userData.subscription.status' : 'default'));
+        
+        // 创建新的用户数据对象，显式覆盖subscriptionTier属性
+        let userDataForState = {
+          ...userData,
+          subscriptionTier: subscriptionTier // 显式覆盖subscriptionTier属性
+        };
+        
+        console.log('修改后的userData:', {
+          id: userDataForState.id,
+          subscriptionTier: userDataForState.subscriptionTier,
+          hasSubscription: !!userDataForState.subscription
+        });
         
         // 格式化元素数据 - 确保总是使用真实元素值
         const elementValues: ElementData[] = [
@@ -205,23 +217,23 @@ export default function EnergyReportPage() {
         const elementDistribution = transformElementDataToDistribution(elementValues);
         
         // 获取用户的个性化优势和劣势特质 - 基于真实用户ID确保一致性
-        const userTraits = getUserElementTraits(userData.id, elementDistribution);
+        const userTraits = getUserElementTraits(userDataForState.id, elementDistribution);
         
         // 获取用户推荐的水晶 - 基于真实的八字五行元素数据
-        const userCrystal = getUserCrystal(userData.id, elementDistribution, 2025);
+        const userCrystal = getUserCrystal(userDataForState.id, elementDistribution, 2025);
         
         // 返回组合的用户数据
         setUserData({
-          id: userData.id,
-          name: userData.name || 'Guest User',
-          email: userData.email || 'guest@crystalmatch.com',
-          avatar: userData.avatar, // 在UI渲染时处理默认头像
+          id: userDataForState.id,
+          name: userDataForState.name || 'Guest User',
+          email: userDataForState.email || 'guest@crystalmatch.com',
+          avatar: userDataForState.avatar, // 在UI渲染时处理默认头像
           elementValues,
           strength: userTraits.strength,
           weakness: userTraits.weakness,
           yearCrystal: userCrystal,
-          birthDate: urlBirthDate || userData.birthDate || (userData as any).birthInfo?.date || (userData as any).birthInfo?.birthdate || '1990-01-01T00:00:00.000Z',
-          subscriptionTier: subscriptionTier
+          birthDate: urlBirthDate || userDataForState.birthDate || (userDataForState as any).birthInfo?.date || (userDataForState as any).birthInfo?.birthdate || '1990-01-01T00:00:00.000Z',
+          subscriptionTier: userDataForState.subscriptionTier
         });
       } catch (err) {
         console.error("Error fetching user data:", err);
