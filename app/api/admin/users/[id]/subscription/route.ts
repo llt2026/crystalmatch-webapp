@@ -74,12 +74,11 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       expiresAt.setMonth(expiresAt.getMonth() + 1);
     }
     
-    // 取消现有的活跃订阅
+    // 取消该用户所有处于 active 状态的订阅（不再限制 endDate），避免旧订阅残留导致等级判断错误
     await prisma.subscription.updateMany({
       where: {
         userId: id,
-        status: 'active',
-        endDate: { gt: new Date() }
+        status: 'active'
       },
       data: {
         status: 'cancelled',
@@ -111,7 +110,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
           expiresAt: expiresAt?.toISOString()
         }
       }
-    }).catch(err => console.error('Failed to create log:', err));
+    }).catch((err: unknown) => console.error('Failed to create log:', err));
     
     console.log(`Admin updated user ${id} subscription to ${subscriptionStatus}`, expiresAt);
     
