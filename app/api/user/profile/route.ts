@@ -171,7 +171,11 @@ export async function GET(request: NextRequest) {
         joinedAt: user.createdAt.toISOString(),
       };
 
-      return NextResponse.json(userProfile);
+      return NextResponse.json(userProfile, {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0, private'
+        }
+      });
     } catch (err) {
       console.error('DB error:', err);
       return NextResponse.json({ error: 'Server error' }, { status: 500 });
