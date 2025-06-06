@@ -89,7 +89,7 @@ export default function ProfilePage() {
           <p className="text-white mb-6">{error || 'Please check your network connection and retry'}</p>
           {error?.includes('Unauthorized') ? (
             <button
-              onClick={() => router.push('/sign-in')}
+              onClick={() => router.push('/login')}
               className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700"
             >
               Sign In
