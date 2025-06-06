@@ -40,7 +40,6 @@ const publicPaths = [
   '/contact',
   '/crystals',
   '/api/crystals',
-  '/profile',
   '/404',
   '/500',
   '/maintenance',
