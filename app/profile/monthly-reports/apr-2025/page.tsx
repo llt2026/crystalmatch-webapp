@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 export const dynamicParams = true;
 export const revalidate = 0;
 
-import React, { Suspense } from 'react';
+import React, { Suspense, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 
@@ -21,6 +21,9 @@ function AprilReportContent() {
   const startDate = "04/01/2025";
   const endDate = "04/30/2025";
   const dateRange = `${startDate} - ${endDate}`;
+  
+  // State for expanding the full calendar
+  const [showFullCalendar, setShowFullCalendar] = useState(false);
   
   return (
     <main className="min-h-screen bg-gradient-to-br from-purple-900 to-black py-8 px-4 text-white">
@@ -66,7 +69,7 @@ function AprilReportContent() {
                   🌱 Wood
                 </span>
               </div>
-              <div className="text-xs text-purple-300 mt-1">Crystal: Green Jade</div>
+              <div className="text-xs text-green-300 mt-1 font-medium">Growth Energy</div>
             </div>
             <div className="text-center">
               <div className="font-medium">Weakest Element</div>
@@ -75,78 +78,100 @@ function AprilReportContent() {
                   🪨 Earth
                 </span>
               </div>
-              <div className="text-xs text-purple-300 mt-1">Crystal: Amethyst</div>
+              <div className="text-xs text-yellow-300 mt-1 font-medium">Stability Energy</div>
             </div>
           </div>
         </div>
         
-        {/* Daily Energy Calendar with crystal recommendations */}
+        {/* Daily Energy Calendar with expandable view */}
         <div className="bg-black/30 backdrop-blur-sm rounded-xl p-5">
           <h2 className="text-lg font-semibold mb-3">Daily Energy Calendar</h2>
-          <table className="w-full">
-            <thead>
-              <tr className="text-left text-sm text-purple-300">
-                <th className="pb-2">Date</th>
-                <th className="pb-2">Energy</th>
-                <th className="pb-2">Trend</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-800">
-              <tr className="text-sm">
-                <td className="py-2">April 1</td>
-                <td className="py-2">7.0/10</td>
-                <td className="py-2 text-green-400">🟢 Rising</td>
-              </tr>
-              <tr className="text-sm">
-                <td className="py-2">April 2</td>
-                <td className="py-2">6.2/10</td>
-                <td className="py-2 text-yellow-400">🟡 Stable</td>
-              </tr>
-              <tr className="text-sm">
-                <td className="py-2">April 3</td>
-                <td className="py-2">3.8/10</td>
-                <td className="py-2 text-red-400">🔴 Declining</td>
-              </tr>
-              <tr className="text-sm">
-                <td className="py-2">April 4</td>
-                <td className="py-2">2.5/10</td>
-                <td className="py-2 text-red-400">🔴 Declining</td>
-              </tr>
-              <tr className="text-sm">
-                <td className="py-2">April 5</td>
-                <td className="py-2">4.5/10</td>
-                <td className="py-2 text-green-400">🟢 Rising</td>
-              </tr>
-            </tbody>
-          </table>
+          
+          {/* Initial 5-day view */}
+          {!showFullCalendar && (
+            <div>
+              <table className="w-full">
+                <thead>
+                  <tr className="text-left text-sm text-purple-300">
+                    <th className="pb-2">Date</th>
+                    <th className="pb-2">Energy</th>
+                    <th className="pb-2">Trend</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-800">
+                  <tr className="text-sm">
+                    <td className="py-2">April 1</td>
+                    <td className="py-2">7.0/10</td>
+                    <td className="py-2 text-green-400">🟢 Rising</td>
+                  </tr>
+                  <tr className="text-sm">
+                    <td className="py-2">April 2</td>
+                    <td className="py-2">6.2/10</td>
+                    <td className="py-2 text-yellow-400">🟡 Stable</td>
+                  </tr>
+                  <tr className="text-sm">
+                    <td className="py-2">April 3</td>
+                    <td className="py-2">3.8/10</td>
+                    <td className="py-2 text-red-400">🔴 Declining</td>
+                  </tr>
+                  <tr className="text-sm">
+                    <td className="py-2">April 4</td>
+                    <td className="py-2">2.5/10</td>
+                    <td className="py-2 text-red-400">🔴 Declining</td>
+                  </tr>
+                  <tr className="text-sm">
+                    <td className="py-2">April 5</td>
+                    <td className="py-2">4.5/10</td>
+                    <td className="py-2 text-green-400">🟢 Rising</td>
+                  </tr>
+                </tbody>
+              </table>
 
-          <div className="mt-4 space-y-2">
-            <details className="text-sm">
-              <summary className="cursor-pointer text-purple-300 hover:text-white">View Daily Crystal Recommendations</summary>
-              <div className="mt-2 space-y-2 pl-2 border-l-2 border-purple-700">
-                <div className="flex justify-between text-xs">
-                  <span>April 1:</span>
-                  <span className="px-2 py-0.5 bg-red-900/50 rounded-full text-white">Fire Agate</span>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span>April 2:</span>
-                  <span className="px-2 py-0.5 bg-blue-900/50 rounded-full text-white">Sodalite</span>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span>April 3:</span>
-                  <span className="px-2 py-0.5 bg-yellow-900/50 rounded-full text-white">Tiger's Eye</span>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span>April 4:</span>
-                  <span className="px-2 py-0.5 bg-green-900/50 rounded-full text-white">Aventurine</span>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span>April 5:</span>
-                  <span className="px-2 py-0.5 bg-purple-900/50 rounded-full text-white">Fluorite</span>
-                </div>
+              <button 
+                onClick={() => setShowFullCalendar(true)}
+                className="w-full mt-4 py-1.5 bg-purple-900/50 hover:bg-purple-800/50 rounded-md text-sm font-medium text-purple-200"
+              >
+                View Full Month Calendar ↓
+              </button>
+            </div>
+          )}
+          
+          {/* Full 30-day view */}
+          {showFullCalendar && (
+            <div>
+              <div className="max-h-80 overflow-y-auto pr-1">
+                <table className="w-full">
+                  <thead className="sticky top-0 bg-black/50">
+                    <tr className="text-left text-sm text-purple-300">
+                      <th className="pb-2">Date</th>
+                      <th className="pb-2">Energy</th>
+                      <th className="pb-2">Trend</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-800">
+                    {Array.from({ length: 30 }, (_, i) => i + 1).map(day => (
+                      <tr key={day} className="text-sm border-b border-purple-900/30">
+                        <td className="py-2">April {day}</td>
+                        <td className="py-2">{(6 + Math.sin(day/3) * 3).toFixed(1)}/10</td>
+                        <td className="py-2">
+                          <span className={day % 3 === 0 ? 'text-red-400' : day % 3 === 1 ? 'text-green-400' : 'text-yellow-400'}>
+                            {day % 3 === 0 ? '🔴 Declining' : day % 3 === 1 ? '🟢 Rising' : '🟡 Stable'}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-            </details>
-          </div>
+              
+              <button 
+                onClick={() => setShowFullCalendar(false)}
+                className="w-full mt-4 py-1.5 bg-purple-900/50 hover:bg-purple-800/50 rounded-md text-sm font-medium text-purple-200"
+              >
+                Show Less ↑
+              </button>
+            </div>
+          )}
         </div>
         
         {/* Energy Tips */}

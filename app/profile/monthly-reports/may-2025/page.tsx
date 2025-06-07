@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 export const dynamicParams = true;
 export const revalidate = 0;
 
-import React, { Suspense } from 'react';
+import React, { Suspense, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 
@@ -21,6 +21,9 @@ function MayReportContent() {
   const startDate = "05/01/2025";
   const endDate = "05/31/2025";
   const dateRange = `${startDate} - ${endDate}`;
+  
+  // State for expanding the full calendar
+  const [showFullCalendar, setShowFullCalendar] = useState(false);
   
   return (
     <main className="min-h-screen bg-gradient-to-br from-purple-900 to-black py-8 px-4 text-white">
@@ -66,7 +69,7 @@ function MayReportContent() {
                   💧 Water
                 </span>
               </div>
-              <div className="text-xs text-purple-300 mt-1">Crystal: Clear Quartz</div>
+              <div className="text-xs text-blue-300 mt-1 font-medium">Fluid Energy</div>
             </div>
             <div className="text-center">
               <div className="font-medium">Weakest Element</div>
@@ -75,81 +78,106 @@ function MayReportContent() {
                   🔥 Fire
                 </span>
               </div>
-              <div className="text-xs text-purple-300 mt-1">Crystal: Red Jasper</div>
+              <div className="text-xs text-red-300 mt-1 font-medium">Passion Energy</div>
             </div>
           </div>
         </div>
         
-        {/* Daily Energy Calendar with crystal recommendations */}
+        {/* Daily Energy Calendar with expandable view */}
         <div className="bg-black/30 backdrop-blur-sm rounded-xl p-5">
           <h2 className="text-lg font-semibold mb-3">Daily Energy Calendar</h2>
-          <div className="space-y-4">
-            <div>
-              <div className="flex justify-between items-center mb-1">
-                <div className="font-medium">May 1</div>
-                <div className="text-sm">8.3/10</div>
-                <div className="text-green-400 text-sm">🟢 Rising</div>
+          
+          {/* Initial 5-day view */}
+          {!showFullCalendar && (
+            <div className="space-y-4">
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <div className="font-medium">May 1</div>
+                  <div className="text-sm">8.3/10</div>
+                  <div className="text-green-400 text-sm">🟢 Rising</div>
+                </div>
+                <p className="text-xs text-purple-200">Morning meditation enhances intuition and creativity</p>
               </div>
-              <p className="text-xs text-purple-200">Morning meditation enhances intuition and creativity</p>
-              <div className="mt-1 flex items-center">
-                <span className="text-xs text-purple-300 mr-2">Crystal:</span>
-                <span className="text-xs px-2 py-0.5 bg-red-900/50 rounded-full text-white">Ruby</span>
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <div className="font-medium">May 2</div>
+                  <div className="text-sm">7.2/10</div>
+                  <div className="text-yellow-400 text-sm">🟡 Stable</div>
+                </div>
+                <p className="text-xs text-purple-200">Wear blue to amplify intuitive energy</p>
               </div>
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <div className="font-medium">May 3</div>
+                  <div className="text-sm">6.5/10</div>
+                  <div className="text-red-400 text-sm">🔴 Declining</div>
+                </div>
+                <p className="text-xs text-purple-200">Good day for important decisions</p>
+              </div>
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <div className="font-medium">May 4</div>
+                  <div className="text-sm">5.8/10</div>
+                  <div className="text-red-400 text-sm">🔴 Declining</div>
+                </div>
+                <p className="text-xs text-purple-200">Rest more, avoid high-intensity activities</p>
+              </div>
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <div className="font-medium">May 5</div>
+                  <div className="text-sm">7.4/10</div>
+                  <div className="text-green-400 text-sm">🟢 Rising</div>
+                </div>
+                <p className="text-xs text-purple-200">Ideal for socializing and building relationships</p>
+              </div>
+              
+              <button 
+                onClick={() => setShowFullCalendar(true)}
+                className="w-full mt-3 py-1.5 bg-purple-900/50 hover:bg-purple-800/50 rounded-md text-sm font-medium text-purple-200"
+              >
+                View Full Month Calendar ↓
+              </button>
             </div>
+          )}
+          
+          {/* Full 30-day view */}
+          {showFullCalendar && (
             <div>
-              <div className="flex justify-between items-center mb-1">
-                <div className="font-medium">May 2</div>
-                <div className="text-sm">7.2/10</div>
-                <div className="text-yellow-400 text-sm">🟡 Stable</div>
+              <div className="grid grid-cols-1 gap-3 max-h-80 overflow-y-auto pr-1">
+                {Array.from({ length: 31 }, (_, i) => i + 1).map(day => (
+                  <div key={day} className="border-b border-purple-900/30 pb-2">
+                    <div className="flex justify-between items-center">
+                      <div className="font-medium">May {day}</div>
+                      <div className="text-sm">{(7.5 + Math.sin(day/3) * 2.5).toFixed(1)}/10</div>
+                      <div className={`text-sm ${day % 3 === 0 ? 'text-red-400' : day % 3 === 1 ? 'text-green-400' : 'text-yellow-400'}`}>
+                        {day % 3 === 0 ? '🔴 Declining' : day % 3 === 1 ? '🟢 Rising' : '🟡 Stable'}
+                      </div>
+                    </div>
+                    <p className="text-xs text-purple-200 mt-1">
+                      {day % 5 === 0 ? 'Focus on creativity and expression' : 
+                       day % 5 === 1 ? 'Ideal for strategic planning and decisions' :
+                       day % 5 === 2 ? 'Energy flows toward relationship building' :
+                       day % 5 === 3 ? 'Best for practical tasks and organization' :
+                       'Good balance between activity and rest'}
+                    </p>
+                  </div>
+                ))}
               </div>
-              <p className="text-xs text-purple-200">Wear blue to amplify intuitive energy</p>
-              <div className="mt-1 flex items-center">
-                <span className="text-xs text-purple-300 mr-2">Crystal:</span>
-                <span className="text-xs px-2 py-0.5 bg-blue-900/50 rounded-full text-white">Lapis Lazuli</span>
-              </div>
+              
+              <button 
+                onClick={() => setShowFullCalendar(false)}
+                className="w-full mt-3 py-1.5 bg-purple-900/50 hover:bg-purple-800/50 rounded-md text-sm font-medium text-purple-200"
+              >
+                Show Less ↑
+              </button>
             </div>
-            <div>
-              <div className="flex justify-between items-center mb-1">
-                <div className="font-medium">May 3</div>
-                <div className="text-sm">6.5/10</div>
-                <div className="text-red-400 text-sm">🔴 Declining</div>
-              </div>
-              <p className="text-xs text-purple-200">Good day for important decisions</p>
-              <div className="mt-1 flex items-center">
-                <span className="text-xs text-purple-300 mr-2">Crystal:</span>
-                <span className="text-xs px-2 py-0.5 bg-amber-900/50 rounded-full text-white">Citrine</span>
-              </div>
-            </div>
-            <div>
-              <div className="flex justify-between items-center mb-1">
-                <div className="font-medium">May 4</div>
-                <div className="text-sm">5.8/10</div>
-                <div className="text-red-400 text-sm">🔴 Declining</div>
-              </div>
-              <p className="text-xs text-purple-200">Rest more, avoid high-intensity activities</p>
-              <div className="mt-1 flex items-center">
-                <span className="text-xs text-purple-300 mr-2">Crystal:</span>
-                <span className="text-xs px-2 py-0.5 bg-green-900/50 rounded-full text-white">Jade</span>
-              </div>
-            </div>
-            <div>
-              <div className="flex justify-between items-center mb-1">
-                <div className="font-medium">May 5</div>
-                <div className="text-sm">7.4/10</div>
-                <div className="text-green-400 text-sm">🟢 Rising</div>
-              </div>
-              <p className="text-xs text-purple-200">Ideal for socializing and building relationships</p>
-              <div className="mt-1 flex items-center">
-                <span className="text-xs text-purple-300 mr-2">Crystal:</span>
-                <span className="text-xs px-2 py-0.5 bg-purple-900/50 rounded-full text-white">Amethyst</span>
-              </div>
-            </div>
-          </div>
+          )}
         </div>
         
         {/* Hourly Peaks - Pro feature */}
         <div className="bg-black/30 backdrop-blur-sm rounded-xl p-5">
           <h2 className="text-lg font-semibold mb-3">Hourly Energy Peaks</h2>
+          <p className="text-xs text-purple-300 mb-3">Your next 24 hours energy peaks</p>
           <div className="space-y-3">
             <div>
               <div className="flex justify-between items-center mb-1">
