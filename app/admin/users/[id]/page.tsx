@@ -112,7 +112,7 @@ export default function UserDetails({ params }: { params: { id: string } }) {
               <h1 className="text-2xl font-bold text-white mb-2">{user.name}</h1>
               <p className="text-purple-200">{user.email}</p>
               <p className="text-purple-300 text-sm mt-2">
-                注册时间: {new Date(user.createdAt).toLocaleDateString()}
+                注册时间: {new Date(user.createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
               </p>
             </div>
             <div className="text-right">
@@ -125,7 +125,7 @@ export default function UserDetails({ params }: { params: { id: string } }) {
               </div>
               {user.subscription.status === 'premium' && user.subscription.expiresAt && (
                 <p className="text-sm text-purple-300 mt-2">
-                  到期时间: {new Date(user.subscription.expiresAt).toLocaleDateString()}
+                  到期时间: {new Date(user.subscription.expiresAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
                 </p>
               )}
             </div>
@@ -146,7 +146,7 @@ export default function UserDetails({ params }: { params: { id: string } }) {
                       {record.planId === 'premium' ? '月度会员' : '年度会员'}
                     </p>
                     <p className="text-sm text-purple-300">
-                      {new Date(record.startDate).toLocaleDateString()} - {new Date(record.endDate).toLocaleDateString()}
+                      {new Date(record.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} - {new Date(record.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                     </p>
                   </div>
                   <p className="text-purple-300">¥{record.amount}</p>
@@ -172,7 +172,7 @@ export default function UserDetails({ params }: { params: { id: string } }) {
                   <div className="flex justify-between items-start mb-2">
                     <h3 className="text-lg font-medium text-white">{report.title}</h3>
                     <span className="text-sm text-purple-300">
-                      {new Date(report.date).toLocaleDateString()}
+                      {new Date(report.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                     </span>
                   </div>
                   <p className="text-purple-200 text-sm">{report.summary}</p>

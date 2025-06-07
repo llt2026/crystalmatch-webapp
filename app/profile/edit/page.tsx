@@ -213,7 +213,7 @@ export default function EditProfilePage() {
               
               <div className="text-gray-400 text-sm">
                 <p>{t('profile.email')}: {profile.email}</p>
-                <p>{t('profile.memberSince')}: {new Date(profile.joinedAt).toLocaleDateString()}</p>
+                <p>{t('profile.memberSince')}: {new Date(profile.joinedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
               </div>
             </div>
           </div>

@@ -90,7 +90,7 @@ export default function Dashboard() {
               </div>
               {profile?.subscription.status === 'premium' && profile.subscription.expiresAt && (
                 <p className="text-sm text-purple-300 mt-1">
-                  到期时间: {new Date(profile.subscription.expiresAt).toLocaleDateString()}
+                  到期时间: {new Date(profile.subscription.expiresAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
                 </p>
               )}
             </div>
@@ -139,7 +139,7 @@ export default function Dashboard() {
                 <div className="flex justify-between items-start mb-2">
                   <h3 className="text-lg font-medium text-white">{report.title}</h3>
                   <span className="text-sm text-purple-300">
-                    {new Date(report.date).toLocaleDateString()}
+                    {new Date(report.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                   </span>
                 </div>
                 <p className="text-purple-200 text-sm">{report.summary}</p>
