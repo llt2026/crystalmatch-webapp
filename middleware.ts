@@ -16,17 +16,31 @@ if (process.env.NEXT_PHASE === 'phase-production-build') {
   });
 }
 
-export async function middleware(request: NextRequest) {
-  // API路由处理
-  if (request.nextUrl.pathname.startsWith('/api')) {
-    // 可以在这里添加API特定的中间件逻辑
-    // 例如: API速率限制、认证检查等
-  }
-
-  return NextResponse.next();
-}
-
-// 仅对API路由应用此中间件
+// 这个配置确保中间件仅在指定路径上运行
 export const config = {
-  matcher: '/api/:path*',
+  matcher: [
+    '/api/:path*',
+    '/profile/monthly-reports/:path*',
+  ],
+};
+
+export default function middleware(request: NextRequest) {
+  // 获取当前路径
+  const url = request.nextUrl.clone();
+  
+  // API路由处理
+  if (url.pathname.startsWith('/api')) {
+    // API特定的中间件逻辑
+    return NextResponse.next();
+  }
+  
+  // 确保报告页面是可访问的
+  if (url.pathname.includes('/monthly-reports/')) {
+    // 如果直接访问，确保设置为动态渲染
+    const response = NextResponse.next();
+    response.headers.set('x-middleware-cache', 'no-cache');
+    return response;
+  }
+  
+  return NextResponse.next();
 } 

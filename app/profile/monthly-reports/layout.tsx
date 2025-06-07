@@ -1,9 +1,38 @@
+'use client';
+
+import { usePathname, useRouter } from 'next/navigation';
+import { useEffect } from 'react';
+import { useSession } from 'next-auth/react';
+
+// 强制设置动态渲染
 export const dynamic = 'force-dynamic';
+export const dynamicParams = true;
+export const revalidate = 0;
 
 export default function MonthlyReportsLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return <>{children}</>;
+  const pathname = usePathname();
+  const router = useRouter();
+  const { status } = useSession();
+  
+  useEffect(() => {
+    // 如果用户未登录，重定向到登录页面
+    if (status === 'unauthenticated') {
+      router.push('/login');
+    }
+    
+    // 确保URL不含尾部斜杠
+    if (pathname.endsWith('/') && pathname !== '/profile/monthly-reports/') {
+      router.replace(pathname.slice(0, -1));
+    }
+  }, [pathname, router, status]);
+  
+  return (
+    <div className="monthly-reports-layout">
+      {children}
+    </div>
+  );
 } 
