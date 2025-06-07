@@ -5,6 +5,7 @@ import { Inter } from 'next/font/google'
 import Script from 'next/script'
 import { useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { Providers } from './providers';
 
 const inter = Inter({ 
   subsets: ['latin'],
@@ -46,10 +47,12 @@ export default function RootLayout({
         <title>CrystalMatch - Find Your Perfect Crystal Match</title>
       </head>
       <body>
-        <Suspense fallback={null}>
-          <ReferralHandler />
-        </Suspense>
-        {children}
+        <Providers>
+          <Suspense fallback={null}>
+            <ReferralHandler />
+          </Suspense>
+          {children}
+        </Providers>
         <Script src="/register-sw.js" strategy="afterInteractive" />
       </body>
     </html>

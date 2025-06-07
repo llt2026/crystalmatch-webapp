@@ -3,6 +3,11 @@
  */
 'use client';
 
+// 设置页面为动态渲染，禁用静态生成
+export const dynamic = 'force-dynamic';
+export const dynamicParams = true;
+export const revalidate = 0;
+
 import React, { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
