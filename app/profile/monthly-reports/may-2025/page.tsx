@@ -8,11 +8,12 @@ export const dynamic = 'force-dynamic';
 export const dynamicParams = true;
 export const revalidate = 0;
 
-import React from 'react';
+import React, { Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 
-export default function MayReportPage() {
+// 提取使用useSearchParams的部分到单独组件
+function MayReportContent() {
   const searchParams = useSearchParams();
   const birthDate = searchParams?.get('birthDate') || '';
   
@@ -148,5 +149,18 @@ export default function MayReportPage() {
         </footer>
       </div>
     </main>
+  );
+}
+
+// 使用Suspense包装组件以解决useSearchParams需要Suspense边界的问题
+export default function MayReportPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-purple-900 to-black flex items-center justify-center">
+        <div className="text-white">Loading...</div>
+      </div>
+    }>
+      <MayReportContent />
+    </Suspense>
   );
 } 
