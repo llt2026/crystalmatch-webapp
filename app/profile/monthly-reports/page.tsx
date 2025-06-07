@@ -1,9 +1,9 @@
+'use client';
+
 // 强制设置动态渲染
 export const dynamic = 'force-dynamic';
 export const dynamicParams = true;
 export const revalidate = 0;
-
-'use client';
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
