@@ -217,14 +217,18 @@ export default function ProfilePage() {
           <div className="space-y-2">
             <h3 className="text-xs font-semibold tracking-wide uppercase text-purple-200 mb-1">MONTHLY DEEP REPORTS</h3>
             <Link 
-              href={`/profile/monthly-reports/may-2025${profile.birthDate ? `?birthDate=${encodeURIComponent(profile.birthDate)}` : profile.birthInfo?.date ? `?birthDate=${encodeURIComponent(profile.birthInfo.date)}` : ''}`} 
+              href={profile.birthDate || profile.birthInfo?.date ? 
+                `/profile/monthly-reports/may-2025?birthDate=${encodeURIComponent(profile.birthDate || profile.birthInfo?.date || '')}` : 
+                '/profile/monthly-reports/may-2025'} 
               className="bg-black/40 p-3 rounded-lg flex justify-between items-center no-underline"
             >
               <span className="text-xs">May 2025 Energy Report</span>
               <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-purple-600 text-white">NEW</span>
             </Link>
             <Link 
-              href={`/profile/monthly-reports/apr-2025${profile.birthDate ? `?birthDate=${encodeURIComponent(profile.birthDate)}` : profile.birthInfo?.date ? `?birthDate=${encodeURIComponent(profile.birthInfo.date)}` : ''}`} 
+              href={profile.birthDate || profile.birthInfo?.date ? 
+                `/profile/monthly-reports/apr-2025?birthDate=${encodeURIComponent(profile.birthDate || profile.birthInfo?.date || '')}` : 
+                '/profile/monthly-reports/apr-2025'} 
               className="bg-black/40 p-3 rounded-lg flex justify-between items-center no-underline"
             >
               <span className="text-xs">Apr 2025 Energy Report</span>
