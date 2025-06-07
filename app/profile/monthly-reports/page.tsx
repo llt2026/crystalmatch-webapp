@@ -8,13 +8,10 @@ export const revalidate = 0;
 import React, { useEffect, useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useSession } from 'next-auth/react';
-import { ReportLoading } from '../../components/reports/EnergyComponents';
 
 // 提取使用useSearchParams的逻辑到单独组件
 function ReportsContent() {
   const router = useRouter();
-  const { data: session, status } = useSession();
   const searchParams = useSearchParams();
   const birthDate = searchParams?.get('birthDate') || '';
   
@@ -25,19 +22,6 @@ function ReportsContent() {
       : reportPath;
     router.push(url);
   };
-  
-  if (status === 'loading') {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-900 to-black flex items-center justify-center">
-        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-purple-500"></div>
-      </div>
-    );
-  }
-  
-  if (status === 'unauthenticated') {
-    router.push('/login');
-    return null;
-  }
   
   return (
     <main className="min-h-screen bg-gradient-to-br from-purple-900 to-black py-8 px-4">

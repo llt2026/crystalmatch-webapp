@@ -7,6 +7,11 @@ import crypto from "crypto";
 const generatedSecret = crypto.randomBytes(32).toString("hex");
 const NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET || generatedSecret;
 
+// 确保环境变量也被设置，避免NextAuth在后续内部调用时报NO_SECRET
+if (!process.env.NEXTAUTH_SECRET) {
+  process.env.NEXTAUTH_SECRET = NEXTAUTH_SECRET;
+}
+
 // 创建NextAuth配置
 export const authOptions: NextAuthOptions = {
   providers: [
