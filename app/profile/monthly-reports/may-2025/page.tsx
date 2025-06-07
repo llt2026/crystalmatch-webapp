@@ -6,9 +6,9 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { getReportConfig } from '@/lib/monthlyReportConfig';
-import { hasRequiredSubscription } from '@/lib/subscriptionUtils';
-import { fetchMonthlyReportData } from '@/services/reportService';
+import { getReportConfig } from '../../../lib/monthlyReportConfig';
+import { hasRequiredSubscription } from '../../../lib/subscriptionUtils';
+import { fetchMonthlyReportData } from '../../../services/reportService';
 import {
   ReportContainer,
   ReportLoading,
@@ -17,7 +17,7 @@ import {
   HourlyEnergyPeaks,
   WeeklyForecast,
   MonthlyOverview
-} from '@/components/reports/EnergyComponents';
+} from '../../../components/reports/EnergyComponents';
 
 export default function MayReportPage() {
   const { data: session, status } = useSession();

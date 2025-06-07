@@ -9,7 +9,7 @@ import {
   HourlyEnergyData,
   WeeklyForecastData,
   EnergyTrend
-} from '@/components/reports/EnergyComponents';
+} from '../components/reports/EnergyComponents';
 
 /**
  * 生成模拟的日能量数据
