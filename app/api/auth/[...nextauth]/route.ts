@@ -1,6 +1,11 @@
 import NextAuth from "next-auth";
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
+import crypto from "crypto";
+
+// 确保在生产环境提供secret，若未提供则自动生成（仅用于非生产环境）
+const generatedSecret = crypto.randomBytes(32).toString("hex");
+const NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET || generatedSecret;
 
 // 创建NextAuth配置
 export const authOptions: NextAuthOptions = {
@@ -50,7 +55,8 @@ export const authOptions: NextAuthOptions = {
   },
   session: {
     strategy: "jwt"
-  }
+  },
+  secret: NEXTAUTH_SECRET
 };
 
 // 创建简单的NextAuth处理程序
