@@ -10,7 +10,6 @@ export const revalidate = 0;
 
 import React, { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { fetchMonthlyReportData } from '../../../services/reportService';
 import {
@@ -24,7 +23,6 @@ import {
 
 // 提取使用useSearchParams的部分到单独的组件
 function ReportContent() {
-  const { data: session, status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
@@ -32,49 +30,34 @@ function ReportContent() {
   const [error, setError] = useState<string | null>(null);
   
   useEffect(() => {
-    // 检查用户是否已登录
-    if (status === 'unauthenticated') {
-      router.push('/login');
-      return;
-    }
-    
-    // 检查用户是否有Plus或Pro订阅 (临时禁用，确保所有用户都能看到)
-    if (status === 'authenticated') {
-      const hasAccess = true; // 临时禁用订阅检查
-      if (!hasAccess) {
-        router.push('/pricing');
-        return;
-      }
-      
-      // 加载报告数据
-      const fetchReportData = async () => {
-        try {
-          // 获取URL中的出生日期参数
-          const birthDate = searchParams?.get('birthDate') || '';
-          console.log("获取5月报告数据, 出生日期:", birthDate);
-          
-          // 获取报告数据
-          const data = await fetchMonthlyReportData('may-2025', birthDate);
-          console.log("5月报告数据获取成功:", data);
-          
-          if (!data || !data.dailyEnergy) {
-            setError('报告数据无效，请稍后再试');
-            setLoading(false);
-            return;
-          }
-          
-          setReportData(data);
+    // 直接加载报告数据，不依赖session状态
+    const fetchReportData = async () => {
+      try {
+        // 获取URL中的出生日期参数
+        const birthDate = searchParams?.get('birthDate') || '';
+        console.log("获取5月报告数据, 出生日期:", birthDate);
+        
+        // 获取报告数据
+        const data = await fetchMonthlyReportData('may-2025', birthDate);
+        console.log("5月报告数据获取成功:", data);
+        
+        if (!data || !data.dailyEnergy) {
+          setError('报告数据无效，请稍后再试');
           setLoading(false);
-        } catch (error) {
-          console.error('Error loading May report data:', error);
-          setError('无法加载5月报告数据，请刷新页面重试');
-          setLoading(false);
+          return;
         }
-      };
-      
-      fetchReportData();
-    }
-  }, [status, session, router, searchParams]);
+        
+        setReportData(data);
+        setLoading(false);
+      } catch (error) {
+        console.error('Error loading May report data:', error);
+        setError('无法加载5月报告数据，请刷新页面重试');
+        setLoading(false);
+      }
+    };
+    
+    fetchReportData();
+  }, [router, searchParams]);
 
   if (loading) {
     return <ReportLoading />;
