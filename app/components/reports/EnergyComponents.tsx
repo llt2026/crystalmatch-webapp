@@ -203,36 +203,40 @@ export const MonthlyOverview: React.FC<{
 );
 
 /**
- * 报告页面加载组件
+ * 报告加载组件
  */
 export const ReportLoading: React.FC = () => (
-  <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-purple-900 to-black">
-    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-purple-500"></div>
+  <div className="min-h-screen bg-gradient-to-br from-purple-900 to-black flex flex-col items-center justify-center p-4">
+    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500 mb-4"></div>
+    <p className="text-purple-300">Loading your energy report...</p>
   </div>
 );
 
 /**
- * 报告页面布局容器
+ * 报告容器组件
  */
 export const ReportContainer: React.FC<{
   title: string;
   subtitle: string;
   children: React.ReactNode;
 }> = ({ title, subtitle, children }) => (
-  <div className="min-h-screen bg-gradient-to-br from-purple-900 to-black pt-6 pb-12">
-    <div className="container mx-auto px-4">
-      <div className="max-w-lg mx-auto">
-        <h1 className="text-2xl md:text-3xl font-bold mb-4 text-center text-white">
-          {title}
-        </h1>
-        <p className="text-center text-sm text-purple-200 mb-8">
-          {subtitle}
-        </p>
-        
-        <div className="space-y-8">
-          {children}
-        </div>
+  <main className="min-h-screen bg-gradient-to-br from-purple-900 to-black py-8 px-4">
+    <div className="max-w-2xl mx-auto space-y-6">
+      {/* 页头 */}
+      <header className="text-center mb-8">
+        <h1 className="text-xl sm:text-2xl font-bold text-white mb-2">{title}</h1>
+        <p className="text-sm text-purple-300">{subtitle}</p>
+      </header>
+      
+      {/* 内容区域 */}
+      <div className="space-y-6">
+        {children}
       </div>
+      
+      {/* 页脚 */}
+      <footer className="mt-12 pt-4 border-t border-purple-800/40 text-center">
+        <p className="text-xs text-purple-400">Powered by CrystalMatch Energy Analysis</p>
+      </footer>
     </div>
-  </div>
+  </main>
 ); 
