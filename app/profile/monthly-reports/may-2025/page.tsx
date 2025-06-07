@@ -1,9 +1,9 @@
 /**
- * May 2025 Monthly Deep Report Page - 完整版本
+ * May 2025 Monthly Deep Report Page - Pro Version
  */
 'use client';
 
-// 设置页面为动态渲染，禁用静态生成
+// Set page to dynamic rendering, disable static generation
 export const dynamic = 'force-dynamic';
 export const dynamicParams = true;
 export const revalidate = 0;
@@ -12,46 +12,42 @@ import React, { Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 
-// 提取使用useSearchParams的部分到单独组件
+// Extract useSearchParams component to a separate component
 function MayReportContent() {
   const searchParams = useSearchParams();
   const birthDate = searchParams?.get('birthDate') || '';
-  const userType = searchParams?.get('userType') || 'plus'; // 默认为plus用户
   
-  // 计算日期范围（美国格式：MM/DD/YYYY）
+  // Calculate date range (US format: MM/DD/YYYY)
   const startDate = "05/01/2025";
   const endDate = "05/31/2025";
   const dateRange = `${startDate} - ${endDate}`;
   
-  // 根据用户类型确定标题后缀
-  const titleSuffix = userType === 'pro' ? '(Pro)' : '(Plus)';
-  
   return (
     <main className="min-h-screen bg-gradient-to-br from-purple-900 to-black py-8 px-4 text-white">
       <div className="max-w-md mx-auto space-y-6">
-        {/* 页头 - 按要求修改格式 */}
+        {/* Header */}
         <header className="text-center mb-8">
-          <h1 className="text-2xl font-bold">CrystalMatch Monthly Energy Report {titleSuffix}</h1>
+          <h1 className="text-2xl font-bold">CrystalMatch Monthly Energy Report (Pro)</h1>
           <p className="text-purple-300 mt-1">{dateRange}</p>
         </header>
         
-        {/* 返回按钮 */}
+        {/* Back button */}
         <div className="mb-6">
           <Link href="/profile" className="text-purple-300 hover:text-white flex items-center w-fit">
-            ← 返回个人主页
+            ← Back to Profile
           </Link>
         </div>
         
-        {/* 能量概览 - 使用更美观的进度条 */}
+        {/* Energy Overview */}
         <div className="bg-black/30 backdrop-blur-sm rounded-xl p-5 space-y-3">
-          <h2 className="text-lg font-semibold text-center">能量概览</h2>
+          <h2 className="text-lg font-semibold text-center">Energy Overview</h2>
           
           <div className="text-center">
             <div className="text-3xl font-bold">83 / 100</div>
-            <div className="mt-1 text-purple-300">成长模式 ✨</div>
+            <div className="mt-1 text-purple-300">Growth Mode ✨</div>
           </div>
           
-          {/* 美化版进度条 */}
+          {/* Enhanced progress bar */}
           <div className="mt-3 relative">
             <div className="w-full h-3 bg-gray-700 rounded-full overflow-hidden">
               <div 
@@ -64,186 +60,183 @@ function MayReportContent() {
           
           <div className="flex justify-around mt-4">
             <div className="text-center">
-              <div className="font-medium">最强元素</div>
+              <div className="font-medium">Strongest Element</div>
               <div className="flex items-center justify-center gap-1 mt-1">
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-900 text-blue-200">
-                  💧 水
+                  💧 Water
                 </span>
               </div>
-              <div className="text-xs text-purple-300 mt-1">推荐水晶：透明水晶</div>
+              <div className="text-xs text-purple-300 mt-1">Crystal: Clear Quartz</div>
             </div>
             <div className="text-center">
-              <div className="font-medium">最弱元素</div>
+              <div className="font-medium">Weakest Element</div>
               <div className="flex items-center justify-center gap-1 mt-1">
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-900 text-red-200">
-                  🔥 火
+                  🔥 Fire
                 </span>
               </div>
-              <div className="text-xs text-purple-300 mt-1">推荐水晶：红碧玺</div>
+              <div className="text-xs text-purple-300 mt-1">Crystal: Red Jasper</div>
             </div>
           </div>
         </div>
         
-        {/* 日能量日历 - 显示5天，包含行动建议 */}
+        {/* Daily Energy Calendar with crystal recommendations */}
         <div className="bg-black/30 backdrop-blur-sm rounded-xl p-5">
-          <h2 className="text-lg font-semibold mb-3">日能量日历</h2>
+          <h2 className="text-lg font-semibold mb-3">Daily Energy Calendar</h2>
           <div className="space-y-4">
             <div>
               <div className="flex justify-between items-center mb-1">
-                <div className="font-medium">5月1日</div>
+                <div className="font-medium">May 1</div>
                 <div className="text-sm">8.3/10</div>
-                <div className="text-green-400 text-sm">🟢 上升</div>
+                <div className="text-green-400 text-sm">🟢 Rising</div>
               </div>
-              <p className="text-xs text-purple-200">清晨冥想有助于提高直觉和创造力</p>
+              <p className="text-xs text-purple-200">Morning meditation enhances intuition and creativity</p>
+              <div className="mt-1 flex items-center">
+                <span className="text-xs text-purple-300 mr-2">Crystal:</span>
+                <span className="text-xs px-2 py-0.5 bg-red-900/50 rounded-full text-white">Ruby</span>
+              </div>
             </div>
             <div>
               <div className="flex justify-between items-center mb-1">
-                <div className="font-medium">5月2日</div>
+                <div className="font-medium">May 2</div>
                 <div className="text-sm">7.2/10</div>
-                <div className="text-yellow-400 text-sm">🟡 稳定</div>
+                <div className="text-yellow-400 text-sm">🟡 Stable</div>
               </div>
-              <p className="text-xs text-purple-200">穿蓝色衣物可增强直觉能量</p>
+              <p className="text-xs text-purple-200">Wear blue to amplify intuitive energy</p>
+              <div className="mt-1 flex items-center">
+                <span className="text-xs text-purple-300 mr-2">Crystal:</span>
+                <span className="text-xs px-2 py-0.5 bg-blue-900/50 rounded-full text-white">Lapis Lazuli</span>
+              </div>
             </div>
             <div>
               <div className="flex justify-between items-center mb-1">
-                <div className="font-medium">5月3日</div>
+                <div className="font-medium">May 3</div>
                 <div className="text-sm">6.5/10</div>
-                <div className="text-red-400 text-sm">🔴 下降</div>
+                <div className="text-red-400 text-sm">🔴 Declining</div>
               </div>
-              <p className="text-xs text-purple-200">重要决策适合在今天做出</p>
+              <p className="text-xs text-purple-200">Good day for important decisions</p>
+              <div className="mt-1 flex items-center">
+                <span className="text-xs text-purple-300 mr-2">Crystal:</span>
+                <span className="text-xs px-2 py-0.5 bg-amber-900/50 rounded-full text-white">Citrine</span>
+              </div>
             </div>
             <div>
               <div className="flex justify-between items-center mb-1">
-                <div className="font-medium">5月4日</div>
+                <div className="font-medium">May 4</div>
                 <div className="text-sm">5.8/10</div>
-                <div className="text-red-400 text-sm">🔴 下降</div>
+                <div className="text-red-400 text-sm">🔴 Declining</div>
               </div>
-              <p className="text-xs text-purple-200">建议多休息，避免高强度活动</p>
+              <p className="text-xs text-purple-200">Rest more, avoid high-intensity activities</p>
+              <div className="mt-1 flex items-center">
+                <span className="text-xs text-purple-300 mr-2">Crystal:</span>
+                <span className="text-xs px-2 py-0.5 bg-green-900/50 rounded-full text-white">Jade</span>
+              </div>
             </div>
             <div>
               <div className="flex justify-between items-center mb-1">
-                <div className="font-medium">5月5日</div>
+                <div className="font-medium">May 5</div>
                 <div className="text-sm">7.4/10</div>
-                <div className="text-green-400 text-sm">🟢 上升</div>
+                <div className="text-green-400 text-sm">🟢 Rising</div>
               </div>
-              <p className="text-xs text-purple-200">适合社交和建立新的人际关系</p>
+              <p className="text-xs text-purple-200">Ideal for socializing and building relationships</p>
+              <div className="mt-1 flex items-center">
+                <span className="text-xs text-purple-300 mr-2">Crystal:</span>
+                <span className="text-xs px-2 py-0.5 bg-purple-900/50 rounded-full text-white">Amethyst</span>
+              </div>
             </div>
           </div>
         </div>
         
-        {/* 升级提示 - 仅对Plus用户显示 */}
-        {userType === 'plus' && (
-          <div className="bg-gradient-to-r from-purple-900/40 to-purple-700/30 backdrop-blur-sm rounded-xl p-5 border border-purple-500/20">
-            <div className="flex items-center mb-2">
-              <span className="text-lg mr-2">🔒</span>
-              <h2 className="text-lg font-semibold">解锁Pro功能</h2>
+        {/* Hourly Peaks - Pro feature */}
+        <div className="bg-black/30 backdrop-blur-sm rounded-xl p-5">
+          <h2 className="text-lg font-semibold mb-3">Hourly Energy Peaks</h2>
+          <div className="space-y-3">
+            <div>
+              <div className="flex justify-between items-center mb-1">
+                <div className="font-medium">8:00 AM</div>
+                <div className="text-sm">9.2/10</div>
+              </div>
+              <p className="text-xs text-purple-200">Creative inspiration peak, ideal for brainstorming and creative work</p>
             </div>
-            <p className="text-sm mb-3">升级至Pro版本解锁小时能量高峰、吉凶日和关系契合度分析</p>
-            <Link 
-              href="/subscription" 
-              className="block w-full py-2 bg-purple-600 hover:bg-purple-700 text-center rounded text-white text-sm font-medium"
-            >
-              升级至PRO
-            </Link>
-          </div>
-        )}
-        
-        {/* 小时能量高峰 - 仅对Pro用户显示 */}
-        {userType === 'pro' && (
-          <div className="bg-black/30 backdrop-blur-sm rounded-xl p-5">
-            <h2 className="text-lg font-semibold mb-3">小时能量高峰</h2>
-            <div className="space-y-3">
-              <div>
-                <div className="flex justify-between items-center mb-1">
-                  <div className="font-medium">上午 8:00</div>
-                  <div className="text-sm">9.2/10</div>
-                </div>
-                <p className="text-xs text-purple-200">创意灵感高峰，适合头脑风暴和创造性工作</p>
+            <div>
+              <div className="flex justify-between items-center mb-1">
+                <div className="font-medium">2:00 PM</div>
+                <div className="text-sm">8.7/10</div>
               </div>
-              <div>
-                <div className="flex justify-between items-center mb-1">
-                  <div className="font-medium">下午 2:00</div>
-                  <div className="text-sm">8.7/10</div>
-                </div>
-                <p className="text-xs text-purple-200">决策能力强化，适合重要决策和规划</p>
+              <p className="text-xs text-purple-200">Decision-making power enhanced, great for important choices and planning</p>
+            </div>
+            <div>
+              <div className="flex justify-between items-center mb-1">
+                <div className="font-medium">7:00 PM</div>
+                <div className="text-sm">8.5/10</div>
               </div>
-              <div>
-                <div className="flex justify-between items-center mb-1">
-                  <div className="font-medium">晚上 7:00</div>
-                  <div className="text-sm">8.5/10</div>
-                </div>
-                <p className="text-xs text-purple-200">社交能量高涨，适合会面和建立人际关系</p>
-              </div>
+              <p className="text-xs text-purple-200">Social energy surges, perfect for meetings and relationship building</p>
             </div>
           </div>
-        )}
+        </div>
         
-        {/* 吉凶日 - 仅对Pro用户显示 */}
-        {userType === 'pro' && (
-          <div className="bg-black/30 backdrop-blur-sm rounded-xl p-5">
-            <h2 className="text-lg font-semibold mb-3">吉凶日</h2>
-            <div className="space-y-3">
-              <div>
-                <div className="flex items-center mb-1">
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-900 text-green-200 mr-2">
-                    吉日
-                  </span>
-                  <div>5月12日</div>
-                </div>
-                <p className="text-xs text-purple-200">适合开始新项目和投资</p>
+        {/* Auspicious Days - Pro feature */}
+        <div className="bg-black/30 backdrop-blur-sm rounded-xl p-5">
+          <h2 className="text-lg font-semibold mb-3">Auspicious Days</h2>
+          <div className="space-y-3">
+            <div>
+              <div className="flex items-center mb-1">
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-900 text-green-200 mr-2">
+                  Favorable
+                </span>
+                <div>May 12</div>
               </div>
-              <div>
-                <div className="flex items-center mb-1">
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-900 text-green-200 mr-2">
-                    吉日
-                  </span>
-                  <div>5月25日</div>
-                </div>
-                <p className="text-xs text-purple-200">适合旅行和探索新领域</p>
+              <p className="text-xs text-purple-200">Ideal for starting new projects and investments</p>
+            </div>
+            <div>
+              <div className="flex items-center mb-1">
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-900 text-green-200 mr-2">
+                  Favorable
+                </span>
+                <div>May 25</div>
               </div>
-              <div>
-                <div className="flex items-center mb-1">
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-900 text-red-200 mr-2">
-                    凶日
-                  </span>
-                  <div>5月18日</div>
-                </div>
-                <p className="text-xs text-purple-200">避免重大决策和冲突</p>
+              <p className="text-xs text-purple-200">Perfect for travel and exploring new territories</p>
+            </div>
+            <div>
+              <div className="flex items-center mb-1">
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-900 text-red-200 mr-2">
+                  Challenging
+                </span>
+                <div>May 18</div>
               </div>
+              <p className="text-xs text-purple-200">Avoid major decisions and conflicts</p>
             </div>
           </div>
-        )}
+        </div>
         
-        {/* 关系契合度 - 仅对Pro用户显示 */}
-        {userType === 'pro' && (
-          <div className="bg-black/30 backdrop-blur-sm rounded-xl p-5">
-            <h2 className="text-lg font-semibold mb-3">关系契合度</h2>
-            <div className="text-center mb-3">
-              <div className="text-3xl font-bold">78%</div>
-              <div className="mt-1 text-purple-300">当前关系能量</div>
-            </div>
-            <p className="text-sm text-purple-200">
-              5月份，你的人际关系能量处于良好状态。可以尝试在5月中旬主动联系重要的人际关系，将有助于增强情感连接。
-            </p>
+        {/* Relationship Synergy - Pro feature */}
+        <div className="bg-black/30 backdrop-blur-sm rounded-xl p-5">
+          <h2 className="text-lg font-semibold mb-3">Relationship Synergy</h2>
+          <div className="text-center mb-3">
+            <div className="text-3xl font-bold">78%</div>
+            <div className="mt-1 text-purple-300">Current Relationship Energy</div>
           </div>
-        )}
+          <p className="text-sm text-purple-200">
+            In May, your relationship energy is in a good state. Try reaching out to important connections in mid-May to strengthen emotional bonds.
+          </p>
+        </div>
         
-        {/* 页脚 */}
+        {/* Footer */}
         <footer className="text-center text-sm text-purple-300 mt-8">
-          <p>基于您的生日数据：{birthDate || '未指定'}</p>
-          <p className="mt-1">© 2025 CrystalMatch</p>
+          <p className="mt-1">This report weaves together almost 4,000 years of evolving Chinese Five-Element Feng Shui, evidence-backed modern science, and the freshest AI intelligence—ancient wisdom, updated for your everyday life.</p>
+          <p className="mt-3">© 2025 CrystalMatch</p>
         </footer>
       </div>
     </main>
   );
 }
 
-// 使用Suspense包装组件以解决useSearchParams需要Suspense边界的问题
+// Wrap component with Suspense to solve useSearchParams requirement
 export default function MayReportPage() {
   return (
     <Suspense fallback={
       <div className="min-h-screen bg-gradient-to-br from-purple-900 to-black flex items-center justify-center">
-        <div className="text-white">加载中...</div>
+        <div className="text-white">Loading...</div>
       </div>
     }>
       <MayReportContent />
