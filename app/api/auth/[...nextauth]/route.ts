@@ -1,8 +1,9 @@
 import NextAuth from "next-auth";
+import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 
-// 创建简单的NextAuth处理程序
-const handler = NextAuth({
+// 创建NextAuth配置
+export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
       name: "Credentials",
@@ -50,6 +51,9 @@ const handler = NextAuth({
   session: {
     strategy: "jwt"
   }
-});
+};
+
+// 创建简单的NextAuth处理程序
+const handler = NextAuth(authOptions);
 
 export { handler as GET, handler as POST }; 

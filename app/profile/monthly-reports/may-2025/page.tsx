@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 export const dynamicParams = true;
 export const revalidate = 0;
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { getReportConfig } from '../../../lib/monthlyReportConfig';
@@ -24,7 +24,8 @@ import {
   MonthlyOverview
 } from '../../../components/reports/EnergyComponents';
 
-export default function MayReportPage() {
+// 提取使用useSearchParams的部分到单独的组件
+function ReportContent() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -119,5 +120,14 @@ export default function MayReportPage() {
         />
       </section>
     </ReportContainer>
+  );
+}
+
+// 主页面组件，使用Suspense包装ReportContent
+export default function MayReportPage() {
+  return (
+    <Suspense fallback={<ReportLoading />}>
+      <ReportContent />
+    </Suspense>
   );
 } 

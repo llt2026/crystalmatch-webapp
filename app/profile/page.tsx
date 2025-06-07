@@ -217,14 +217,14 @@ export default function ProfilePage() {
           <div className="space-y-2">
             <h3 className="text-xs font-semibold tracking-wide uppercase text-purple-200 mb-1">MONTHLY DEEP REPORTS</h3>
             <Link 
-              href={`/report/2025-05${profile.birthDate ? `?birthDate=${encodeURIComponent(profile.birthDate)}` : profile.birthInfo?.date ? `?birthDate=${encodeURIComponent(profile.birthInfo.date)}` : ''}`} 
+              href={`/profile/monthly-reports/may-2025${profile.birthDate ? `?birthDate=${encodeURIComponent(profile.birthDate)}` : profile.birthInfo?.date ? `?birthDate=${encodeURIComponent(profile.birthInfo.date)}` : ''}`} 
               className="bg-black/40 p-3 rounded-lg flex justify-between items-center no-underline"
             >
               <span className="text-xs">May 2025 Energy Report</span>
               <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-purple-600 text-white">NEW</span>
             </Link>
             <Link 
-              href={`/report/2025-04${profile.birthDate ? `?birthDate=${encodeURIComponent(profile.birthDate)}` : profile.birthInfo?.date ? `?birthDate=${encodeURIComponent(profile.birthInfo.date)}` : ''}`} 
+              href={`/profile/monthly-reports/apr-2025${profile.birthDate ? `?birthDate=${encodeURIComponent(profile.birthDate)}` : profile.birthInfo?.date ? `?birthDate=${encodeURIComponent(profile.birthInfo.date)}` : ''}`} 
               className="bg-black/40 p-3 rounded-lg flex justify-between items-center no-underline"
             >
               <span className="text-xs">Apr 2025 Energy Report</span>

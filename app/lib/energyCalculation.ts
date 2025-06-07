@@ -1,6 +1,9 @@
 /**
  * 能量值计算模块（2025新模型）
  * 实现月能量值、日能量值、小时能量值的计算
+ * 
+ * @deprecated 这个模块中的能量计算方法(第二种计算方式)已被弃用，请使用 energyCalculation2025.ts 中的方法
+ * 或通过 energyCalculationService.ts 进行调用
  */
 
 import { Lunar, Solar } from 'lunar-javascript';

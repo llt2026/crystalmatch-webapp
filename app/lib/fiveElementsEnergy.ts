@@ -1,6 +1,9 @@
 /**
  * 五行能量计算模块
  * 提供统一的五行能量映射和计算逻辑
+ * 
+ * @deprecated 这个模块包含的计算方法(带月相和日照的计算方式)已被废弃，请使用 energyCalculation2025.ts 中的方法
+ * 或通过 energyCalculationService.ts 进行调用
  */
 
 import { format, addMonths } from 'date-fns';

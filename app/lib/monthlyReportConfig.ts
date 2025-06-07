@@ -1,51 +1,71 @@
 /**
- * 月度深度报告配置文件
- * 定义报告范围、时间参数和内容设置
+ * 月度报告配置文件
+ * 定义不同月份报告的配置信息
  */
 
-// 报告基准日期和范围配置
-export interface ReportTimeConfig {
-  baseDate: Date;  // 报告基准日期
-  daysRange: number;  // 报告覆盖天数
-  title: string;  // 报告标题
-  requiresPlan: 'plus' | 'pro';  // 所需订阅等级
+interface MonthlyReportConfig {
+  title: string;
+  description: string;
+  subscriptionLevel: 'plus' | 'pro';
+  baseDate: Date;
+  enabled: boolean;
 }
 
-// 不同月份报告配置
-export const monthlyReports: Record<string, ReportTimeConfig> = {
-  'may-2025': {
+// 月度报告配置
+const monthlyReports: Record<string, MonthlyReportConfig> = {
+  // 即将推出的报告
+  'jun-2025': {
+    title: 'June 2025 Energy Report',
+    description: 'Complete energy analysis for June 2025',
+    subscriptionLevel: 'pro',
     baseDate: new Date('2025-06-10'),  // 初始设置为6月10日
-    daysRange: 30,
-    title: 'May 2025 Monthly Energy Report',
-    requiresPlan: 'pro'
+    enabled: false, // 尚未启用
   },
-  'apr-2025': {
+  
+  // 当前可用的报告
+  'may-2025': {
+    title: 'May 2025 Energy Report',
+    description: 'Pro level monthly energy forecast for May 2025',
+    subscriptionLevel: 'pro',
     baseDate: new Date('2025-05-10'),  // 初始设置为5月10日
-    daysRange: 30,
-    title: 'April 2025 Monthly Energy Report',
-    requiresPlan: 'plus'
-  }
+    enabled: true,
+  },
+  
+  'apr-2025': {
+    title: 'April 2025 Energy Report',
+    description: 'Plus level monthly energy forecast for April 2025',
+    subscriptionLevel: 'plus',
+    baseDate: new Date('2025-04-10'),  // 初始设置为4月10日
+    enabled: true,
+  },
 };
 
-// 根据用户订阅时间计算报告基准日期
-export function calculateReportBaseDate(
-  subscriptionDate: Date | null,
-  reportKey: string
-): Date {
-  // 如果有订阅日期，使用订阅日期作为基础计算
-  // 否则使用默认配置的日期
-  if (subscriptionDate) {
-    // 从订阅日期开始计算
-    // 此逻辑可根据实际需求调整
-    return subscriptionDate;
-  }
-  
+/**
+ * 获取月度报告配置
+ * @param reportKey 报告键名
+ * @returns 报告配置对象
+ */
+export function getReportConfig(reportKey: string): MonthlyReportConfig | null {
+  return monthlyReports[reportKey] || null;
+}
+
+/**
+ * 获取报告基准日期
+ * @param reportKey 报告键名
+ * @returns 报告基准日期
+ */
+export function getReportBaseDate(reportKey: string): Date {
   return monthlyReports[reportKey]?.baseDate || new Date();
 }
 
-// 获取报告配置
-export function getReportConfig(reportKey: string): ReportTimeConfig | null {
-  return monthlyReports[reportKey] || null;
+/**
+ * 获取所有可用的报告列表
+ * @returns 可用报告配置列表
+ */
+export function getAvailableReports(): Array<{ key: string; config: MonthlyReportConfig }> {
+  return Object.entries(monthlyReports)
+    .filter(([_, config]) => config.enabled)
+    .map(([key, config]) => ({ key, config }));
 }
 
 // 报告内容模块配置
