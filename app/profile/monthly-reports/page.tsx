@@ -1,13 +1,28 @@
+// 强制设置动态渲染
+export const dynamic = 'force-dynamic';
+export const dynamicParams = true;
+export const revalidate = 0;
+
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 
 export default function MonthlyReportsPage() {
   const router = useRouter();
   const { data: session, status } = useSession();
+  const searchParams = useSearchParams();
+  const birthDate = searchParams?.get('birthDate') || '';
+  
+  // 处理跳转逻辑
+  const navigateToReport = (reportPath: string) => {
+    const url = birthDate 
+      ? `${reportPath}?birthDate=${encodeURIComponent(birthDate)}`
+      : reportPath;
+    router.push(url);
+  };
   
   if (status === 'loading') {
     return (
@@ -37,22 +52,22 @@ export default function MonthlyReportsPage() {
         </header>
         
         <div className="space-y-3">
-          <Link
-            href="/profile/monthly-reports/may-2025"
-            className="block bg-black/40 p-4 rounded-lg hover:bg-purple-900/30 transition-colors"
+          <div
+            onClick={() => navigateToReport('/profile/monthly-reports/may-2025')}
+            className="block bg-black/40 p-4 rounded-lg hover:bg-purple-900/30 transition-colors cursor-pointer"
           >
             <div className="flex justify-between items-center">
               <span className="text-white">May 2025 Energy Report</span>
               <span className="text-xs px-2 py-0.5 rounded-full bg-purple-600 text-white">NEW</span>
             </div>
-          </Link>
+          </div>
           
-          <Link
-            href="/profile/monthly-reports/apr-2025"
-            className="block bg-black/40 p-4 rounded-lg hover:bg-purple-900/30 transition-colors"
+          <div
+            onClick={() => navigateToReport('/profile/monthly-reports/apr-2025')}
+            className="block bg-black/40 p-4 rounded-lg hover:bg-purple-900/30 transition-colors cursor-pointer"
           >
             <span className="text-white">April 2025 Energy Report</span>
-          </Link>
+          </div>
         </div>
       </div>
     </main>

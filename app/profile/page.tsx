@@ -220,28 +220,15 @@ export default function ProfilePage() {
             <div
               onClick={() => {
                 const birthDateParam = profile.birthDate || profile.birthInfo?.date || '';
-                const url = birthDateParam 
-                  ? `/profile/monthly-reports/may-2025?birthDate=${encodeURIComponent(birthDateParam)}`
-                  : '/profile/monthly-reports/may-2025';
+                const url = `/profile/monthly-reports?birthDate=${encodeURIComponent(birthDateParam)}`;
                 router.push(url);
               }}
               className="bg-black/40 p-3 rounded-lg flex justify-between items-center no-underline cursor-pointer hover:bg-black/60 transition-colors"
             >
-              <span className="text-xs">May 2025 Energy Report</span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-purple-600 text-white">NEW</span>
-            </div>
-            
-            <div
-              onClick={() => {
-                const birthDateParam = profile.birthDate || profile.birthInfo?.date || '';
-                const url = birthDateParam 
-                  ? `/profile/monthly-reports/apr-2025?birthDate=${encodeURIComponent(birthDateParam)}`
-                  : '/profile/monthly-reports/apr-2025';
-                router.push(url);
-              }}
-              className="bg-black/40 p-3 rounded-lg flex justify-between items-center no-underline cursor-pointer hover:bg-black/60 transition-colors"
-            >
-              <span className="text-xs">Apr 2025 Energy Report</span>
+              <span className="text-sm text-white">View All Monthly Reports</span>
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-purple-300" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+              </svg>
             </div>
           </div>
         </section>
