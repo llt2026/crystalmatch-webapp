@@ -2,7 +2,7 @@
  * 能量报告共享组件
  * 提供可重用的能量报告UI组件，适配移动端和桌面端
  */
-import React from 'react';
+import React, { ReactNode } from 'react';
 
 // 日期类型
 type DateString = string; // 格式: "YYYY-MM-DD"
@@ -212,31 +212,73 @@ export const ReportLoading: React.FC = () => (
   </div>
 );
 
-/**
- * 报告容器组件
- */
-export const ReportContainer: React.FC<{
+// 报告容器组件接口
+interface ReportContainerProps {
   title: string;
   subtitle: string;
-  children: React.ReactNode;
-}> = ({ title, subtitle, children }) => (
-  <main className="min-h-screen bg-gradient-to-br from-purple-900 to-black py-8 px-4">
-    <div className="max-w-2xl mx-auto space-y-6">
-      {/* 页头 */}
-      <header className="text-center mb-8">
-        <h1 className="text-xl sm:text-2xl font-bold text-white mb-2">{title}</h1>
-        <p className="text-sm text-purple-300">{subtitle}</p>
-      </header>
-      
-      {/* 内容区域 */}
-      <div className="space-y-6">
+  children: ReactNode;
+  isNew?: boolean; // 添加isNew可选属性
+}
+
+// 报告容器组件
+export const ReportContainer = ({ title, subtitle, children, isNew = false }: ReportContainerProps) => {
+  return (
+    <main className="min-h-screen bg-gradient-to-br from-purple-900 to-black py-8 px-4">
+      <div className="max-w-2xl mx-auto space-y-6">
+        <header className="text-center mb-6">
+          <div className="flex items-center justify-center">
+            <h1 className="text-2xl font-bold text-white">{title}</h1>
+            {isNew && (
+              <span className="ml-2 px-2 py-0.5 text-xs bg-purple-600 text-white rounded-full">NEW</span>
+            )}
+          </div>
+          <p className="text-purple-300 mt-1">{subtitle}</p>
+        </header>
+        
         {children}
       </div>
+    </main>
+  );
+};
+
+// 添加MonthlyEnergyChart组件
+export const MonthlyEnergyChart = ({ data, month }: { data: any; month: string }) => {
+  // 模拟数据，实际项目中应使用传入的data
+  const chartData = data || {
+    days: [1, 5, 10, 15, 20, 25, 30],
+    values: [65, 78, 92, 84, 70, 88, 75]
+  };
+
+  return (
+    <div className="text-white">
+      <div className="flex justify-between items-center mb-3">
+        <div>
+          <span className="text-sm text-purple-300">{month} 2025</span>
+        </div>
+      </div>
       
-      {/* 页脚 */}
-      <footer className="mt-12 pt-4 border-t border-purple-800/40 text-center">
-        <p className="text-xs text-purple-400">Powered by CrystalMatch Energy Analysis</p>
-      </footer>
+      {/* 简单的图表可视化 */}
+      <div className="relative h-40 mt-2">
+        <div className="absolute bottom-0 left-0 right-0 flex items-end justify-between h-32">
+          {chartData.values.map((value: number, index: number) => (
+            <div key={index} className="group relative flex flex-col items-center">
+              <div 
+                className="w-3 md:w-4 bg-gradient-to-t from-purple-500 to-purple-700 rounded-t-sm transition-all"
+                style={{ height: `${value * 0.3}%` }}
+              ></div>
+              <div className="opacity-0 group-hover:opacity-100 absolute bottom-full mb-1 bg-black/80 text-xs text-white px-2 py-1 rounded transition-opacity">
+                {value}
+              </div>
+              <span className="text-xs mt-1 text-purple-300">{chartData.days[index]}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      
+      {/* 图表说明 */}
+      <div className="mt-3 text-xs text-purple-200">
+        <p>Energy level throughout the month based on your birth chart.</p>
+      </div>
     </div>
-  </main>
-); 
+  );
+}; 

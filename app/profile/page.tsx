@@ -71,6 +71,15 @@ export default function ProfilePage() {
     fetchRealUserData();
   }, []);
   
+  // 直接导航到报告页面
+  const navigateToReport = (reportPath: string) => {
+    const birthDateParam = profile?.birthDate || profile?.birthInfo?.date || '';
+    const url = birthDateParam 
+      ? `${reportPath}?birthDate=${encodeURIComponent(birthDateParam)}`
+      : reportPath;
+    router.push(url);
+  };
+  
   // 加载状态
   if (isLoading) {
     return (
@@ -217,19 +226,31 @@ export default function ProfilePage() {
           <div className="space-y-2">
             <h3 className="text-xs font-semibold tracking-wide uppercase text-purple-200 mb-1">MONTHLY DEEP REPORTS</h3>
             
+            {/* May 2025 Report - Direct Access */}
             <div
-              onClick={() => {
-                const birthDateParam = profile.birthDate || profile.birthInfo?.date || '';
-                const url = `/profile/monthly-reports?birthDate=${encodeURIComponent(birthDateParam)}`;
-                router.push(url);
-              }}
+              onClick={() => navigateToReport('/profile/monthly-reports/may-2025')}
               className="bg-black/40 p-3 rounded-lg flex justify-between items-center no-underline cursor-pointer hover:bg-black/60 transition-colors"
             >
-              <span className="text-sm text-white">View All Monthly Reports</span>
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-purple-300" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-              </svg>
+              <span className="text-xs">May 2025 Energy Report</span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-purple-600 text-white">NEW</span>
             </div>
+            
+            {/* April 2025 Report - Direct Access */}
+            <div
+              onClick={() => navigateToReport('/profile/monthly-reports/apr-2025')}
+              className="bg-black/40 p-3 rounded-lg flex justify-between items-center no-underline cursor-pointer hover:bg-black/60 transition-colors"
+            >
+              <span className="text-xs">Apr 2025 Energy Report</span>
+            </div>
+            
+            {/* Future reports can be added here */}
+            {/* <div
+              onClick={() => navigateToReport('/profile/monthly-reports/jun-2025')}
+              className="bg-black/40 p-3 rounded-lg flex justify-between items-center no-underline cursor-pointer hover:bg-black/60 transition-colors opacity-60"
+            >
+              <span className="text-xs">Jun 2025 Energy Report</span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-gray-600 text-white">SOON</span>
+            </div> */}
           </div>
         </section>
       </div>

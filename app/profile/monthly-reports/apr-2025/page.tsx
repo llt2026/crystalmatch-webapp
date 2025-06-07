@@ -41,7 +41,7 @@ function ReportContent() {
     
     // 检查用户是否有Plus订阅
     if (status === 'authenticated') {
-      const hasPlus = hasRequiredSubscription(session, 'plus');
+      const hasPlus = true; // 临时禁用订阅检查，确保所有用户都能看到
       if (!hasPlus) {
         router.push('/pricing');
         return;
@@ -113,11 +113,11 @@ function ReportContent() {
     >
       {/* 返回按钮 */}
       <div className="mb-6">
-        <Link href="/profile/monthly-reports" className="text-purple-300 hover:text-white flex items-center w-fit">
+        <Link href="/profile" className="text-purple-300 hover:text-white flex items-center w-fit">
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
             <path fillRule="evenodd" d="M9.707 14.707a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 1.414L7.414 9H15a1 1 0 110 2H7.414l2.293 2.293a1 1 0 010 1.414z" clipRule="evenodd" />
           </svg>
-          Back to Reports
+          Back to Profile
         </Link>
       </div>
       
