@@ -5,12 +5,14 @@ export const dynamic = 'force-dynamic';
 export const dynamicParams = true;
 export const revalidate = 0;
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
+import { ReportLoading } from '../../components/reports/EnergyComponents';
 
-export default function MonthlyReportsPage() {
+// 提取使用useSearchParams的逻辑到单独组件
+function ReportsContent() {
   const router = useRouter();
   const { data: session, status } = useSession();
   const searchParams = useSearchParams();
@@ -71,5 +73,16 @@ export default function MonthlyReportsPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+// 主页面组件包装在Suspense中
+export default function MonthlyReportsPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gradient-to-br from-purple-900 to-black flex items-center justify-center">
+      <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-purple-500"></div>
+    </div>}>
+      <ReportsContent />
+    </Suspense>
   );
 } 
