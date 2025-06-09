@@ -300,12 +300,19 @@ function MayReportContent() {
                 <div className="flex items-start">
                   <span className="text-green-400 mr-2 mt-0.5">✓</span>
                   <div>
-                    <p className="text-sm">Next 7 days with daily energy score <span className="font-medium">≥75</span> + water/fire balanced periods</p>
+                    <p className="text-sm"><span className="font-medium">May 3rd - 9th</span>: Perfect for social gatherings</p>
                   </div>
                 </div>
-                <div className="flex items-start pl-5">
+                <div className="flex items-start">
+                  <span className="text-green-400 mr-2 mt-0.5">✓</span>
                   <div>
-                    <p className="text-xs text-purple-200">Hourly scores <span className="font-medium">≥80</span> marked as harmony windows</p>
+                    <p className="text-sm"><span className="font-medium">May 17th, 10:00-12:00</span>: Ideal for important conversations</p>
+                  </div>
+                </div>
+                <div className="flex items-start">
+                  <span className="text-green-400 mr-2 mt-0.5">✓</span>
+                  <div>
+                    <p className="text-sm"><span className="font-medium">May 24th - 26th</span>: Strong connection energy</p>
                   </div>
                 </div>
               </div>
@@ -316,12 +323,6 @@ function MayReportContent() {
                 <div className="flex items-start">
                   <span className="text-yellow-400 mr-2 mt-0.5">⚠</span>
                   <div>
-                    <p className="text-sm">Hours with daily energy score <span className="font-medium">≤55</span> and metal/earth deficiency</p>
-                  </div>
-                </div>
-                <div className="flex items-start">
-                  <span className="text-yellow-400 mr-2 mt-0.5">⚠</span>
-                  <div>
                     <p className="text-sm"><span className="font-medium">May 8th, 14:00-16:00</span>: Avoid critical discussions</p>
                   </div>
                 </div>
@@ -329,6 +330,12 @@ function MayReportContent() {
                   <span className="text-yellow-400 mr-2 mt-0.5">⚠</span>
                   <div>
                     <p className="text-sm"><span className="font-medium">May 16th, 11:00-13:00</span>: Communication challenges likely</p>
+                  </div>
+                </div>
+                <div className="flex items-start">
+                  <span className="text-yellow-400 mr-2 mt-0.5">⚠</span>
+                  <div>
+                    <p className="text-sm"><span className="font-medium">May 19th</span>: Potential conflicts, practice patience</p>
                   </div>
                 </div>
               </div>
@@ -358,27 +365,7 @@ function MayReportContent() {
                 
                 <h5 className="text-sm mb-2">Best Connection Windows</h5>
                 
-                <div className="space-y-3">
-                  <div>
-                    <p className="text-sm mb-1">Select harmonious days first:</p>
-                    <div className="flex items-center ml-2">
-                      <span className="inline-block bg-green-900/30 rounded-full p-1 mr-2 text-xs">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-green-300" viewBox="0 0 20 20" fill="currentColor">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                      </span>
-                      <p className="text-xs text-purple-200">Hourly energy score <span className="font-medium">≥82</span></p>
-                    </div>
-                    <div className="flex items-center ml-2">
-                      <span className="inline-block bg-green-900/30 rounded-full p-1 mr-2 text-xs">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-green-300" viewBox="0 0 20 20" fill="currentColor">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                      </span>
-                      <p className="text-xs text-purple-200">Dominant elements: water/fire (2-hour blocks)</p>
-                    </div>
-                  </div>
-                  
+                <div className="space-y-3">                  
                   <div className="mt-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center">
@@ -412,6 +399,23 @@ function MayReportContent() {
                     </div>
                     <p className="text-xs text-purple-200 pl-6">Ideal for relationship building</p>
                   </div>
+                  
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        <span className="inline-block bg-blue-900/30 rounded-full p-1 mr-2">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-blue-300" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                          </svg>
+                        </span>
+                        <span className="text-xs">May 28th, 19:00–21:00</span>
+                      </div>
+                      <div>
+                        <span className="text-xs font-medium">Score 82</span>
+                      </div>
+                    </div>
+                    <p className="text-xs text-purple-200 pl-6">Excellent for social gatherings</p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -422,12 +426,110 @@ function MayReportContent() {
             <div className="p-5">
               <div className="flex items-center mb-3">
                 <span className="text-lg mr-2">🌙</span>
-                <h3 className="text-lg font-medium">Mood & Balance</h3>
+                <h3 className="text-lg font-medium">Mood Balance</h3>
               </div>
               <p className="text-sm text-purple-200 mb-4">
-                Your emotional resilience is enhanced, making this a good time for mindfulness activities.
+                Your emotional energy fluctuates this month with clear peaks and valleys to be aware of.
               </p>
-              {/* Specific content for mood */}
+              
+              {/* Mood peak periods */}
+              <div className="space-y-3 mb-5">
+                <h4 className="text-sm font-medium text-white mb-2">Mood Peaks</h4>
+                <div className="flex items-start">
+                  <span className="text-green-400 mr-2 mt-0.5">✓</span>
+                  <div>
+                    <p className="text-sm"><span className="font-medium">Top 3 days this month:</span> May 7th, 15th, and 23rd</p>
+                  </div>
+                </div>
+                <div className="flex items-start">
+                  <span className="text-green-400 mr-2 mt-0.5">✓</span>
+                  <div>
+                    <p className="text-sm">If dominant element is wood on these days, emotional flow will be significantly enhanced</p>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Mood low periods */}
+              <div className="space-y-3 mb-5">
+                <h4 className="text-sm font-medium text-white mb-2">Mood Valleys</h4>
+                <div className="flex items-start">
+                  <span className="text-yellow-400 mr-2 mt-0.5">⚠</span>
+                  <div>
+                    <p className="text-sm"><span className="font-medium">May 11th and 19th</span>: Low emotional energy days</p>
+                  </div>
+                </div>
+                <div className="flex items-start">
+                  <span className="text-yellow-400 mr-2 mt-0.5">⚠</span>
+                  <div>
+                    <p className="text-sm">Metal or water deficient hours may intensify emotional challenges</p>
+                  </div>
+                </div>
+              </div>
+              
+              {/* 4-7-8 Breathing */}
+              <div className="p-4 bg-purple-900/20 rounded-lg mb-5">
+                <h4 className="text-sm font-medium text-white mb-3">4-7-8 Breathing Exercise</h4>
+                <ol className="space-y-2 text-sm">
+                  <li className="flex">
+                    <span className="inline-block bg-purple-900/30 rounded-full h-5 w-5 flex items-center justify-center mr-2 text-xs">1</span>
+                    <span>Exhale completely through your mouth</span>
+                  </li>
+                  <li className="flex">
+                    <span className="inline-block bg-purple-900/30 rounded-full h-5 w-5 flex items-center justify-center mr-2 text-xs">2</span>
+                    <span>Inhale through your nose for 4 seconds</span>
+                  </li>
+                  <li className="flex">
+                    <span className="inline-block bg-purple-900/30 rounded-full h-5 w-5 flex items-center justify-center mr-2 text-xs">3</span>
+                    <span>Hold your breath for 7 seconds</span>
+                  </li>
+                  <li className="flex">
+                    <span className="inline-block bg-purple-900/30 rounded-full h-5 w-5 flex items-center justify-center mr-2 text-xs">4</span>
+                    <span>Exhale through mouth for 8 seconds</span>
+                  </li>
+                  <li className="flex">
+                    <span className="inline-block bg-purple-900/30 rounded-full h-5 w-5 flex items-center justify-center mr-2 text-xs">5</span>
+                    <span>Repeat 4 times, twice daily</span>
+                  </li>
+                </ol>
+              </div>
+              
+              {/* Pro Exclusive Section */}
+              <div className="mt-5 pt-4 border-t border-purple-900/30">
+                <div className="flex items-center mb-3">
+                  <span className="inline-flex items-center justify-center mr-2 w-5 h-5 rounded-full bg-purple-900/50 text-xs">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                    </svg>
+                  </span>
+                  <h4 className="font-medium">Pro Exclusive</h4>
+                </div>
+                
+                <div className="space-y-4">
+                  <div>
+                    <h5 className="text-sm mb-2">Mind-Body Alignment Tip</h5>
+                    <div className="flex items-start">
+                      <span className="inline-block rounded-full p-1 mr-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-purple-300" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                        </svg>
+                      </span>
+                      <p className="text-sm">Fixed 2-minute meditation at 8:30 PM sends you a reminder with GPT prompt</p>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <h5 className="text-sm mb-2">Sleep Aid Recommendation</h5>
+                    <div className="flex items-start">
+                      <span className="inline-block rounded-full p-1 mr-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-purple-300" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                        </svg>
+                      </span>
+                      <p className="text-sm">Your evening choice at 8:30 PM sends "2-min relaxation meditation"</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
           
@@ -436,12 +538,73 @@ function MayReportContent() {
             <div className="p-5">
               <div className="flex items-center mb-3">
                 <span className="text-lg mr-2">🔥</span>
-                <h3 className="text-lg font-medium">Health & Vitality</h3>
+                <h3 className="text-lg font-medium">Body Fuel</h3>
               </div>
               <p className="text-sm text-purple-200 mb-4">
-                Focus on restorative practices and balanced nutrition this month.
+                This month's energy patterns suggest specific dietary and activity adjustments for optimal wellbeing.
               </p>
-              {/* Specific content for health */}
+              
+              {/* Monthly recommendations section */}
+              <div className="space-y-3 mb-5">
+                <h4 className="text-sm font-medium text-white mb-2">Monthly Recommendations</h4>
+                <p className="text-sm mb-3">Based on your deficient elements:</p>
+                
+                <div className="flex items-start">
+                  <span className="text-green-400 mr-2 mt-0.5">•</span>
+                  <div>
+                    <p className="text-sm"><span className="font-medium">Earth deficiency</span> → Dietary suggestion: Add more root vegetables</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start">
+                  <span className="text-green-400 mr-2 mt-0.5">•</span>
+                  <div>
+                    <p className="text-sm"><span className="font-medium">Fire deficiency</span> → Activity suggestion: Add cardio exercise</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start">
+                  <span className="text-green-400 mr-2 mt-0.5">•</span>
+                  <div>
+                    <p className="text-sm"><span className="font-medium">Water deficiency</span> → Sleep suggestion: Earlier bedtime</p>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Pro Exclusive Section */}
+              <div className="mt-5 pt-4 border-t border-purple-900/30">
+                <div className="flex items-center mb-3">
+                  <span className="inline-flex items-center justify-center mr-2 w-5 h-5 rounded-full bg-purple-900/50 text-xs">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                    </svg>
+                  </span>
+                  <h4 className="font-medium">Pro Exclusive</h4>
+                </div>
+                
+                <div className="space-y-4">
+                  <div>
+                    <h5 className="text-sm mb-2">Weekly Exercise Plan</h5>
+                    <div className="bg-purple-900/20 rounded-lg p-3">
+                      <p className="text-xs mb-2">Personalized 3-part schedule for Week 1-4:</p>
+                      <div className="space-y-2">
+                        <div className="flex items-center">
+                          <span className="inline-block bg-purple-900/30 rounded-full h-5 w-5 flex items-center justify-center mr-2 text-xs">M</span>
+                          <span className="text-xs">20 minute cardio</span>
+                        </div>
+                        <div className="flex items-center">
+                          <span className="inline-block bg-purple-900/30 rounded-full h-5 w-5 flex items-center justify-center mr-2 text-xs">W</span>
+                          <span className="text-xs">20 minute strength training</span>
+                        </div>
+                        <div className="flex items-center">
+                          <span className="inline-block bg-purple-900/30 rounded-full h-5 w-5 flex items-center justify-center mr-2 text-xs">F</span>
+                          <span className="text-xs">20 minute flexibility</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
           
@@ -450,12 +613,85 @@ function MayReportContent() {
             <div className="p-5">
               <div className="flex items-center mb-3">
                 <span className="text-lg mr-2">🚀</span>
-                <h3 className="text-lg font-medium">Personal Growth</h3>
+                <h3 className="text-lg font-medium">Growth Track</h3>
               </div>
               <p className="text-sm text-purple-200 mb-4">
-                Excellent period to start learning a new skill or expanding your knowledge base.
+                Your personal development energy peaks this month in specific areas aligned with your element patterns.
               </p>
-              {/* Specific content for growth */}
+              
+              {/* 7-Day Challenge */}
+              <div className="space-y-3 mb-5">
+                <h4 className="text-sm font-medium text-white mb-2">7-Day Micro-Challenge</h4>
+                
+                <div className="flex items-start">
+                  <span className="text-green-400 mr-2 mt-0.5">1</span>
+                  <div>
+                    <p className="text-sm">Monthly wood element guidance (creativity): <span className="font-medium">Write 200 words daily</span></p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start">
+                  <span className="text-green-400 mr-2 mt-0.5">2</span>
+                  <div>
+                    <p className="text-sm">Monthly metal element guidance (clarity): <span className="font-medium">Organize for 20 mins daily</span></p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start">
+                  <span className="text-green-400 mr-2 mt-0.5">3</span>
+                  <div>
+                    <p className="text-sm">AI generates 7 daily prompts to guide your practice</p>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Pro Exclusive Section */}
+              <div className="mt-5 pt-4 border-t border-purple-900/30">
+                <div className="flex items-center mb-3">
+                  <span className="inline-flex items-center justify-center mr-2 w-5 h-5 rounded-full bg-purple-900/50 text-xs">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                    </svg>
+                  </span>
+                  <h4 className="font-medium">Pro Exclusive</h4>
+                </div>
+                
+                <div className="space-y-4">
+                  <div>
+                    <h5 className="text-sm mb-2">Progress Tracker</h5>
+                    <div className="flex items-start">
+                      <span className="inline-block bg-purple-900/40 rounded-full p-1 mr-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-purple-300" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                        </svg>
+                      </span>
+                      <p className="text-sm">Opt-in reminder at 9:00 PM: "Have you completed today's challenge?"</p>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-purple-900/20 rounded-lg p-3 mt-3">
+                    <h5 className="text-sm mb-2 font-medium">Key Reminders</h5>
+                    <ol className="space-y-2 text-xs text-purple-200">
+                      <li className="flex items-start">
+                        <span className="font-medium mr-1">1.</span>
+                        <span>Good days/bad days are influenced by your daily energy score and element balance</span>
+                      </li>
+                      <li className="flex items-start">
+                        <span className="font-medium mr-1">2.</span>
+                        <span>Hour peaks follow daily score rankings, with scores ≥85 being the top 3 hours</span>
+                      </li>
+                      <li className="flex items-start">
+                        <span className="font-medium mr-1">3.</span>
+                        <span>Activity suggestions: Wood → creative activities, Metal → organizational tasks</span>
+                      </li>
+                      <li className="flex items-start">
+                        <span className="font-medium mr-1">4.</span>
+                        <span>Share time, scores & elements with AI for personalized recommendations</span>
+                      </li>
+                    </ol>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
         </div>
