@@ -45,6 +45,18 @@ function MayReportContent() {
     const elements: ElementType[] = ['water', 'fire', 'earth', 'metal', 'wood'];
     return elements[day % 5];
   };
+
+  // Function to get element color class based on element type
+  const getElementColorClass = (element: ElementType): {bg: string, text: string} => {
+    const colorMap = {
+      'water': { bg: 'bg-blue-900/40', text: 'text-blue-300' },
+      'fire': { bg: 'bg-red-900/40', text: 'text-red-300' },
+      'earth': { bg: 'bg-yellow-900/40', text: 'text-yellow-300' },
+      'metal': { bg: 'bg-purple-900/40', text: 'text-purple-300' },
+      'wood': { bg: 'bg-green-900/40', text: 'text-green-300' }
+    };
+    return colorMap[element] || colorMap.water;
+  };
   
   return (
     <main className="min-h-screen bg-gradient-to-br from-purple-900 to-black py-8 px-4 text-white">
@@ -100,6 +112,122 @@ function MayReportContent() {
                 </span>
               </div>
               <div className="text-xs text-red-300 mt-1 font-medium">Passion Energy</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Five Life Aspects Section - NEW SECTION */}
+        <div className="bg-black/30 backdrop-blur-sm rounded-xl p-5">
+          <h2 className="text-lg font-semibold mb-4 text-center">Life Aspects Analysis</h2>
+          
+          {/* Finance & Career */}
+          <div className="mb-4 pb-3 border-b border-purple-900/30">
+            <div className="flex justify-between items-center mb-2">
+              <div className="flex items-center">
+                <span className="text-lg mr-2">💼</span>
+                <h3 className="font-medium">Finance & Career</h3>
+              </div>
+              <span className="text-xs px-2.5 py-0.5 rounded-full bg-green-900/40 text-green-200">
+                Growth Energy
+              </span>
+            </div>
+            <p className="text-sm text-purple-200 mb-1">
+              Strategic time for business expansion and investment opportunities this month.
+            </p>
+            <div className="flex flex-wrap gap-1 mt-2">
+              <span className="text-xs px-2 py-0.5 rounded-full bg-green-900/20 text-green-300">
+                2 favorable days
+              </span>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-red-900/20 text-red-300">
+                1 challenging day
+              </span>
+            </div>
+          </div>
+          
+          {/* Relationships */}
+          <div className="mb-4 pb-3 border-b border-purple-900/30">
+            <div className="flex justify-between items-center mb-2">
+              <div className="flex items-center">
+                <span className="text-lg mr-2">👥</span>
+                <h3 className="font-medium">Relationships</h3>
+              </div>
+              <span className="text-xs px-2.5 py-0.5 rounded-full bg-blue-900/40 text-blue-200">
+                Fluid Energy
+              </span>
+            </div>
+            <p className="text-sm text-purple-200 mb-1">
+              Exceptional communication periods ahead with harmony-building opportunities.
+            </p>
+            <div className="flex flex-wrap gap-1 mt-2">
+              <span className="text-xs px-2 py-0.5 rounded-full bg-green-900/20 text-green-300">
+                1 harmonious period
+              </span>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-red-900/20 text-red-300">
+                1 sensitive period
+              </span>
+            </div>
+          </div>
+          
+          {/* Mood & Stress */}
+          <div className="mb-4 pb-3 border-b border-purple-900/30">
+            <div className="flex justify-between items-center mb-2">
+              <div className="flex items-center">
+                <span className="text-lg mr-2">🧠</span>
+                <h3 className="font-medium">Mood & Stress</h3>
+              </div>
+              <span className="text-xs px-2.5 py-0.5 rounded-full bg-blue-900/40 text-blue-200">
+                Fluid Energy
+              </span>
+            </div>
+            <p className="text-sm text-purple-200 mb-1">
+              Emotional clarity peaks in mid-month, focus on mindfulness practices.
+            </p>
+            <div className="flex flex-wrap gap-1 mt-2">
+              <span className="text-xs px-2 py-0.5 rounded-full bg-blue-900/20 text-blue-300">
+                4-7-8 breathing technique
+              </span>
+            </div>
+          </div>
+          
+          {/* Health & Habits */}
+          <div className="mb-4 pb-3 border-b border-purple-900/30">
+            <div className="flex justify-between items-center mb-2">
+              <div className="flex items-center">
+                <span className="text-lg mr-2">🌿</span>
+                <h3 className="font-medium">Health & Habits</h3>
+              </div>
+              <span className="text-xs px-2.5 py-0.5 rounded-full bg-yellow-900/40 text-yellow-200">
+                Stability Energy
+              </span>
+            </div>
+            <p className="text-sm text-purple-200 mb-1">
+              Prioritize nutrition and moderate exercise for optimal balance.
+            </p>
+            <div className="flex flex-wrap gap-1 mt-2">
+              <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-900/20 text-yellow-300">
+                3 recommended activities
+              </span>
+            </div>
+          </div>
+          
+          {/* Personal Growth */}
+          <div>
+            <div className="flex justify-between items-center mb-2">
+              <div className="flex items-center">
+                <span className="text-lg mr-2">🚀</span>
+                <h3 className="font-medium">Personal Growth</h3>
+              </div>
+              <span className="text-xs px-2.5 py-0.5 rounded-full bg-green-900/40 text-green-200">
+                Growth Energy
+              </span>
+            </div>
+            <p className="text-sm text-purple-200 mb-1">
+              Excellent period for learning new skills and exploring creative territories.
+            </p>
+            <div className="flex flex-wrap gap-1 mt-2">
+              <span className="text-xs px-2 py-0.5 rounded-full bg-green-900/20 text-green-300">
+                7-Day Micro-Challenge
+              </span>
             </div>
           </div>
         </div>
@@ -292,18 +420,6 @@ function MayReportContent() {
               <p className="text-xs text-purple-200">Avoid major decisions and conflicts</p>
             </div>
           </div>
-        </div>
-        
-        {/* Relationship Synergy - Pro feature */}
-        <div className="bg-black/30 backdrop-blur-sm rounded-xl p-5">
-          <h2 className="text-lg font-semibold mb-3">Relationship Synergy</h2>
-          <div className="text-center mb-3">
-            <div className="text-3xl font-bold">78%</div>
-            <div className="mt-1 text-purple-300">Current Relationship Energy</div>
-          </div>
-          <p className="text-sm text-purple-200">
-            In May, your relationship energy is in a good state. Try reaching out to important connections in mid-May to strengthen emotional bonds.
-          </p>
         </div>
         
         {/* Footer */}

@@ -45,6 +45,18 @@ function AprilReportContent() {
     const elements: ElementType[] = ['water', 'fire', 'earth', 'metal', 'wood'];
     return elements[day % 5];
   };
+
+  // Function to get element color class based on element type
+  const getElementColorClass = (element: ElementType): {bg: string, text: string} => {
+    const colorMap = {
+      'water': { bg: 'bg-blue-900/40', text: 'text-blue-300' },
+      'fire': { bg: 'bg-red-900/40', text: 'text-red-300' },
+      'earth': { bg: 'bg-yellow-900/40', text: 'text-yellow-300' },
+      'metal': { bg: 'bg-purple-900/40', text: 'text-purple-300' },
+      'wood': { bg: 'bg-green-900/40', text: 'text-green-300' }
+    };
+    return colorMap[element] || colorMap.water;
+  };
   
   return (
     <main className="min-h-screen bg-gradient-to-br from-purple-900 to-black py-8 px-4 text-white">
@@ -101,6 +113,74 @@ function AprilReportContent() {
               </div>
               <div className="text-xs text-yellow-300 mt-1 font-medium">Stability Energy</div>
             </div>
+          </div>
+        </div>
+
+        {/* Five Life Aspects Section - NEW SECTION (Plus Version) */}
+        <div className="bg-black/30 backdrop-blur-sm rounded-xl p-5">
+          <h2 className="text-lg font-semibold mb-4 text-center">Life Aspects Analysis</h2>
+          
+          <div className="space-y-4">
+            {/* Finance & Career */}
+            <div className="p-3 bg-black/20 rounded-lg">
+              <div className="flex items-center mb-2">
+                <span className="text-lg mr-2">💼</span>
+                <h3 className="font-medium">Finance & Career</h3>
+              </div>
+              <p className="text-sm text-purple-200">
+                Two favorable days this month for important business decisions.
+              </p>
+            </div>
+            
+            {/* Relationships */}
+            <div className="p-3 bg-black/20 rounded-lg">
+              <div className="flex items-center mb-2">
+                <span className="text-lg mr-2">👥</span>
+                <h3 className="font-medium">Relationships</h3>
+              </div>
+              <p className="text-sm text-purple-200">
+                Focused time to work on strengthening important connections.
+              </p>
+            </div>
+            
+            {/* Mood & Stress */}
+            <div className="p-3 bg-black/20 rounded-lg">
+              <div className="flex items-center mb-2">
+                <span className="text-lg mr-2">🧠</span>
+                <h3 className="font-medium">Mood & Stress</h3>
+              </div>
+              <p className="text-sm text-purple-200">
+                Practice 4-7-8 breathing technique to reduce stress this month.
+              </p>
+            </div>
+            
+            {/* Health & Habits */}
+            <div className="p-3 bg-black/20 rounded-lg">
+              <div className="flex items-center mb-2">
+                <span className="text-lg mr-2">🌿</span>
+                <h3 className="font-medium">Health & Habits</h3>
+              </div>
+              <p className="text-sm text-purple-200">
+                Three recommended wellness activities based on your energy.
+              </p>
+            </div>
+            
+            {/* Personal Growth */}
+            <div className="p-3 bg-black/20 rounded-lg">
+              <div className="flex items-center mb-2">
+                <span className="text-lg mr-2">🚀</span>
+                <h3 className="font-medium">Personal Growth</h3>
+              </div>
+              <p className="text-sm text-purple-200">
+                Focus on small daily habits to build momentum toward goals.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-4 text-center">
+            <p className="text-xs text-purple-300">
+              Upgrade to Pro for deeper insights and personalized recommendations
+            </p>
           </div>
         </div>
         
