@@ -28,6 +28,9 @@ function MayReportContent() {
   // State for expanding the full calendar
   const [showFullCalendar, setShowFullCalendar] = useState(false);
   
+  // State for active aspect tab
+  const [activeAspect, setActiveAspect] = useState('finance');
+  
   // Helper function to get crystal for each element
   const getCrystalForElement = (element: ElementType) => {
     const crystalMap = {
@@ -116,120 +119,246 @@ function MayReportContent() {
           </div>
         </div>
 
-        {/* Five Life Aspects Section - NEW SECTION */}
-        <div className="bg-black/30 backdrop-blur-sm rounded-xl p-5">
-          <h2 className="text-lg font-semibold mb-4 text-center">Life Aspects Analysis</h2>
+        {/* Five Life Aspects Section - NEW SECTION with Navigation Tabs */}
+        <div className="bg-black/30 backdrop-blur-sm rounded-xl">
+          {/* Aspect Navigation Tabs */}
+          <div className="flex border-b border-purple-900/30">
+            <button 
+              onClick={() => setActiveAspect('finance')} 
+              className={`flex flex-col items-center justify-center py-3 flex-1 ${activeAspect === 'finance' ? 'bg-purple-900/30' : ''}`}
+            >
+              <span className="text-lg">💰</span>
+              <span className="text-xs mt-1">Money Flow</span>
+            </button>
+            <button 
+              onClick={() => setActiveAspect('relationship')} 
+              className={`flex flex-col items-center justify-center py-3 flex-1 ${activeAspect === 'relationship' ? 'bg-purple-900/30' : ''}`}
+            >
+              <span className="text-lg">👥</span>
+              <span className="text-xs mt-1">Social Vibes</span>
+            </button>
+            <button 
+              onClick={() => setActiveAspect('mood')} 
+              className={`flex flex-col items-center justify-center py-3 flex-1 ${activeAspect === 'mood' ? 'bg-purple-900/30' : ''}`}
+            >
+              <span className="text-lg">🌙</span>
+              <span className="text-xs mt-1">Mood Balance</span>
+            </button>
+            <button 
+              onClick={() => setActiveAspect('health')} 
+              className={`flex flex-col items-center justify-center py-3 flex-1 ${activeAspect === 'health' ? 'bg-purple-900/30' : ''}`}
+            >
+              <span className="text-lg">🔥</span>
+              <span className="text-xs mt-1">Body Fuel</span>
+            </button>
+            <button 
+              onClick={() => setActiveAspect('growth')} 
+              className={`flex flex-col items-center justify-center py-3 flex-1 ${activeAspect === 'growth' ? 'bg-purple-900/30' : ''}`}
+            >
+              <span className="text-lg">🚀</span>
+              <span className="text-xs mt-1">Growth Track</span>
+            </button>
+          </div>
           
-          {/* Finance & Career */}
-          <div className="mb-4 pb-3 border-b border-purple-900/30">
-            <div className="flex justify-between items-center mb-2">
-              <div className="flex items-center">
+          {/* Finance & Career Content (Visible when activeAspect is finance) */}
+          {activeAspect === 'finance' && (
+            <div className="p-5">
+              <div className="flex items-center mb-3">
                 <span className="text-lg mr-2">💼</span>
-                <h3 className="font-medium">Finance & Career</h3>
+                <h3 className="text-lg font-medium">Finance & Career</h3>
               </div>
-              <span className="text-xs px-2.5 py-0.5 rounded-full bg-green-900/40 text-green-200">
-                Growth Energy
-              </span>
+              
+              <p className="text-sm text-purple-200 mb-4">
+                Your financial energy is high this month—great for initiating negotiations or exploring new income streams.
+              </p>
+              
+              {/* Favorable and unfavorable days */}
+              <div className="space-y-3 mb-5">
+                <div className="flex items-start">
+                  <span className="text-green-400 mr-2 mt-0.5">✓</span>
+                  <div>
+                    <p className="text-sm"><span className="font-medium">6/12</span> Good for interviews or applications</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start">
+                  <span className="text-green-400 mr-2 mt-0.5">✓</span>
+                  <div>
+                    <p className="text-sm"><span className="font-medium">6/21</span> Well-timed for startup moves</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start">
+                  <span className="text-yellow-400 mr-2 mt-0.5">⚠</span>
+                  <div>
+                    <p className="text-sm"><span className="font-medium">6/18</span> Miscommunication likely, avoid signing</p>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Best time hint */}
+              <div className="flex items-start mb-5">
+                <span className="inline-block bg-purple-900/40 rounded-full p-1 mr-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-purple-300" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                  </svg>
+                </span>
+                <p className="text-xs text-purple-200">
+                  On 6/12 morning, aim for one high-stakes conversation. Energy favors expression.
+                </p>
+              </div>
+              
+              {/* Pro Exclusive Section */}
+              <div className="mt-5 pt-4 border-t border-purple-900/30">
+                <div className="flex items-center mb-3">
+                  <span className="inline-flex items-center justify-center mr-2 w-5 h-5 rounded-full bg-purple-900/50 text-xs">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                    </svg>
+                  </span>
+                  <h4 className="font-medium">Pro Exclusive</h4>
+                </div>
+                
+                <h5 className="text-sm mb-2">Hourly Peaks</h5>
+                
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      <span className="inline-block bg-yellow-900/30 rounded-full p-1 mr-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-yellow-300" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                        </svg>
+                      </span>
+                      <span className="text-xs">9:00 AM–11:00 AM</span>
+                    </div>
+                    <div>
+                      <span className="text-xs font-medium">Score 88</span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-purple-200 pl-6">Best for presentations</p>
+                  
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      <span className="inline-block bg-yellow-900/30 rounded-full p-1 mr-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-yellow-300" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                        </svg>
+                      </span>
+                      <span className="text-xs">3:00 PM–5:00 PM</span>
+                    </div>
+                    <div>
+                      <span className="text-xs font-medium">Score 83</span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-purple-200 pl-6">Best for contracts</p>
+                  
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      <span className="inline-block bg-yellow-900/30 rounded-full p-1 mr-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-yellow-300" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                        </svg>
+                      </span>
+                      <span className="text-xs">7:00 PM–9:00 PM</span>
+                    </div>
+                    <div>
+                      <span className="text-xs font-medium">Score 80</span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-purple-200 pl-6">Best for planning</p>
+                </div>
+                
+                <div className="mt-4 flex items-center">
+                  <span className="inline-block bg-yellow-900/30 rounded-full p-1 mr-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-yellow-300" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2h-1V9a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                  </span>
+                  <p className="text-xs text-purple-200">
+                    Alerts enabled, you'll be notified 15 mins prior
+                  </p>
+                </div>
+              </div>
             </div>
-            <p className="text-sm text-purple-200 mb-1">
-              Strategic time for business expansion and investment opportunities this month.
-            </p>
-            <div className="flex flex-wrap gap-1 mt-2">
-              <span className="text-xs px-2 py-0.5 rounded-full bg-green-900/20 text-green-300">
-                2 favorable days
-              </span>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-red-900/20 text-red-300">
-                1 challenging day
-              </span>
-            </div>
-          </div>
+          )}
           
-          {/* Relationships */}
-          <div className="mb-4 pb-3 border-b border-purple-900/30">
-            <div className="flex justify-between items-center mb-2">
-              <div className="flex items-center">
+          {/* Relationship Content (Visible when activeAspect is relationship) */}
+          {activeAspect === 'relationship' && (
+            <div className="p-5">
+              <div className="flex items-center mb-3">
                 <span className="text-lg mr-2">👥</span>
-                <h3 className="font-medium">Relationships</h3>
+                <h3 className="text-lg font-medium">Relationships</h3>
               </div>
-              <span className="text-xs px-2.5 py-0.5 rounded-full bg-blue-900/40 text-blue-200">
-                Fluid Energy
-              </span>
-            </div>
-            <p className="text-sm text-purple-200 mb-1">
-              Exceptional communication periods ahead with harmony-building opportunities.
-            </p>
-            <div className="flex flex-wrap gap-1 mt-2">
-              <span className="text-xs px-2 py-0.5 rounded-full bg-green-900/20 text-green-300">
-                1 harmonious period
-              </span>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-red-900/20 text-red-300">
-                1 sensitive period
-              </span>
-            </div>
-          </div>
-          
-          {/* Mood & Stress */}
-          <div className="mb-4 pb-3 border-b border-purple-900/30">
-            <div className="flex justify-between items-center mb-2">
-              <div className="flex items-center">
-                <span className="text-lg mr-2">🧠</span>
-                <h3 className="font-medium">Mood & Stress</h3>
+              <p className="text-sm text-purple-200 mb-4">
+                Focus on strengthening connections with loved ones and colleagues this month.
+              </p>
+              {/* Content similar to finance but customized for relationships */}
+              <div className="space-y-3 mb-5">
+                <div className="flex items-start">
+                  <span className="text-green-400 mr-2 mt-0.5">✓</span>
+                  <div>
+                    <p className="text-sm"><span className="font-medium">6/7</span> Perfect day for important conversations</p>
+                  </div>
+                </div>
+                <div className="flex items-start">
+                  <span className="text-green-400 mr-2 mt-0.5">✓</span>
+                  <div>
+                    <p className="text-sm"><span className="font-medium">6/16</span> Social energy peaks, reach out to key contacts</p>
+                  </div>
+                </div>
+                <div className="flex items-start">
+                  <span className="text-yellow-400 mr-2 mt-0.5">⚠</span>
+                  <div>
+                    <p className="text-sm"><span className="font-medium">6/22</span> Sensitive period, careful communication advised</p>
+                  </div>
+                </div>
               </div>
-              <span className="text-xs px-2.5 py-0.5 rounded-full bg-blue-900/40 text-blue-200">
-                Fluid Energy
-              </span>
+              {/* Pro exclusive content for relationships */}
+              {/* Similar structure as finance with data for relationships */}
             </div>
-            <p className="text-sm text-purple-200 mb-1">
-              Emotional clarity peaks in mid-month, focus on mindfulness practices.
-            </p>
-            <div className="flex flex-wrap gap-1 mt-2">
-              <span className="text-xs px-2 py-0.5 rounded-full bg-blue-900/20 text-blue-300">
-                4-7-8 breathing technique
-              </span>
-            </div>
-          </div>
+          )}
           
-          {/* Health & Habits */}
-          <div className="mb-4 pb-3 border-b border-purple-900/30">
-            <div className="flex justify-between items-center mb-2">
-              <div className="flex items-center">
-                <span className="text-lg mr-2">🌿</span>
-                <h3 className="font-medium">Health & Habits</h3>
+          {/* Mood Content (Only showing structure, similar pattern for all tabs) */}
+          {activeAspect === 'mood' && (
+            <div className="p-5">
+              <div className="flex items-center mb-3">
+                <span className="text-lg mr-2">🌙</span>
+                <h3 className="text-lg font-medium">Mood & Balance</h3>
               </div>
-              <span className="text-xs px-2.5 py-0.5 rounded-full bg-yellow-900/40 text-yellow-200">
-                Stability Energy
-              </span>
+              <p className="text-sm text-purple-200 mb-4">
+                Your emotional resilience is enhanced, making this a good time for mindfulness activities.
+              </p>
+              {/* Specific content for mood */}
             </div>
-            <p className="text-sm text-purple-200 mb-1">
-              Prioritize nutrition and moderate exercise for optimal balance.
-            </p>
-            <div className="flex flex-wrap gap-1 mt-2">
-              <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-900/20 text-yellow-300">
-                3 recommended activities
-              </span>
-            </div>
-          </div>
+          )}
           
-          {/* Personal Growth */}
-          <div>
-            <div className="flex justify-between items-center mb-2">
-              <div className="flex items-center">
+          {/* Health Content */}
+          {activeAspect === 'health' && (
+            <div className="p-5">
+              <div className="flex items-center mb-3">
+                <span className="text-lg mr-2">🔥</span>
+                <h3 className="text-lg font-medium">Health & Vitality</h3>
+              </div>
+              <p className="text-sm text-purple-200 mb-4">
+                Focus on restorative practices and balanced nutrition this month.
+              </p>
+              {/* Specific content for health */}
+            </div>
+          )}
+          
+          {/* Growth Content */}
+          {activeAspect === 'growth' && (
+            <div className="p-5">
+              <div className="flex items-center mb-3">
                 <span className="text-lg mr-2">🚀</span>
-                <h3 className="font-medium">Personal Growth</h3>
+                <h3 className="text-lg font-medium">Personal Growth</h3>
               </div>
-              <span className="text-xs px-2.5 py-0.5 rounded-full bg-green-900/40 text-green-200">
-                Growth Energy
-              </span>
+              <p className="text-sm text-purple-200 mb-4">
+                Excellent period to start learning a new skill or expanding your knowledge base.
+              </p>
+              {/* Specific content for growth */}
             </div>
-            <p className="text-sm text-purple-200 mb-1">
-              Excellent period for learning new skills and exploring creative territories.
-            </p>
-            <div className="flex flex-wrap gap-1 mt-2">
-              <span className="text-xs px-2 py-0.5 rounded-full bg-green-900/20 text-green-300">
-                7-Day Micro-Challenge
-              </span>
-            </div>
-          </div>
+          )}
         </div>
         
         {/* Daily Energy Calendar with expandable view */}
@@ -357,69 +486,6 @@ function MayReportContent() {
               </button>
             </div>
           )}
-        </div>
-        
-        {/* Hourly Peaks - Pro feature */}
-        <div className="bg-black/30 backdrop-blur-sm rounded-xl p-5">
-          <h2 className="text-lg font-semibold mb-3">Hourly Energy Peaks</h2>
-          <p className="text-xs text-purple-300 mb-3">Your next 24 hours energy peaks</p>
-          <div className="space-y-3">
-            <div>
-              <div className="flex justify-between items-center mb-1">
-                <div className="font-medium">8:00 AM</div>
-                <div className="text-sm">9.2/10</div>
-              </div>
-              <p className="text-xs text-purple-200">Creative inspiration peak, ideal for brainstorming and creative work</p>
-            </div>
-            <div>
-              <div className="flex justify-between items-center mb-1">
-                <div className="font-medium">2:00 PM</div>
-                <div className="text-sm">8.7/10</div>
-              </div>
-              <p className="text-xs text-purple-200">Decision-making power enhanced, great for important choices and planning</p>
-            </div>
-            <div>
-              <div className="flex justify-between items-center mb-1">
-                <div className="font-medium">7:00 PM</div>
-                <div className="text-sm">8.5/10</div>
-              </div>
-              <p className="text-xs text-purple-200">Social energy surges, perfect for meetings and relationship building</p>
-            </div>
-          </div>
-        </div>
-        
-        {/* Auspicious Days - Pro feature */}
-        <div className="bg-black/30 backdrop-blur-sm rounded-xl p-5">
-          <h2 className="text-lg font-semibold mb-3">Auspicious Days</h2>
-          <div className="space-y-3">
-            <div>
-              <div className="flex items-center mb-1">
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-900 text-green-200 mr-2">
-                  Favorable
-                </span>
-                <div>May 12</div>
-              </div>
-              <p className="text-xs text-purple-200">Ideal for starting new projects and investments</p>
-            </div>
-            <div>
-              <div className="flex items-center mb-1">
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-900 text-green-200 mr-2">
-                  Favorable
-                </span>
-                <div>May 25</div>
-              </div>
-              <p className="text-xs text-purple-200">Perfect for travel and exploring new territories</p>
-            </div>
-            <div>
-              <div className="flex items-center mb-1">
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-900 text-red-200 mr-2">
-                  Challenging
-                </span>
-                <div>May 18</div>
-              </div>
-              <p className="text-xs text-purple-200">Avoid major decisions and conflicts</p>
-            </div>
-          </div>
         </div>
         
         {/* Footer */}
