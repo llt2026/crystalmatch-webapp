@@ -12,6 +12,9 @@ import React, { Suspense, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 
+// Type for element
+type ElementType = 'water' | 'fire' | 'earth' | 'metal' | 'wood';
+
 // Extract useSearchParams component to a separate component
 function AprilReportContent() {
   const searchParams = useSearchParams();
@@ -24,6 +27,24 @@ function AprilReportContent() {
   
   // State for expanding the full calendar
   const [showFullCalendar, setShowFullCalendar] = useState(false);
+  
+  // Helper function to get crystal for each element
+  const getCrystalForElement = (element: ElementType) => {
+    const crystalMap = {
+      'water': { name: 'Clear Quartz', color: 'text-blue-300', bgColor: 'bg-blue-900/50' },
+      'fire': { name: 'Red Jasper', color: 'text-red-300', bgColor: 'bg-red-900/50' },
+      'earth': { name: 'Amethyst', color: 'text-purple-300', bgColor: 'bg-purple-900/50' },
+      'metal': { name: 'Citrine', color: 'text-yellow-300', bgColor: 'bg-yellow-900/50' },
+      'wood': { name: 'Green Jade', color: 'text-green-300', bgColor: 'bg-green-900/50' }
+    };
+    return crystalMap[element] || crystalMap.water;
+  };
+  
+  // Function to determine daily element based on day number
+  const getDailyElement = (day: number): ElementType => {
+    const elements: ElementType[] = ['water', 'fire', 'earth', 'metal', 'wood'];
+    return elements[day % 5];
+  };
   
   return (
     <main className="min-h-screen bg-gradient-to-br from-purple-900 to-black py-8 px-4 text-white">
@@ -127,6 +148,44 @@ function AprilReportContent() {
                 </tbody>
               </table>
 
+              <div className="mt-4 space-y-2">
+                <details className="text-sm">
+                  <summary className="cursor-pointer text-purple-300 hover:text-white">View Daily Crystal Recommendations</summary>
+                  <div className="mt-2 space-y-2 pl-2 border-l-2 border-purple-700">
+                    <div className="flex justify-between text-xs">
+                      <span>April 1:</span>
+                      <span className={`px-2 py-0.5 ${getCrystalForElement('fire').bgColor} rounded-full text-white ${getCrystalForElement('fire').color}`}>
+                        {getCrystalForElement('fire').name}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span>April 2:</span>
+                      <span className={`px-2 py-0.5 ${getCrystalForElement('water').bgColor} rounded-full text-white ${getCrystalForElement('water').color}`}>
+                        {getCrystalForElement('water').name}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span>April 3:</span>
+                      <span className={`px-2 py-0.5 ${getCrystalForElement('earth').bgColor} rounded-full text-white ${getCrystalForElement('earth').color}`}>
+                        {getCrystalForElement('earth').name}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span>April 4:</span>
+                      <span className={`px-2 py-0.5 ${getCrystalForElement('metal').bgColor} rounded-full text-white ${getCrystalForElement('metal').color}`}>
+                        {getCrystalForElement('metal').name}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span>April 5:</span>
+                      <span className={`px-2 py-0.5 ${getCrystalForElement('wood').bgColor} rounded-full text-white ${getCrystalForElement('wood').color}`}>
+                        {getCrystalForElement('wood').name}
+                      </span>
+                    </div>
+                  </div>
+                </details>
+              </div>
+
               <button 
                 onClick={() => setShowFullCalendar(true)}
                 className="w-full mt-4 py-1.5 bg-purple-900/50 hover:bg-purple-800/50 rounded-md text-sm font-medium text-purple-200"
@@ -146,6 +205,7 @@ function AprilReportContent() {
                       <th className="pb-2">Date</th>
                       <th className="pb-2">Energy</th>
                       <th className="pb-2">Trend</th>
+                      <th className="pb-2">Crystal</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-800">
@@ -156,6 +216,11 @@ function AprilReportContent() {
                         <td className="py-2">
                           <span className={day % 3 === 0 ? 'text-red-400' : day % 3 === 1 ? 'text-green-400' : 'text-yellow-400'}>
                             {day % 3 === 0 ? '🔴 Declining' : day % 3 === 1 ? '🟢 Rising' : '🟡 Stable'}
+                          </span>
+                        </td>
+                        <td className="py-2">
+                          <span className={`text-xs px-2 py-0.5 ${getCrystalForElement(getDailyElement(day)).bgColor} rounded-full text-white ${getCrystalForElement(getDailyElement(day)).color}`}>
+                            {getCrystalForElement(getDailyElement(day)).name}
                           </span>
                         </td>
                       </tr>

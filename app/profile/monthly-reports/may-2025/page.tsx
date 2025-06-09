@@ -12,6 +12,9 @@ import React, { Suspense, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 
+// Type for element
+type ElementType = 'water' | 'fire' | 'earth' | 'metal' | 'wood';
+
 // Extract useSearchParams component to a separate component
 function MayReportContent() {
   const searchParams = useSearchParams();
@@ -24,6 +27,24 @@ function MayReportContent() {
   
   // State for expanding the full calendar
   const [showFullCalendar, setShowFullCalendar] = useState(false);
+  
+  // Helper function to get crystal for each element
+  const getCrystalForElement = (element: ElementType) => {
+    const crystalMap = {
+      'water': { name: 'Clear Quartz', color: 'text-blue-300', bgColor: 'bg-blue-900/50' },
+      'fire': { name: 'Red Jasper', color: 'text-red-300', bgColor: 'bg-red-900/50' },
+      'earth': { name: 'Amethyst', color: 'text-purple-300', bgColor: 'bg-purple-900/50' },
+      'metal': { name: 'Citrine', color: 'text-yellow-300', bgColor: 'bg-yellow-900/50' },
+      'wood': { name: 'Green Jade', color: 'text-green-300', bgColor: 'bg-green-900/50' }
+    };
+    return crystalMap[element] || crystalMap.water;
+  };
+  
+  // Function to determine daily element based on day number
+  const getDailyElement = (day: number): ElementType => {
+    const elements: ElementType[] = ['water', 'fire', 'earth', 'metal', 'wood'];
+    return elements[day % 5];
+  };
   
   return (
     <main className="min-h-screen bg-gradient-to-br from-purple-900 to-black py-8 px-4 text-white">
@@ -97,6 +118,12 @@ function MayReportContent() {
                   <div className="text-green-400 text-sm">🟢 Rising</div>
                 </div>
                 <p className="text-xs text-purple-200">Morning meditation enhances intuition and creativity</p>
+                <div className="mt-1 flex items-center">
+                  <span className="text-xs text-purple-300 mr-2">Crystal:</span>
+                  <span className={`text-xs px-2 py-0.5 ${getCrystalForElement('fire').bgColor} rounded-full text-white ${getCrystalForElement('fire').color}`}>
+                    {getCrystalForElement('fire').name}
+                  </span>
+                </div>
               </div>
               <div>
                 <div className="flex justify-between items-center mb-1">
@@ -105,6 +132,12 @@ function MayReportContent() {
                   <div className="text-yellow-400 text-sm">🟡 Stable</div>
                 </div>
                 <p className="text-xs text-purple-200">Wear blue to amplify intuitive energy</p>
+                <div className="mt-1 flex items-center">
+                  <span className="text-xs text-purple-300 mr-2">Crystal:</span>
+                  <span className={`text-xs px-2 py-0.5 ${getCrystalForElement('water').bgColor} rounded-full text-white ${getCrystalForElement('water').color}`}>
+                    {getCrystalForElement('water').name}
+                  </span>
+                </div>
               </div>
               <div>
                 <div className="flex justify-between items-center mb-1">
@@ -113,6 +146,12 @@ function MayReportContent() {
                   <div className="text-red-400 text-sm">🔴 Declining</div>
                 </div>
                 <p className="text-xs text-purple-200">Good day for important decisions</p>
+                <div className="mt-1 flex items-center">
+                  <span className="text-xs text-purple-300 mr-2">Crystal:</span>
+                  <span className={`text-xs px-2 py-0.5 ${getCrystalForElement('earth').bgColor} rounded-full text-white ${getCrystalForElement('earth').color}`}>
+                    {getCrystalForElement('earth').name}
+                  </span>
+                </div>
               </div>
               <div>
                 <div className="flex justify-between items-center mb-1">
@@ -121,6 +160,12 @@ function MayReportContent() {
                   <div className="text-red-400 text-sm">🔴 Declining</div>
                 </div>
                 <p className="text-xs text-purple-200">Rest more, avoid high-intensity activities</p>
+                <div className="mt-1 flex items-center">
+                  <span className="text-xs text-purple-300 mr-2">Crystal:</span>
+                  <span className={`text-xs px-2 py-0.5 ${getCrystalForElement('metal').bgColor} rounded-full text-white ${getCrystalForElement('metal').color}`}>
+                    {getCrystalForElement('metal').name}
+                  </span>
+                </div>
               </div>
               <div>
                 <div className="flex justify-between items-center mb-1">
@@ -129,6 +174,12 @@ function MayReportContent() {
                   <div className="text-green-400 text-sm">🟢 Rising</div>
                 </div>
                 <p className="text-xs text-purple-200">Ideal for socializing and building relationships</p>
+                <div className="mt-1 flex items-center">
+                  <span className="text-xs text-purple-300 mr-2">Crystal:</span>
+                  <span className={`text-xs px-2 py-0.5 ${getCrystalForElement('wood').bgColor} rounded-full text-white ${getCrystalForElement('wood').color}`}>
+                    {getCrystalForElement('wood').name}
+                  </span>
+                </div>
               </div>
               
               <button 
@@ -160,6 +211,12 @@ function MayReportContent() {
                        day % 5 === 3 ? 'Best for practical tasks and organization' :
                        'Good balance between activity and rest'}
                     </p>
+                    <div className="mt-1 flex items-center">
+                      <span className="text-xs text-purple-300 mr-2">Crystal:</span>
+                      <span className={`text-xs px-2 py-0.5 ${getCrystalForElement(getDailyElement(day)).bgColor} rounded-full text-white ${getCrystalForElement(getDailyElement(day)).color}`}>
+                        {getCrystalForElement(getDailyElement(day)).name}
+                      </span>
+                    </div>
                   </div>
                 ))}
               </div>
