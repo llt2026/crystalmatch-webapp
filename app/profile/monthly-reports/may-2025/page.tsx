@@ -287,34 +287,133 @@ function MayReportContent() {
             <div className="p-5">
               <div className="flex items-center mb-3">
                 <span className="text-lg mr-2">👥</span>
-                <h3 className="text-lg font-medium">Relationships</h3>
+                <h3 className="text-lg font-medium">Social Vibes</h3>
               </div>
+              
               <p className="text-sm text-purple-200 mb-4">
-                Focus on strengthening connections with loved ones and colleagues this month.
+                This month offers both harmonious periods for deepening connections and potential friction points to navigate carefully.
               </p>
-              {/* Content similar to finance but customized for relationships */}
+              
+              {/* Harmonious periods section */}
               <div className="space-y-3 mb-5">
+                <h4 className="text-sm font-medium text-white mb-2">Harmonious Periods</h4>
                 <div className="flex items-start">
                   <span className="text-green-400 mr-2 mt-0.5">✓</span>
                   <div>
-                    <p className="text-sm"><span className="font-medium">6/7</span> Perfect day for important conversations</p>
+                    <p className="text-sm">Next 7 days with daily energy score <span className="font-medium">≥75</span> + water/fire balanced periods</p>
                   </div>
                 </div>
-                <div className="flex items-start">
-                  <span className="text-green-400 mr-2 mt-0.5">✓</span>
+                <div className="flex items-start pl-5">
                   <div>
-                    <p className="text-sm"><span className="font-medium">6/16</span> Social energy peaks, reach out to key contacts</p>
+                    <p className="text-xs text-purple-200">Hourly scores <span className="font-medium">≥80</span> marked as harmony windows</p>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Friction periods section */}
+              <div className="space-y-3 mb-5">
+                <h4 className="text-sm font-medium text-white mb-2">Friction Periods</h4>
+                <div className="flex items-start">
+                  <span className="text-yellow-400 mr-2 mt-0.5">⚠</span>
+                  <div>
+                    <p className="text-sm">Hours with daily energy score <span className="font-medium">≤55</span> and metal/earth deficiency</p>
                   </div>
                 </div>
                 <div className="flex items-start">
                   <span className="text-yellow-400 mr-2 mt-0.5">⚠</span>
                   <div>
-                    <p className="text-sm"><span className="font-medium">6/22</span> Sensitive period, careful communication advised</p>
+                    <p className="text-sm"><span className="font-medium">May 8th, 14:00-16:00</span>: Avoid critical discussions</p>
+                  </div>
+                </div>
+                <div className="flex items-start">
+                  <span className="text-yellow-400 mr-2 mt-0.5">⚠</span>
+                  <div>
+                    <p className="text-sm"><span className="font-medium">May 16th, 11:00-13:00</span>: Communication challenges likely</p>
                   </div>
                 </div>
               </div>
-              {/* Pro exclusive content for relationships */}
-              {/* Similar structure as finance with data for relationships */}
+              
+              {/* Best window hint */}
+              <div className="flex items-start mb-5">
+                <span className="inline-block bg-purple-900/40 rounded-full p-1 mr-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-purple-300" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                  </svg>
+                </span>
+                <p className="text-xs text-purple-200">
+                  Schedule meaningful conversations during harmony windows to enhance mutual understanding.
+                </p>
+              </div>
+              
+              {/* Pro Exclusive Section */}
+              <div className="mt-5 pt-4 border-t border-purple-900/30">
+                <div className="flex items-center mb-3">
+                  <span className="inline-flex items-center justify-center mr-2 w-5 h-5 rounded-full bg-purple-900/50 text-xs">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                    </svg>
+                  </span>
+                  <h4 className="font-medium">Pro Exclusive</h4>
+                </div>
+                
+                <h5 className="text-sm mb-2">Best Connection Windows</h5>
+                
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-sm mb-1">Select harmonious days first:</p>
+                    <div className="flex items-center ml-2">
+                      <span className="inline-block bg-green-900/30 rounded-full p-1 mr-2 text-xs">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-green-300" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      </span>
+                      <p className="text-xs text-purple-200">Hourly energy score <span className="font-medium">≥82</span></p>
+                    </div>
+                    <div className="flex items-center ml-2">
+                      <span className="inline-block bg-green-900/30 rounded-full p-1 mr-2 text-xs">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-green-300" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      </span>
+                      <p className="text-xs text-purple-200">Dominant elements: water/fire (2-hour blocks)</p>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        <span className="inline-block bg-blue-900/30 rounded-full p-1 mr-2">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-blue-300" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                          </svg>
+                        </span>
+                        <span className="text-xs">May 12th, 18:00–20:00</span>
+                      </div>
+                      <div>
+                        <span className="text-xs font-medium">Score 85</span>
+                      </div>
+                    </div>
+                    <p className="text-xs text-purple-200 pl-6">Perfect for deep conversations</p>
+                  </div>
+                  
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        <span className="inline-block bg-blue-900/30 rounded-full p-1 mr-2">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-blue-300" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                          </svg>
+                        </span>
+                        <span className="text-xs">May 24th, 15:00–17:00</span>
+                      </div>
+                      <div>
+                        <span className="text-xs font-medium">Score 84</span>
+                      </div>
+                    </div>
+                    <p className="text-xs text-purple-200 pl-6">Ideal for relationship building</p>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
           
