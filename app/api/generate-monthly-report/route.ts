@@ -14,23 +14,24 @@ const apiKey = getOpenAiApiKey();
 console.log('OpenAI API密钥状态:', {
   exists: !!apiKey,
   length: apiKey?.length || 0,
-  maskedKey: apiKey ? `${apiKey.substring(0, 5)}...${apiKey.substring(apiKey.length - 5)}` : '无API密钥',
+  maskedKey: apiKey ? `${apiKey.substring(0, 7)}...${apiKey.substring(apiKey.length - 4)}` : '无API密钥',
   hasNewlines: apiKey?.includes('\n') || apiKey?.includes('\r'),
   hasSpaces: apiKey?.includes(' '),
   startsWithPrefix: apiKey?.startsWith('sk-'),
   isEmpty: !apiKey || apiKey?.trim() === ''
 });
 
-// 创建OpenAI客户端，添加异常捕获
-let openai: OpenAI;
-try {
-  openai = new OpenAI({ apiKey });
-  console.log('OpenAI客户端初始化成功');
-} catch (error) {
-  console.error('OpenAI客户端初始化失败:', error);
-  // 创建一个最小化的客户端，以便后续代码不会崩溃
-  openai = new OpenAI({ apiKey: 'sk-dummy' });
+// 验证API密钥格式
+if (!apiKey || !apiKey.startsWith('sk-') || apiKey.length < 50) {
+  console.error('OpenAI API密钥格式不正确或缺失');
 }
+
+// 创建OpenAI客户端
+const openai = new OpenAI({ 
+  apiKey: apiKey,
+  timeout: 90000,  // 较长的超时时间
+  maxRetries: 3    // 自动重试次数
+});
 
 interface PostBody {
   birthDate: string; // ISO
@@ -108,16 +109,23 @@ export async function POST(request: NextRequest) {
       const maxTokens = getMaxTokensForTier(safeTier);
       console.log(`使用OpenAI生成月度报告 ${year}-${month}, 会员等级: ${safeTier}, 模型: ${model}, 最大token: ${maxTokens}`);
       
-      // 检查API密钥是否有效
+      // 严格检查API密钥是否有效
       if (!apiKey || apiKey.trim() === '') {
-        console.error('OpenAI API密钥未配置或为空');
-        return NextResponse.json({ 
-          error: 'OpenAI API key not configured',
-          message: 'API密钥未配置，无法生成报告',
-          debug: { apiKeyExists: !!apiKey }
-        }, { status: 500 });
+        console.error('OpenAI API密钥未配置');
+        throw new Error('OpenAI API key not configured');
       }
       
+      if (!apiKey.startsWith('sk-')) {
+        console.error('OpenAI API密钥格式不正确，应以sk-开头');
+        throw new Error('OpenAI API key has invalid format, should start with sk-');
+      }
+      
+      if (apiKey.length < 40) {
+        console.error('OpenAI API密钥长度不足');
+        throw new Error('OpenAI API key length is too short');
+      }
+      
+      console.log('开始调用OpenAI API...');
       const completion = await openai.chat.completions.create({
         model: model,
         max_tokens: maxTokens,
@@ -126,58 +134,62 @@ export async function POST(request: NextRequest) {
       });
       
       const content = completion.choices[0].message?.content || '';
-      console.log(`生成报告成功，内容长度: ${content.length} 字符`);
+      console.log(`✅ OpenAI API调用成功！生成报告内容长度: ${content.length} 字符`);
       console.log('报告内容前100字符:', content.substring(0, 100));
       
-      // 不再缓存结果，每次都从OpenAI获取新的内容
-      return NextResponse.json({ report: content });
+      // 验证生成的内容是否有效
+      if (!content || content.length < 100) {
+        throw new Error('Generated content is too short or empty');
+      }
+      
+      return NextResponse.json({ 
+        report: content,
+        debug: {
+          api_success: true,
+          content_length: content.length,
+          model_used: model
+        }
+      });
     } catch (err: any) {
-      console.error('OpenAI API调用错误:', err);
+      console.error('❌ OpenAI API调用失败:', err);
       console.error('错误详情:', {
         message: err.message,
         name: err.name,
-        stack: err.stack?.substring(0, 500),
         code: err.code,
-        status: err.status
+        status: err.status,
+        type: err.type
       });
       
-      // 返回模拟数据 - 用于临时应对API问题
-      const mockReport = `
-# 🔮 ${month}月 ${year} — 平衡能量
-
-## 🌟 Energy Insight
-This month brings a balanced energy that helps stabilize your natural tendencies. You might find yourself more centered and able to approach challenges with clarity.
-
-## ⚠️ Potential Challenges
-- You might struggle with making quick decisions when pressured
-- Finding time for self-care could feel challenging
-- Balancing work and personal time might require extra attention
-
-## 💎 Monthly Crystals
-- Clear Quartz — amplifies your natural energy while helping balance areas where you feel depleted
-- Amethyst — may help calm your mind during overthinking moments
-
-## ✨ Practice to Explore
-Consider starting your day with a brief 2-minute breathing exercise to set your intentions and center your energy.
-
-## 🧭 Monthly Possibilities
-✅ Focus on one priority task each day before checking messages  
-✅ Schedule small breaks between focused work periods  
-🚫 Try to avoid overthinking simple decisions  
-🚫 Consider limiting negative news consumption when feeling drained
-      `;
+      // 正式环境中直接返回错误信息，不使用模拟数据
+      console.error('API调用错误，返回错误信息');
       
-      console.log('返回模拟报告数据，长度:', mockReport.length);
+      // 记录详细的错误信息以便调试
+      const errorDetails = {
+        message: err.message,
+        code: err.code || 'unknown',
+        type: err.type || 'connection_error',
+        cause: err.cause?.code || 'unknown'
+      };
       
+      console.log('错误详情:', JSON.stringify(errorDetails));
+      
+      // 返回标准化的错误响应
       return NextResponse.json({ 
-        report: mockReport,
-        error: err.message,
-        debug: {
-          api_error: true,
-          message: err.message,
-          code: err.code || 'unknown'
+        error: 'api_error',
+        message: 'Report generation service is temporarily unavailable. Please try again later.',
+        details: {
+          error_type: err.name || 'unknown',
+          error_code: err.code || 'unknown',
+          request_id: Math.random().toString(36).substring(2, 15),
+          timestamp: new Date().toISOString()
         }
-      }, { status: 200 });
+      }, { 
+        status: 503, // Service Unavailable更适合暂时性问题
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          'Retry-After': '300' // 建议5分钟后重试
+        }
+      });
     }
   } catch (reqError: any) {
     console.error('请求处理出错:', reqError);

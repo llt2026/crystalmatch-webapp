@@ -1,5 +1,6 @@
 // 加载环境变量
-require('dotenv').config();
+require('dotenv').config({ path: '.env.local' });
+require('dotenv').config(); // 也加载.env文件作为后备
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {

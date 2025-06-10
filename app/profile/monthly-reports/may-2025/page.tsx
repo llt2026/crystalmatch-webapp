@@ -25,9 +25,11 @@ interface GPTReport {
   guidance?: string[];
   loading: boolean;
   error?: string;
+  errorDetails?: any;   // 详细错误信息
   energyScore?: number;
   strongestElement?: ElementType;
   weakestElement?: ElementType;
+  generatedTime?: string; // 报告生成时间
 }
 
 // Extract useSearchParams component to a separate component
@@ -63,7 +65,7 @@ function MayReportContent() {
   useEffect(() => {
     async function fetchReportData() {
       try {
-        console.log('Fetching report data for May 2025...');
+        console.log('🔄 正在获取May 2025报告数据...');
         const response = await fetch(`/api/reports/2025-05?birthDate=${encodeURIComponent(birthDate || '1990-01-01')}`, {
           method: 'GET',
           headers: {
@@ -75,11 +77,34 @@ function MayReportContent() {
         });
 
         if (!response.ok) {
+          const errorText = await response.text();
+          console.error('❌ API响应错误:', response.status, errorText);
           throw new Error(`Failed to fetch report: ${response.status}`);
         }
 
         const data = await response.json();
-        console.log('Received report data:', data);
+        console.log('📄 收到报告数据:', data);
+
+        // 检查是否有错误
+        if (data.error) {
+          console.error('❌ 报告生成错误:', data.error);
+          setGptReport({
+            loading: false,
+            error: data.message || data.error,
+            errorDetails: data.details || {}
+          });
+          return;
+        }
+        
+        // 验证报告内容有效性
+        if (!data.report || data.report.length < 50) {
+          console.error('❌ 报告内容无效或太短');
+          setGptReport({
+            loading: false,
+            error: 'Invalid report content received from server'
+          });
+          return;
+        }
 
         if (data.report) {
           // Parse the markdown content
@@ -207,13 +232,17 @@ function MayReportContent() {
             weakestElement
           });
         } else {
-          throw new Error('Report data is missing');
+          console.warn('⚠️ 未收到报告数据');
+          setGptReport({
+            loading: false,
+            error: 'No report data available - please check API configuration'
+          });
         }
-      } catch (error) {
-        console.error('Error fetching report:', error);
+      } catch (error: any) {
+        console.error('❌ 获取报告时出错:', error);
         setGptReport({
           loading: false,
-          error: 'Failed to load report. Please try again later.'
+          error: `Failed to load report: ${error.message}`
         });
       }
     }
@@ -356,16 +385,41 @@ function MayReportContent() {
     return (
       <main className="min-h-screen bg-gradient-to-br from-purple-900 to-black py-8 px-4 text-white">
         <div className="max-w-md mx-auto flex items-center justify-center h-[80vh]">
-          <div className="text-center">
-            <div className="text-red-500 text-4xl mb-4">⚠️</div>
-            <p className="text-xl mb-2">Report Generation Error</p>
-            <p>{gptReport.error}</p>
-            <button 
-              onClick={() => window.location.reload()}
-              className="mt-4 px-4 py-2 bg-purple-700 hover:bg-purple-600 rounded-md text-sm font-medium transition-colors"
-            >
-              Try Again
-            </button>
+          <div className="text-center space-y-4">
+            <div className="text-red-500 text-4xl">🔧</div>
+            <h2 className="text-xl font-semibold">Report Temporarily Unavailable</h2>
+            <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 text-left">
+              <p className="text-sm text-red-200 mb-2">Details:</p>
+              <p className="text-xs text-red-300 font-mono">{gptReport.error}</p>
+              {gptReport.errorDetails && gptReport.errorDetails.timestamp && (
+                <p className="text-xs text-red-300 mt-2">
+                  Time: {new Date(gptReport.errorDetails.timestamp).toLocaleString()}
+                </p>
+              )}
+            </div>
+            <div className="bg-yellow-900/20 border border-yellow-500/30 rounded-lg p-4 text-left">
+              <p className="text-sm text-yellow-200 mb-2">💡 Information:</p>
+              <ul className="text-xs text-yellow-300 space-y-1">
+                <li>• Our report generation service is currently experiencing issues</li>
+                <li>• Your request has been logged and we're working on it</li>
+                <li>• This is usually resolved within a few minutes</li>
+                <li>• Please try again later</li>
+              </ul>
+            </div>
+            <div className="flex gap-3">
+              <button 
+                onClick={() => window.location.reload()}
+                className="px-4 py-2 bg-purple-700 hover:bg-purple-600 rounded-md text-sm font-medium transition-colors"
+              >
+                🔄 Try Again
+              </button>
+              <Link 
+                href="/profile"
+                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-md text-sm font-medium transition-colors"
+              >
+                ← Back to Profile
+              </Link>
+            </div>
           </div>
         </div>
       </main>
