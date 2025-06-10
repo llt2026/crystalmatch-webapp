@@ -1,5 +1,37 @@
 export const energyCalendar = [
   {
+    month: "January 2025",
+    start: "2025-01-06",
+    end: "2025-02-03",
+    pillar: "丁丑",
+    element: "Earth",
+    energyType: "Stability Energy"
+  },
+  {
+    month: "February 2025",
+    start: "2025-02-04",
+    end: "2025-03-05",
+    pillar: "戊寅",
+    element: "Wood",
+    energyType: "Growth Energy"
+  },
+  {
+    month: "March 2025",
+    start: "2025-03-06",
+    end: "2025-04-04",
+    pillar: "己卯",
+    element: "Wood",
+    energyType: "Growth Energy"
+  },
+  {
+    month: "April 2025",
+    start: "2025-04-05",
+    end: "2025-05-04",
+    pillar: "庚辰",
+    element: "Earth",
+    energyType: "Stability Energy"
+  },
+  {
     month: "May 2025",
     start: "2025-05-05",
     end: "2025-06-05",

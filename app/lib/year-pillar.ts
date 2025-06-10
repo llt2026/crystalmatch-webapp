@@ -17,6 +17,13 @@ const zodiacMap: Record<string, string> = {
 // 年柱数据
 export const yearPillars = [
   {
+    start: "2023-02-04", // 2023年立春
+    end: "2024-02-03",   // 2024年立春前一天
+    year: 2023,
+    pillar: "癸卯",
+    zodiac: "Rabbit"
+  },
+  {
     start: "2024-02-04", // 2024年立春
     end: "2025-02-03",   // 2025年立春前一天
     year: 2024,
@@ -43,6 +50,13 @@ export const yearPillars = [
     year: 2027,
     pillar: "丁未",
     zodiac: "Goat"       // 未 = Goat
+  },
+  {
+    start: "2028-02-04", // 2028年立春
+    end: "2029-02-03",   // 2029年立春前一天
+    year: 2028,
+    pillar: "戊申",
+    zodiac: "Monkey"     // 申 = Monkey
   }
 ];
 

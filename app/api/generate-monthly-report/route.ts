@@ -71,9 +71,26 @@ export async function POST(request: NextRequest) {
     }
 
     // 构造能量上下文
-    const energyContext = getFullEnergyContext(new Date(birthDate), new Date(year, month - 1));
+    const birthDateObj = new Date(birthDate);
+    // 使用月份中间的日期（15号）来确保匹配正确的能量周期
+    const targetDateObj = new Date(year, month - 1, 15);
+    
+    console.log('尝试构建能量上下文:', {
+      birthDate: birthDateObj.toISOString(),
+      targetDate: targetDateObj.toISOString(),
+      year,
+      month,
+      targetDateString: targetDateObj.toISOString().slice(0, 10)
+    });
+    
+    const energyContext = getFullEnergyContext(birthDateObj, targetDateObj);
     if (!energyContext) {
-      console.error('能量上下文构建失败');
+      console.error('能量上下文构建失败 - 详细调试信息:', {
+        birthDateValid: !isNaN(birthDateObj.getTime()),
+        targetDateValid: !isNaN(targetDateObj.getTime()),
+        birthDateStr: birthDateObj.toString(),
+        targetDateStr: targetDateObj.toString()
+      });
       return NextResponse.json({ error: 'failed to build energy context' }, { status: 500 });
     }
     
