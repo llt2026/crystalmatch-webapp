@@ -252,15 +252,9 @@ export async function POST(request: NextRequest) {
     try {
       // 检查API密钥
       if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === 'sk-your-openai-api-key') {
-        console.log('使用模拟数据，因为未配置有效的OpenAI API密钥');
-        
-        // 即使使用模拟数据，也保存到缓存/数据库
-        const mockReport = generateMockReport(energyContext, subscriptionTier);
-        await saveReportToDatabase(cacheKey, mockReport, energyContext);
-        
+        console.error('未配置有效的OpenAI API密钥，无法生成报告');
         return NextResponse.json({ 
-          error: "OpenAI API key not configured", 
-          mockData: mockReport,
+          error: "OpenAI API key not configured or invalid", 
           tier: subscriptionTier,
           fromCache: false
         }, { status: 500 });
@@ -321,23 +315,13 @@ export async function POST(request: NextRequest) {
     } catch (apiError) {
       console.error('OpenAI API调用错误:', apiError);
       
-      // 生成模拟数据
-      const mockReport = generateMockReport(energyContext, subscriptionTier);
-      
-      // 即使是模拟数据，也保存到缓存/数据库以供未来使用
-      await saveReportToDatabase(cacheKey, mockReport, energyContext);
-      
-      // 更新用户的请求次数（实际项目中需要更新数据库）
-      await updateUserRequestCount(userId);
-      
-      // 返回模拟数据
+      // 返回错误信息，不再生成模拟数据
       return NextResponse.json({ 
-        warning: "Error calling OpenAI API, using mock data", 
-        report: mockReport,
-        energyContext,
+        error: "Error calling OpenAI API. Please try again later.", 
+        message: apiError instanceof Error ? apiError.message : "Unknown error",
         tier: subscriptionTier,
         fromCache: false
-      });
+      }, { status: 500 });
     }
     
   } catch (error) {
@@ -772,74 +756,16 @@ function parseGptResponse(content: string, context: any, tier: SubscriptionTier)
   return result;
 }
 
-/**
- * 生成模拟报告（当API调用失败时使用）
- */
+// 删除generateMockReport函数的整个实现，但保留函数声明，以避免破坏其他引用
 function generateMockReport(context: any, tier: SubscriptionTier): any {
-  // 基础报告（免费版）
-  const baseReport = {
-    analysis: `根据您的八字 ${context.bazi.yearPillar}${context.bazi.monthPillar}${context.bazi.dayPillar} 与当前能量周期的互动关系，您正处于能量转变期。当前的${context.currentMonth.element}元素能量有助于您的成长和发展。`,
-    monthlyTips: [
-      `增强${context.currentMonth.element}元素能量，可多接触相关颜色和环境`,
-      '保持规律作息，早睡早起增强身体能量循环',
-      '注意情绪平衡，避免能量波动过大'
-    ],
-    crystalRecommendations: [
-      `${context.currentMonth.element === '木' ? '绿幽灵' : 
-        context.currentMonth.element === '火' ? '红玛瑙' : 
-        context.currentMonth.element === '土' ? '黄水晶' : 
-        context.currentMonth.element === '金' ? '白水晶' : '青金石'}：增强${context.currentMonth.energyType}能量，促进个人成长`
-    ]
+  console.error('尝试使用已禁用的模拟数据功能');
+  // 返回一个最小化的错误报告对象
+  return {
+    error: "Mock data generation is disabled. Please configure a valid OpenAI API key.",
+    analysis: "Error: Mock data generation is disabled.",
+    monthlyTips: ["Error: Mock data is no longer available."],
+    crystalRecommendations: ["Error: Please configure OpenAI API key for real data."]
   };
-  
-  // 月度订阅附加内容
-  if (normalizeSubscriptionTier(tier) === 'plus' || normalizeSubscriptionTier(tier) === 'pro') {
-    Object.assign(baseReport, {
-      energyCycle: `本月${context.currentMonth.pillar}能量呈现波动上升趋势，中旬将达到高峰。${context.currentMonth.start.substring(5)}日和${parseInt(context.currentMonth.start.substring(5)) + 15}日是关键能量日，适合重要决策和新开始。`,
-      energyMethods: [
-        '增加早晨阳光暴露时间以促进生物钟稳定',
-        '尝试冷水浸浴提升精力和自律性',
-        '每天1-2次深呼吸练习缓解压力'
-      ],
-      rituals: [
-        '每周一次的"能量重置"：寻找一个安静的空间，清理周围环境，点燃熏香，进行20分钟冥想，专注于让负面能量流走，迎接新的活力。',
-        '月中"能量提升"仪式：在月中能量峰值日，准备一杯温热的姜茶，手持本月推荐水晶，设定明确意图，进行5-10分钟意象化练习。'
-      ]
-    });
-  }
-  
-  // 年度订阅附加内容
-  if (normalizeSubscriptionTier(tier) === 'pro') {
-    Object.assign(baseReport, {
-      strengths: [
-        '核心优势：对变化的高适应性',
-        '天赋表达：创新思维与解决问题',
-        '能量特质：快速恢复与内在韧性',
-        '人际关系：温和包容的交流风格'
-      ],
-      challenges: [
-        '过度分析导致犹豫不决',
-        '在压力下情绪波动较大',
-        '难以建立长期规律作息',
-        '过度承担他人情绪负担'
-      ],
-      keyDates: [
-        '3月15日-18日：重要转折期，适合重大决定',
-        '5月2日-5日：能量高峰期，开启新项目的理想时机',
-        '8月10日-15日：反思与调整的关键期，避免重大决策',
-        '11月20日-25日：年末能量整合期，为来年做准备'
-      ],
-      quarterlyForecast: '第一季度（1-3月）：以稳定为主，适合打基础；第二季度（4-6月）：创造力爆发期，新想法涌现；第三季度（7-9月）：执行与落实期，将计划付诸行动；第四季度（10-12月）：收获与反思期，为来年规划做准备。',
-      balancingPlan: [
-        '建立早晨能量唤醒仪式（5-10分钟冥想+阳光浴）',
-        '工作日中午短暂户外散步（15-20分钟）',
-        '每周安排1天"数字断连"时间',
-        '睡前30分钟阅读纸质书籍代替电子设备'
-      ]
-    });
-  }
-  
-  return baseReport;
 }
 
 /**
