@@ -26,12 +26,12 @@ export function generateMonthlyUserPrompt(energyContext: any): string {
   
   return `# === CrystalMatch · Monthly Plan Prompt (v2) ===
 
-✨ This personalized energy forecast combines:
+✨ This personalized energy forecast explores:
 - The Five Elements from your Chinese birth chart
 - Your Western Zodiac and elemental alignment
 - Monthly seasonal energy and emotional resonance
 
-Our goal: clarity, alignment, and inner growth.
+Our hope is to offer insights that might bring clarity, alignment, and possibilities for inner growth.
 
 ---
 
@@ -42,28 +42,28 @@ Immutable facts (do NOT change):
 • Current Month: ${currentMonth}
 • Monthly Energy Table: ${JSON.stringify(monthlyScoresTable)}
 
-Generate the MONTHLY report body in American English:
+Generate the MONTHLY report body in American English with a gentle, guiding tone:
 
 1. **12-Month Energy Table**  
    - Columns: Month | Energy Type | Score (0-100).  
    - No explanations inside the table.
 
-2. **Current-Month Deep Insight** (only for ${currentMonth})  
-   a. One concise paragraph describing emotions & focus this month.  
-   b. 1-2 recommended crystals (name + 1-sentence benefit).  
-   c. 2-3 simple energy-boost actions (e.g., salt-water hand rinse, grounding walk, candle).  
-   d. Lucky color / outfit vibe.  
-   e. Three sample daily energy reminders (one sentence each).
+2. **Current-Month Insights** (only for ${currentMonth})  
+   a. One concise paragraph describing potential emotions & focus areas this month (use conditional language like "might," "could," "may").  
+   b. 1-2 crystals you might consider (name + 1-sentence potential benefit with conditional language).  
+   c. 2-3 simple practices you could explore (e.g., salt-water hand rinse, grounding walk, candle).  
+   d. Colors or outfit elements that might resonate with you this month.  
+   e. Three gentle daily reminders phrased as possibilities (one sentence each, using conditional language).
 
-*Do NOT provide deep insights for other months.*
+*Keep insights focused on the current month, presented as possibilities rather than certainties.*
 
 ---
 
 📝 Note:
-Each person's core energy is influenced by the yearly and monthly elemental changes.  
-Your energy may rise or dip depending on how these cycles interact with your birth chart.
+Our energy patterns may shift with seasonal and monthly elemental changes.  
+You might notice your energy rising or dipping at different times, which could be related to how these cycles interact with your natural patterns.
 
-👉 That's why it's essential to adjust monthly—with the right focus, crystals, and small rituals—to stay balanced and empowered.`;
+👉 Gentle adjustments with your monthly focus, supportive crystals, and simple practices might help you maintain balance and feel more connected to your natural rhythms.`;
 }
 
 /**

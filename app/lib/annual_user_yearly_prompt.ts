@@ -22,12 +22,12 @@ export function generateAnnualUserPrompt(energyContext: any): string {
   
   return `# === CrystalMatch · Annual Plan Prompt (with Quarterly & Bridge Tips) ===
 
-✨ This personalized energy forecast combines:
+✨ This personalized energy forecast explores:
 - The Five Elements from your Chinese birth chart
 - Your Western Zodiac and elemental alignment
 - Monthly seasonal energy and emotional resonance
 
-Our goal: clarity, alignment, and inner growth.
+Our hope is to offer insights that might bring clarity, alignment, and possibilities for inner growth.
 
 ---
 
@@ -37,37 +37,37 @@ User constants (never change):
 • Missing Energy: ${energyContext.missingElement || 'Water'}
 • Monthly Scores: ${JSON.stringify(monthlyScores)}
 
-Generate the YEARLY OVERVIEW report in American English:
+Generate the YEARLY OVERVIEW report in American English with a gentle, supportive tone:
 
-A. **Year Summary**  
-   - 1 paragraph summarizing overall themes, opportunities, challenges.  
-   - Compare first half vs. second half energies.  
-   - One long-term recommendation for balancing the missing element.
+A. **Year Patterns**  
+   - 1 paragraph exploring potential themes, opportunities, and challenges using conditional language.  
+   - Consider comparing first half vs. second half energy patterns.  
+   - Suggest one possibility for balancing the missing element (using "might," "could," "consider").
 
-B. **Quarter Snapshots** (Q1-Q4)  
-   - For each quarter, give 2-3 sentences on energy trend and best focus.
+B. **Quarter Reflections** (Q1-Q4)  
+   - For each quarter, offer 2-3 sentences on possible energy trends and areas you might find beneficial to explore.
 
-C. **12-Month Summary Table**  
-   Columns: Month | Energy Type | Score | Primary Focus | 1-2 Crystals | Simple Ritual  
-   *After each month row, add a single-line "Next-Month Bridge Tip" that prepares the user for the coming month.*  
+C. **12-Month Possibilities Table**  
+   Columns: Month | Energy Type | Score | Potential Focus | Crystals to Consider | Practice to Explore  
+   *After each month row, consider adding a gentle "Next-Month Bridge Tip" that suggests a way to prepare for the coming month.*  
    Example format inside the table cell:  
-   \`Bridge ➜ Energy drops in June; schedule downtime in the last week of May.\`
+   \`Bridge ➜ Energy might shift in June; you could consider scheduling some downtime in the last week of May.\`
 
-D. **Key Energy Days**  
-   - List at least 2 High-Power Days and 1 Low-Energy Caution Day (date + one-line note).
+D. **Dates to Note**  
+   - Suggest at least 2 potentially higher-energy days and 1 day when you might benefit from extra self-care (date + gentle note using conditional language).
 
 E. **Navigation Note**  
-   - End with one sentence instructing:  
-     *"Tap any month to open its full in-depth report."*  
+   - End with one sentence sharing:  
+     *"You might find it helpful to tap any month to explore its in-depth report."*  
    (Do NOT include the full monthly reports here.)
 
 ---
 
 📝 Note:
-Each person's core energy is influenced by the yearly and monthly elemental changes.  
-Your energy may rise or dip depending on how these cycles interact with your birth chart.
+Our energy patterns may shift with seasonal and yearly elemental changes.  
+You might notice your energy rising or dipping at different times, which could be related to how these cycles interact with your natural patterns.
 
-👉 That's why it's essential to adjust monthly—with the right focus, crystals, and small rituals—to stay balanced and empowered.`;
+👉 Gentle adjustments with your monthly focus, supportive crystals, and simple practices might help you maintain balance and feel more connected to your natural rhythms.`;
 }
 
 /**
