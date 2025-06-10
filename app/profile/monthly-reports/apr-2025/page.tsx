@@ -8,12 +8,24 @@ export const dynamic = 'force-dynamic';
 export const dynamicParams = true;
 export const revalidate = 0;
 
-import React, { Suspense, useState } from 'react';
+import React, { Suspense, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 
 // Type for element
 type ElementType = 'water' | 'fire' | 'earth' | 'metal' | 'wood';
+
+// Add GPT Report interface
+interface GPTReport {
+  title?: string;
+  insight?: string;
+  challenges?: string[];
+  crystals?: Array<{name: string, benefit: string}>;
+  ritual?: string;
+  guidance?: string[];
+  loading: boolean;
+  error?: string;
+}
 
 // Extract useSearchParams component to a separate component
 function AprilReportContent() {
@@ -27,6 +39,103 @@ function AprilReportContent() {
   
   // State for expanding the full calendar
   const [showFullCalendar, setShowFullCalendar] = useState(false);
+  
+  // State for GPT generated report content
+  const [gptReport, setGptReport] = useState<GPTReport>({
+    loading: true,
+  });
+
+  // Fetch GPT report data when component loads
+  useEffect(() => {
+    async function fetchReportData() {
+      try {
+        console.log('Fetching report data for April 2025...');
+        const response = await fetch(`/api/reports/2025-04?birthDate=${encodeURIComponent(birthDate || '1990-01-01')}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-cache, no-store',
+            'x-tier': 'plus' // Ensure we get plus-level content
+          },
+          cache: 'no-store'
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch report: ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log('Received report data:', data);
+
+        if (data.report) {
+          // Parse the markdown content
+          const reportContent = data.report;
+          
+          // Extract title
+          const titleMatch = reportContent.match(/# 🔮 .* — (.*)/);
+          const title = titleMatch ? titleMatch[1] : 'Energy Rising';
+          
+          // Extract insight
+          const insightMatch = reportContent.match(/## 🌟 Energy Insight\n([\s\S]*?)(?=##)/);
+          const insight = insightMatch ? insightMatch[1].trim() : '';
+          
+          // Extract challenges
+          const challengesMatch = reportContent.match(/## ⚠️ (?:Potential )?Challenges\n([\s\S]*?)(?=##)/);
+          const challengesText = challengesMatch ? challengesMatch[1] : '';
+          const challenges = challengesText
+            .split('\n')
+            .filter((line) => line.trim().startsWith('-'))
+            .map((line) => line.replace('-', '').trim());
+          
+          // Extract crystals
+          const crystalsMatch = reportContent.match(/## 💎 (?:Monthly )?Crystals(?: to Consider)?\n([\s\S]*?)(?=##)/);
+          const crystalsText = crystalsMatch ? crystalsMatch[1] : '';
+          const crystals = crystalsText
+            .split('\n')
+            .filter((line) => line.trim().startsWith('-'))
+            .map((line) => {
+              const parts = line.replace('-', '').trim().split('—');
+              return {
+                name: parts[0].trim(),
+                benefit: parts.length > 1 ? parts[1].trim() : ''
+              };
+            });
+          
+          // Extract ritual
+          const ritualMatch = reportContent.match(/## ✨ (?:Ritual|Practice)(?: to Explore)?.*\n([\s\S]*?)(?=##|$)/);
+          const ritual = ritualMatch ? ritualMatch[1].trim() : '';
+          
+          // Extract guidance
+          const guidanceMatch = reportContent.match(/## 🧭 Monthly (?:Guidance|Possibilities)\n([\s\S]*?)(?=$)/);
+          const guidanceText = guidanceMatch ? guidanceMatch[1] : '';
+          const guidance = guidanceText
+            .split('\n')
+            .filter((line) => line.trim().startsWith('✅') || line.trim().startsWith('🚫'))
+            .map((line) => line.trim());
+          
+          setGptReport({
+            title,
+            insight,
+            challenges,
+            crystals,
+            ritual,
+            guidance,
+            loading: false
+          });
+        } else {
+          throw new Error('Report data is missing');
+        }
+      } catch (error) {
+        console.error('Error fetching report:', error);
+        setGptReport({
+          loading: false,
+          error: 'Failed to load report. Please try again later.'
+        });
+      }
+    }
+
+    fetchReportData();
+  }, [birthDate]);
   
   // Helper function to get crystal for each element
   const getCrystalForElement = (element: ElementType) => {
@@ -74,13 +183,79 @@ function AprilReportContent() {
           </Link>
         </div>
         
+        {/* GPT Report Block */}
+        <div className="bg-black/30 backdrop-blur-sm rounded-xl p-5">
+          <h2 className="text-lg font-semibold mb-4 text-center">Energy Report</h2>
+          
+          {/* Energy Insight */}
+          <div className="mb-5">
+            <h3 className="text-sm font-medium text-purple-300 mb-2">🌟 Energy Insight</h3>
+            <p className="text-sm">{gptReport.insight || "Loading energy insight..."}</p>
+          </div>
+          
+          {/* Challenges */}
+          {gptReport.challenges && gptReport.challenges.length > 0 && (
+            <div className="mb-5">
+              <h3 className="text-sm font-medium text-purple-300 mb-2">⚠️ Challenges</h3>
+              <ul className="text-sm space-y-2">
+                {gptReport.challenges.map((challenge, index) => (
+                  <li key={index} className="flex items-start">
+                    <span className="text-yellow-400 mr-2">•</span>
+                    <span>{challenge}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          
+          {/* Crystals */}
+          {gptReport.crystals && gptReport.crystals.length > 0 && (
+            <div className="mb-5">
+              <h3 className="text-sm font-medium text-purple-300 mb-2">💎 Crystals to Consider</h3>
+              <ul className="text-sm space-y-3">
+                {gptReport.crystals.map((crystal, index) => (
+                  <li key={index} className="flex items-start">
+                    <span className="text-purple-400 mr-2">•</span>
+                    <span>
+                      <span className="font-medium">{crystal.name}</span> — {crystal.benefit}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          
+          {/* Ritual */}
+          {gptReport.ritual && (
+            <div className="mb-5">
+              <h3 className="text-sm font-medium text-purple-300 mb-2">✨ Practice to Explore</h3>
+              <p className="text-sm bg-purple-900/20 p-3 rounded-md">{gptReport.ritual}</p>
+            </div>
+          )}
+          
+          {/* Guidance */}
+          {gptReport.guidance && gptReport.guidance.length > 0 && (
+            <div>
+              <h3 className="text-sm font-medium text-purple-300 mb-2">🧭 Monthly Possibilities</h3>
+              <ul className="text-sm space-y-2">
+                {gptReport.guidance.map((item, index) => (
+                  <li key={index} className="flex items-start">
+                    <span className="mr-2">{item.includes('✅') ? '✅' : '🚫'}</span>
+                    <span>{item.replace(/[✅🚫]/g, '').trim()}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+        
         {/* Energy Overview */}
         <div className="bg-black/30 backdrop-blur-sm rounded-xl p-5 space-y-3">
           <h2 className="text-lg font-semibold text-center">Energy Overview</h2>
           
           <div className="text-center">
-            <div className="text-3xl font-bold">75 / 100</div>
-            <div className="mt-1 text-purple-300">Balance Mode ⚖️</div>
+            <div className="text-3xl font-bold">76 / 100</div>
+            <div className="mt-1 text-purple-300">{gptReport.title || "Balance Focus"} ✨</div>
           </div>
           
           {/* Enhanced progress bar */}
@@ -88,7 +263,7 @@ function AprilReportContent() {
             <div className="w-full h-3 bg-gray-700 rounded-full overflow-hidden">
               <div 
                 className="h-full bg-gradient-to-r from-purple-500 to-indigo-600 rounded-full" 
-                style={{ width: "75%" }}
+                style={{ width: "76%" }}
               >
               </div>
             </div>
@@ -99,7 +274,7 @@ function AprilReportContent() {
               <div className="font-medium">Strongest Element</div>
               <div className="flex items-center justify-center gap-1 mt-1">
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-900 text-green-200">
-                  🌱 Wood
+                  🌿 Wood
                 </span>
               </div>
               <div className="text-xs text-green-300 mt-1 font-medium">Growth Energy</div>
