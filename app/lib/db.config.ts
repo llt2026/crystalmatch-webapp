@@ -23,7 +23,7 @@ export const DB_CONFIG = {
   APP_URL: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
   
   // OpenAI API密钥
-  OPENAI_API_KEY: process.env.OPENAI_API_KEY || "mock-key-for-development",
+  OPENAI_API_KEY: process.env.OPENAI_API_KEY || "",
   
   // 日志级别
   LOG_LEVEL: process.env.LOG_LEVEL || "info"
@@ -77,7 +77,21 @@ export function getAppUrl(): string {
  * @returns OpenAI API密钥
  */
 export function getOpenAiApiKey(): string {
-  return DB_CONFIG.OPENAI_API_KEY;
+  // 优先直接获取环境变量，确保使用最新值
+  const directApiKey = process.env.OPENAI_API_KEY;
+  if (directApiKey && directApiKey.trim() !== '') {
+    console.log('Using OpenAI API key from environment variable');
+    return directApiKey;
+  }
+  
+  // 如果环境变量中没有设置，则从配置中获取
+  if (DB_CONFIG.OPENAI_API_KEY && DB_CONFIG.OPENAI_API_KEY.trim() !== '') {
+    console.log('Using OpenAI API key from DB_CONFIG');
+    return DB_CONFIG.OPENAI_API_KEY;
+  }
+  
+  console.warn('WARNING: No OpenAI API key found in environment variables');
+  return ''; // 返回空字符串，这将导致OpenAI客户端初始化失败
 }
 
 /**

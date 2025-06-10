@@ -8,25 +8,16 @@ import { getFullEnergyContext } from '@/app/lib/getFullEnergyContext';
 import { buildMonthlyReportPrompt } from '@/app/lib/buildMonthlyReportPrompt';
 import { hasRemainingRequests, getModelForTier, getMaxTokensForTier } from '@/app/lib/subscription-service';
 
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore - 扩展 globalThis 以存储简单内存缓存
-const cache: Map<string, any> = globalThis.__monthlyReportCache ?? new Map<string, any>();
-// @ts-ignore
-if (!globalThis.__monthlyReportCache) globalThis.__monthlyReportCache = cache;
-
+// 直接初始化OpenAI客户端，不再使用缓存
 const openai = new OpenAI({ apiKey: getOpenAiApiKey() });
 
 interface PostBody {
   birthDate: string; // ISO
   year: number;
   month: number; // 1-12
-  tier?: 'free' | 'monthly' | 'yearly';
+  tier?: 'free' | 'plus' | 'pro';
   forceRefresh?: boolean;
   userId?: string;
-}
-
-function getCacheKey(userId: string, year: number, month: number, tier: string) {
-  return `${userId}_${year}-${month}_${tier}`;
 }
 
 export async function POST(request: NextRequest) {
@@ -34,11 +25,6 @@ export async function POST(request: NextRequest) {
 
   if (!birthDate || !year || !month) {
     return NextResponse.json({ error: 'birthDate, year, month are required' }, { status: 400 });
-  }
-
-  const cacheKey = getCacheKey(userId, year, month, tier);
-  if (!forceRefresh && cache.has(cacheKey)) {
-    return NextResponse.json({ cached: true, report: cache.get(cacheKey) });
   }
 
   // 检查配额（这里只示例，实际应查询 DB）
@@ -55,6 +41,7 @@ export async function POST(request: NextRequest) {
   const prompt = buildMonthlyReportPrompt({ ...(energyContext as any), birthDate });
 
   try {
+    console.log(`Generating monthly report with OpenAI for ${year}-${month}, tier: ${tier}`);
     const completion = await openai.chat.completions.create({
       model: getModelForTier(tier as any),
       max_tokens: getMaxTokensForTier(tier as any),
@@ -62,7 +49,9 @@ export async function POST(request: NextRequest) {
       messages: [{ role: 'user', content: prompt }],
     });
     const content = completion.choices[0].message?.content || '';
-    cache.set(cacheKey, content);
+    console.log(`Generated report content length: ${content.length} characters`);
+    
+    // 不再缓存结果，每次都从OpenAI获取新的内容
     return NextResponse.json({ report: content });
   } catch (err: any) {
     console.error('GPT monthly report error', err);
