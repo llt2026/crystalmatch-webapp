@@ -4,7 +4,6 @@
  */
 
 import { DailyEnergyData, NotificationData, HourlyEnergyData, WeeklyForecastData } from '../components/reports/EnergyComponents';
-import { generateMonthlyReportData } from '../lib/mockReportData';
 
 // 接口定义
 export interface MonthlyReportData {
@@ -25,8 +24,6 @@ export interface MonthlyReportData {
 
 // 环境变量
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
-// 强制使用真实数据，不使用模拟数据
-const USE_MOCK_DATA = false; // 忽略环境变量设置，强制使用真实数据
 
 /**
  * 获取月度报告数据
@@ -38,21 +35,8 @@ export async function fetchMonthlyReportData(
   reportKey: string,
   birthDate?: string
 ): Promise<MonthlyReportData> {
-  // 如果API基础URL未设置则使用模拟数据，但优先使用真实数据
   if (!API_BASE_URL) {
-    let year = 2025;
-    let month = 5; // 默认May 2025
-    
-    // 根据reportKey设置年月
-    if (reportKey === 'apr-2025') {
-      month = 4;
-    } else if (reportKey === 'may-2025') {
-      month = 5;
-    }
-    
-    console.log(`Using mock data for ${month}/${year} because API_BASE_URL is not set`);
-    // 使用模拟数据
-    return generateMonthlyReportData(year, month, 30);
+    throw new Error('API_BASE_URL is not set. Cannot fetch real data.');
   }
   
   try {
@@ -68,9 +52,10 @@ export async function fetchMonthlyReportData(
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        'Cache-Control': 'no-cache'
+        'Cache-Control': 'no-cache, no-store'
       },
-      credentials: 'include' // 包含认证cookie
+      credentials: 'include', // 包含认证cookie
+      cache: 'no-store'
     });
     
     if (!response.ok) {
@@ -81,19 +66,7 @@ export async function fetchMonthlyReportData(
     return data;
   } catch (error) {
     console.error('Error fetching monthly report data:', error);
-    
-    // 出错时回退到模拟数据
-    let year = 2025;
-    let month = 5; // 默认May 2025
-    
-    if (reportKey === 'apr-2025') {
-      month = 4;
-    } else if (reportKey === 'may-2025') {
-      month = 5;
-    }
-    
-    console.log(`Falling back to mock data for ${month}/${year} due to API error`);
-    return generateMonthlyReportData(year, month, 30);
+    throw error; // 向上传播错误，不使用模拟数据
   }
 }
 
@@ -107,10 +80,8 @@ export async function fetchHourlyEnergyData(
   date: string,
   birthDate?: string
 ): Promise<HourlyEnergyData[]> {
-  // 如果API基础URL未设置则使用模拟数据
   if (!API_BASE_URL) {
-    // 使用模拟数据
-    return generateMonthlyReportData(2025, 5, 30).hourlyEnergy;
+    throw new Error('API_BASE_URL is not set. Cannot fetch real data.');
   }
   
   try {
@@ -126,9 +97,10 @@ export async function fetchHourlyEnergyData(
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        'Cache-Control': 'no-cache'
+        'Cache-Control': 'no-cache, no-store'
       },
-      credentials: 'include' // 包含认证cookie
+      credentials: 'include', // 包含认证cookie
+      cache: 'no-store'
     });
     
     if (!response.ok) {
@@ -139,8 +111,6 @@ export async function fetchHourlyEnergyData(
     return data;
   } catch (error) {
     console.error('Error fetching hourly energy data:', error);
-    
-    // 出错时回退到模拟数据
-    return generateMonthlyReportData(2025, 5, 30).hourlyEnergy;
+    throw error; // 向上传播错误，不使用模拟数据
   }
 } 

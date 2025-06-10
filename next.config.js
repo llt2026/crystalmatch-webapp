@@ -31,7 +31,12 @@ const nextConfig = {
     serverComponentsExternalPackages: ['mongoose'],
   },
   env: {
+    // 强制使用真实数据，不使用模拟数据
     NEXT_PUBLIC_USE_MOCK_DATA: 'false',
+    // 设置API URL，优先使用环境变量中的值，否则使用默认值
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || '',
+    // 设置应用基础URL，用于内部API调用
+    NEXT_PUBLIC_BASE_URL: process.env.NEXT_PUBLIC_BASE_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000'),
   },
   // 排除备份目录
   webpack(config) {
@@ -61,6 +66,23 @@ const nextConfig = {
           {
             key: 'X-XSS-Protection',
             value: '1; mode=block',
+          },
+        ],
+      },
+      {
+        source: '/api/(.*)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          },
+          {
+            key: 'Pragma',
+            value: 'no-cache',
+          },
+          {
+            key: 'Expires',
+            value: '0',
           },
         ],
       },
