@@ -7,14 +7,19 @@ import { ForecastContext } from '../types/forecast';
  * @returns 用于GPT的提示词字符串
  */
 function buildMonthlyReportPrompt(
-  context: ForecastContext
+  context: any // 使用any类型以适应实际的数据结构
 ): string {
   // 从上下文提取关键信息，提供默认值防止空值
   const {
     bazi = { yearPillar: '', monthPillar: '', dayPillar: '' },
-    currentMonth = { name: '', year: new Date().getFullYear(), energyType: '', element: '' },
+    currentMonth = { pillar: '', element: '', energyType: '', start: '', end: '' },
+    currentYear = { year: new Date().getFullYear(), pillar: '', zodiac: '' },
     userElements = { wood: 0, fire: 0, earth: 0, metal: 0, water: 0 }
   } = context || {};
+  
+  // 从日期字符串中提取月份名称和年份
+  const monthName = currentMonth.start ? new Date(currentMonth.start).toLocaleDateString('en-US', { month: 'long' }) : 'Unknown';
+  const year = currentYear.year;
   
   // 安全地处理userElements
   const safeElements = {
@@ -32,7 +37,7 @@ Create a monthly energy report that feels like a friendly conversation, suggesti
 
 CONTEXT INFORMATION (NOT TO BE MENTIONED DIRECTLY):
 - Birth Elements: ${JSON.stringify(safeElements)}
-- Current Month: ${currentMonth.name} ${currentMonth.year} 
+- Current Month: ${monthName} ${year} 
 - Month Energy Type: ${currentMonth.energyType}
 - Month Element: ${currentMonth.element}
 
@@ -53,7 +58,7 @@ CONTENT GUIDELINES:
 
 FORMAT YOUR RESPONSE IN MARKDOWN WITH EXACTLY THESE SECTIONS:
 
-# 🔮 ${currentMonth.name} ${currentMonth.year} — ${currentMonth.energyType} Rising
+# 🔮 ${monthName} ${year} — ${currentMonth.energyType}
 
 ## 🌟 Energy Insight
 [Brief description of this month's energy type and how it might interact with the user's natural energy. Never mention "birth chart" or technical terms. Be conversational and accessible. Use conditional language. 2-3 sentences maximum.]
@@ -75,6 +80,8 @@ FORMAT YOUR RESPONSE IN MARKDOWN WITH EXACTLY THESE SECTIONS:
 ✅ [Second potential focus area, optional]  
 🚫 [What might be helpful to minimize, one concise line with conditional language]  
 🚫 [Second area to possibly avoid, optional]
+
+Please include a numeric energy score from 1-100 in your Energy Insight section, and mention the strongest and weakest elements from Water, Fire, Earth, Metal, Wood.
 `;
 
   return prompt;

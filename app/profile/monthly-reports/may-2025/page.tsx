@@ -84,20 +84,67 @@ function MayReportContent() {
         if (data.report) {
           // Parse the markdown content
           const reportContent = data.report;
+          console.log('Full report content:', reportContent);
           
           // Extract title
           const titleMatch = reportContent.match(/# 🔮 .* — (.*)/);
           const title = titleMatch ? titleMatch[1] : 'Energy Rising';
+          console.log('Extracted title:', title);
           
-          // Extract energy score (look for patterns like "Energy: 83/100" or "83 / 100")
-          const energyMatch = reportContent.match(/(?:Energy:?\s*)?(\d+)\s*\/\s*100|(?:能量值?:?\s*)?(\d+)\s*\/\s*100/i);
-          const energyScore = energyMatch ? parseInt(energyMatch[1] || energyMatch[2]) : 76; // Default fallback
+          // More flexible energy score extraction
+          let energyScore = 76; // Default fallback
           
-          // Extract strongest and weakest elements (look for element names)
-          const elementsRegex = /(Water|Fire|Earth|Metal|Wood|水|火|土|金|木)/gi;
-          const elementMatches = reportContent.match(elementsRegex) || [];
-          const strongestElement = elementMatches[0]?.toLowerCase() || 'water';
-          const weakestElement = elementMatches[1]?.toLowerCase() || 'fire';
+          // Try multiple patterns for energy score
+          const energyPatterns = [
+            /(?:Energy:?\s*)?(\d+)\s*\/\s*100/i,
+            /(?:能量值?:?\s*)?(\d+)\s*\/\s*100/i,
+            /(\d+)\s*out\s*of\s*100/i,
+            /energy\s*level:?\s*(\d+)/i,
+            /score:?\s*(\d+)/i,
+            /(\d+)%\s*energy/i,
+            /energy.*?(\d+)/i
+          ];
+          
+          for (const pattern of energyPatterns) {
+            const match = reportContent.match(pattern);
+            if (match) {
+              energyScore = parseInt(match[1]);
+              console.log(`Found energy score ${energyScore} with pattern:`, pattern);
+              break;
+            }
+          }
+          
+          // Extract strongest and weakest elements with improved logic
+          let strongestElement: ElementType = 'water';
+          let weakestElement: ElementType = 'fire';
+          
+          // Look for explicit strongest/weakest mentions
+          const strongestMatch = reportContent.match(/strongest.*?(Water|Fire|Earth|Metal|Wood|水|火|土|金|木)/i);
+          const weakestMatch = reportContent.match(/weakest.*?(Water|Fire|Earth|Metal|Wood|水|火|土|金|木)/i);
+          
+          if (strongestMatch) {
+            strongestElement = strongestMatch[1].toLowerCase() as ElementType;
+            console.log('Found strongest element:', strongestElement);
+          }
+          
+          if (weakestMatch) {
+            weakestElement = weakestMatch[1].toLowerCase() as ElementType;
+            console.log('Found weakest element:', weakestElement);
+          }
+          
+          // If no explicit strongest/weakest found, extract all elements and use first two
+          if (!strongestMatch || !weakestMatch) {
+            const elementsRegex = /(Water|Fire|Earth|Metal|Wood|水|火|土|金|木)/gi;
+            const elementMatches = reportContent.match(elementsRegex) || [];
+            console.log('All element matches:', elementMatches);
+            
+            if (elementMatches.length >= 1 && !strongestMatch) {
+              strongestElement = elementMatches[0].toLowerCase() as ElementType;
+            }
+            if (elementMatches.length >= 2 && !weakestMatch) {
+              weakestElement = elementMatches[1].toLowerCase() as ElementType;
+            }
+          }
           
           // Extract insight
           const insightMatch = reportContent.match(/## 🌟 Energy Insight\n([\s\S]*?)(?=##)/);
@@ -137,6 +184,16 @@ function MayReportContent() {
             .filter((line) => line.trim().startsWith('✅') || line.trim().startsWith('🚫'))
             .map((line) => line.trim());
           
+          console.log('Final parsed data:', {
+            title,
+            energyScore,
+            strongestElement,
+            weakestElement,
+            insight: insight.substring(0, 100) + '...',
+            challengesCount: challenges.length,
+            crystalsCount: crystals.length
+          });
+          
           setGptReport({
             title,
             insight,
@@ -146,8 +203,8 @@ function MayReportContent() {
             guidance,
             loading: false,
             energyScore,
-            strongestElement: strongestElement as ElementType,
-            weakestElement: weakestElement as ElementType
+            strongestElement,
+            weakestElement
           });
         } else {
           throw new Error('Report data is missing');
