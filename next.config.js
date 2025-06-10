@@ -27,7 +27,11 @@ const nextConfig = {
   // 缓存处理器
   cacheHandler: require.resolve('./scripts/cache-handler.js'),
   experimental: {
-    serverComponentsExternalPackages: ['prisma', '@prisma/client']
+    esmExternals: 'loose',
+    serverComponentsExternalPackages: ['mongoose'],
+  },
+  env: {
+    NEXT_PUBLIC_USE_MOCK_DATA: 'false',
   },
   // 排除备份目录
   webpack(config) {

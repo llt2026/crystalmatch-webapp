@@ -25,7 +25,8 @@ export interface MonthlyReportData {
 
 // 环境变量
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
-const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK_DATA === 'true';
+// 强制使用真实数据，不使用模拟数据
+const USE_MOCK_DATA = false; // 忽略环境变量设置，强制使用真实数据
 
 /**
  * 获取月度报告数据
@@ -37,8 +38,8 @@ export async function fetchMonthlyReportData(
   reportKey: string,
   birthDate?: string
 ): Promise<MonthlyReportData> {
-  // 如果使用模拟数据或者API基础URL未设置
-  if (USE_MOCK_DATA || !API_BASE_URL) {
+  // 如果API基础URL未设置则使用模拟数据，但优先使用真实数据
+  if (!API_BASE_URL) {
     let year = 2025;
     let month = 5; // 默认May 2025
     
@@ -49,7 +50,7 @@ export async function fetchMonthlyReportData(
       month = 5;
     }
     
-    console.log(`Using mock data for ${month}/${year}`);
+    console.log(`Using mock data for ${month}/${year} because API_BASE_URL is not set`);
     // 使用模拟数据
     return generateMonthlyReportData(year, month, 30);
   }
@@ -91,7 +92,7 @@ export async function fetchMonthlyReportData(
       month = 5;
     }
     
-    console.log(`Falling back to mock data for ${month}/${year}`);
+    console.log(`Falling back to mock data for ${month}/${year} due to API error`);
     return generateMonthlyReportData(year, month, 30);
   }
 }
@@ -106,8 +107,8 @@ export async function fetchHourlyEnergyData(
   date: string,
   birthDate?: string
 ): Promise<HourlyEnergyData[]> {
-  // 如果使用模拟数据或者API基础URL未设置
-  if (USE_MOCK_DATA || !API_BASE_URL) {
+  // 如果API基础URL未设置则使用模拟数据
+  if (!API_BASE_URL) {
     // 使用模拟数据
     return generateMonthlyReportData(2025, 5, 30).hourlyEnergy;
   }
