@@ -7,6 +7,7 @@ import { getOpenAiApiKey } from '@/app/lib/db.config';
 import { getFullEnergyContext } from '@/app/lib/getFullEnergyContext';
 import { buildMonthlyReportPrompt } from '@/app/lib/buildMonthlyReportPrompt';
 import { hasRemainingRequests, getModelForTier, getMaxTokensForTier } from '@/app/lib/subscription-service';
+import { SubscriptionTier } from '@/app/types/subscription';
 
 // 获取API密钥并添加调试信息
 const apiKey = getOpenAiApiKey();
@@ -53,8 +54,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'birthDate, year, month are required' }, { status: 400 });
     }
 
+    // 验证订阅类型是否有效
+    const validTiers: SubscriptionTier[] = ['free', 'plus', 'pro'];
+    const safeTier: SubscriptionTier = validTiers.includes(tier as SubscriptionTier) 
+      ? tier as SubscriptionTier 
+      : 'free';
+    
+    if (tier !== safeTier) {
+      console.warn(`请求中的订阅类型 "${tier}" 无效，已转换为 "${safeTier}"`);
+    }
+
     // 检查配额（这里只示例，实际应查询 DB）
-    if (!hasRemainingRequests(tier as any, 0)) {
+    if (!hasRemainingRequests(safeTier, 0)) {
       console.error('用户配额已用完');
       return NextResponse.json({ error: 'quota exceeded' }, { status: 429 });
     }
@@ -76,9 +87,9 @@ export async function POST(request: NextRequest) {
     console.log('提示词构建成功，长度:', prompt.length);
 
     try {
-      const model = getModelForTier(tier as any);
-      const maxTokens = getMaxTokensForTier(tier as any);
-      console.log(`使用OpenAI生成月度报告 ${year}-${month}, 会员等级: ${tier}, 模型: ${model}, 最大token: ${maxTokens}`);
+      const model = getModelForTier(safeTier);
+      const maxTokens = getMaxTokensForTier(safeTier);
+      console.log(`使用OpenAI生成月度报告 ${year}-${month}, 会员等级: ${safeTier}, 模型: ${model}, 最大token: ${maxTokens}`);
       
       // 检查API密钥是否有效
       if (!apiKey || apiKey.trim() === '') {

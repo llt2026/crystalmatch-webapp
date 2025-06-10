@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { SubscriptionTier } from '@/app/types/subscription';
 
 export const dynamic = 'force-dynamic';
 
@@ -44,6 +45,18 @@ export async function GET(request: NextRequest, { params }: { params: { slug: st
       const year = parseInt(yearStr);
       const month = parseInt(monthStr);
       const birthDate = request.nextUrl.searchParams.get('birthDate') || '1990-01-01';
+      
+      // 获取并验证订阅类型
+      const requestedTier = request.headers.get('x-tier') || 'free';
+      const validTiers: SubscriptionTier[] = ['free', 'plus', 'pro'];
+      const safeTier: SubscriptionTier = validTiers.includes(requestedTier as SubscriptionTier) 
+        ? requestedTier as SubscriptionTier 
+        : 'free';
+      
+      if (requestedTier !== safeTier) {
+        console.warn(`[reports/${slug}] 请求中的订阅类型 "${requestedTier}" 无效，已转换为 "${safeTier}"`);
+      }
+      
       // 强制使用内部绝对路径调用API
       const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || request.nextUrl.origin;
       const res = await fetch(`${baseUrl}/api/generate-monthly-report`, {
@@ -56,13 +69,14 @@ export async function GET(request: NextRequest, { params }: { params: { slug: st
           birthDate,
           year,
           month,
-          tier: request.headers.get('x-tier') || 'free',
+          tier: safeTier,
           userId: 'anonymous',
           forceRefresh: true // 强制刷新，不使用缓存
         }),
         cache: 'no-store' // 不使用浏览器缓存
       });
       if (!res.ok) {
+        console.error(`[reports/${slug}] 月度报告API调用失败:`, await res.text());
         const placeholder = `<p>Report temporarily unavailable.</p>`;
         return NextResponse.json({ slug, report: placeholder, fallback: true });
       }
