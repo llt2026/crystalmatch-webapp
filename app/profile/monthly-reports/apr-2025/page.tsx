@@ -69,7 +69,11 @@ function AprilReportContent() {
         console.log('Fetching report data for April 2025...');
         // 添加时间戳确保不使用缓存
         const timestamp = new Date().getTime();
-        const response = await fetch(`/api/reports/2025-04?birthDate=${encodeURIComponent(birthDate || '1990-01-01')}&_t=${timestamp}`, {
+        const apiUrl = `/api/reports/2025-04?birthDate=${encodeURIComponent(birthDate || '1990-01-01')}&_t=${timestamp}`;
+        
+        console.log('API URL:', apiUrl);
+        
+        const response = await fetch(apiUrl, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -81,35 +85,54 @@ function AprilReportContent() {
           cache: 'no-store'
         });
 
+        console.log('Response status:', response.status);
+        
         if (!response.ok) {
           throw new Error(`Failed to fetch report: ${response.status}`);
         }
 
         const data = await response.json();
-        console.log('Received report data:', data);
+        console.log('Received report data structure:', Object.keys(data));
+        
+        // 检查调试信息
+        if (data.debug) {
+          console.log('API Debug info:', data.debug);
+        }
+        
+        // 检查错误信息
+        if (data.error) {
+          console.error('API Error:', data.error);
+        }
 
         if (data.report) {
+          console.log('Report content first 100 chars:', data.report.substring(0, 100));
+          
           // Parse the markdown content
           const reportContent = data.report;
           
           // Extract title
           const titleMatch = reportContent.match(/# 🔮 .* — (.*)/);
-          const title = titleMatch ? titleMatch[1] : 'Energy Rising';
+          console.log('Title match:', titleMatch);
+          const title = titleMatch ? titleMatch[1] : 'Energy Focus';
           
           // Extract insight
           const insightMatch = reportContent.match(/## 🌟 Energy Insight\n([\s\S]*?)(?=##)/);
+          console.log('Insight match:', insightMatch ? 'found' : 'not found');
           const insight = insightMatch ? insightMatch[1].trim() : '';
           
           // Extract challenges
           const challengesMatch = reportContent.match(/## ⚠️ (?:Potential )?Challenges\n([\s\S]*?)(?=##)/);
+          console.log('Challenges match:', challengesMatch ? 'found' : 'not found');
           const challengesText = challengesMatch ? challengesMatch[1] : '';
           const challenges = challengesText
             .split('\n')
             .filter((line: string) => line.trim().startsWith('-'))
             .map((line: string) => line.replace('-', '').trim());
+          console.log('Parsed challenges:', challenges.length);
           
           // Extract crystals
           const crystalsMatch = reportContent.match(/## 💎 (?:Monthly )?Crystals(?: to Consider)?\n([\s\S]*?)(?=##)/);
+          console.log('Crystals match:', crystalsMatch ? 'found' : 'not found');
           const crystalsText = crystalsMatch ? crystalsMatch[1] : '';
           const crystals = crystalsText
             .split('\n')
@@ -121,28 +144,47 @@ function AprilReportContent() {
                 benefit: parts.length > 1 ? parts[1].trim() : ''
               };
             });
+          console.log('Parsed crystals:', crystals.length);
           
           // Extract ritual
           const ritualMatch = reportContent.match(/## ✨ (?:Ritual|Practice)(?: to Explore)?.*\n([\s\S]*?)(?=##|$)/);
+          console.log('Ritual match:', ritualMatch ? 'found' : 'not found');
           const ritual = ritualMatch ? ritualMatch[1].trim() : '';
           
           // Extract guidance
           const guidanceMatch = reportContent.match(/## 🧭 Monthly (?:Guidance|Possibilities)\n([\s\S]*?)(?=$)/);
+          console.log('Guidance match:', guidanceMatch ? 'found' : 'not found');
           const guidanceText = guidanceMatch ? guidanceMatch[1] : '';
           const guidance = guidanceText
             .split('\n')
             .filter((line: string) => line.trim().startsWith('✅') || line.trim().startsWith('🚫'))
             .map((line: string) => line.trim());
+          console.log('Parsed guidance:', guidance.length);
           
           // 提取能量分数 (从文本中解析)
+          // 使用更宽松的匹配
           const scoreMatch = reportContent.match(/Energy Score[^\d]*(\d+)/i) || 
                              reportContent.match(/Overall Energy[^\d]*(\d+)/i) ||
-                             reportContent.match(/April Energy[^\d]*(\d+)/i);
+                             reportContent.match(/Energy[^\d]*(\d+)/i) ||
+                             reportContent.match(/Score[^\d]*(\d+)/i) ||
+                             reportContent.match(/(\d+)[^\d]*\/[^\d]*100/);
+                             
+          console.log('Score match:', scoreMatch);
           const energyScore = scoreMatch ? parseInt(scoreMatch[1]) : 76;
+          console.log('Parsed energy score:', energyScore);
           
           // 提取强元素和弱元素 (从文本中解析)
-          const strongestMatch = reportContent.match(/Strongest Element[^\w]*(Water|Fire|Earth|Metal|Wood)/i);
-          const weakestMatch = reportContent.match(/Weakest Element[^\w]*(Water|Fire|Earth|Metal|Wood)/i);
+          // 使用更宽松的匹配
+          const strongestMatch = reportContent.match(/Strongest Element[^\w]*(Water|Fire|Earth|Metal|Wood)/i) ||
+                               reportContent.match(/Strong[^\w]*(Water|Fire|Earth|Metal|Wood)/i) ||
+                               reportContent.match(/Dominant[^\w]*(Water|Fire|Earth|Metal|Wood)/i);
+                               
+          const weakestMatch = reportContent.match(/Weakest Element[^\w]*(Water|Fire|Earth|Metal|Wood)/i) ||
+                              reportContent.match(/Weak[^\w]*(Water|Fire|Earth|Metal|Wood)/i) ||
+                              reportContent.match(/Missing[^\w]*(Water|Fire|Earth|Metal|Wood)/i);
+                              
+          console.log('Strongest match:', strongestMatch);
+          console.log('Weakest match:', weakestMatch);
           
           // 将提取的元素转换为小写并作为ElementType
           const strongestElement = strongestMatch 
@@ -152,6 +194,18 @@ function AprilReportContent() {
           const weakestElement = weakestMatch 
             ? weakestMatch[1].toLowerCase() as ElementType 
             : 'earth';
+            
+          console.log('Final parsed data:', {
+            title,
+            insightLength: insight.length,
+            challengesCount: challenges.length,
+            crystalsCount: crystals.length,
+            ritualLength: ritual.length,
+            guidanceCount: guidance.length,
+            energyScore,
+            strongestElement,
+            weakestElement
+          });
           
           setGptReport({
             title,
@@ -166,6 +220,7 @@ function AprilReportContent() {
             weakestElement
           });
         } else {
+          console.error('Report data is missing in API response');
           throw new Error('Report data is missing');
         }
       } catch (error) {

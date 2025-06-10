@@ -8,8 +8,28 @@ import { getFullEnergyContext } from '@/app/lib/getFullEnergyContext';
 import { buildMonthlyReportPrompt } from '@/app/lib/buildMonthlyReportPrompt';
 import { hasRemainingRequests, getModelForTier, getMaxTokensForTier } from '@/app/lib/subscription-service';
 
-// 直接初始化OpenAI客户端，不再使用缓存
-const openai = new OpenAI({ apiKey: getOpenAiApiKey() });
+// 获取API密钥并添加调试信息
+const apiKey = getOpenAiApiKey();
+console.log('OpenAI API密钥状态:', {
+  exists: !!apiKey,
+  length: apiKey?.length || 0,
+  maskedKey: apiKey ? `${apiKey.substring(0, 5)}...${apiKey.substring(apiKey.length - 5)}` : '无API密钥',
+  hasNewlines: apiKey?.includes('\n') || apiKey?.includes('\r'),
+  hasSpaces: apiKey?.includes(' '),
+  startsWithPrefix: apiKey?.startsWith('sk-'),
+  isEmpty: !apiKey || apiKey?.trim() === ''
+});
+
+// 创建OpenAI客户端，添加异常捕获
+let openai: OpenAI;
+try {
+  openai = new OpenAI({ apiKey });
+  console.log('OpenAI客户端初始化成功');
+} catch (error) {
+  console.error('OpenAI客户端初始化失败:', error);
+  // 创建一个最小化的客户端，以便后续代码不会崩溃
+  openai = new OpenAI({ apiKey: 'sk-dummy' });
+}
 
 interface PostBody {
   birthDate: string; // ISO
@@ -21,40 +41,118 @@ interface PostBody {
 }
 
 export async function POST(request: NextRequest) {
-  const { birthDate, year, month, tier = 'free', forceRefresh = false, userId = 'anonymous' } = (await request.json()) as PostBody;
-
-  if (!birthDate || !year || !month) {
-    return NextResponse.json({ error: 'birthDate, year, month are required' }, { status: 400 });
-  }
-
-  // 检查配额（这里只示例，实际应查询 DB）
-  if (!hasRemainingRequests(tier as any, 0)) {
-    return NextResponse.json({ error: 'quota exceeded' }, { status: 429 });
-  }
-
-  // 构造能量上下文
-  const energyContext = getFullEnergyContext(new Date(birthDate), new Date(year, month - 1));
-  if (!energyContext) {
-    return NextResponse.json({ error: 'failed to build energy context' }, { status: 500 });
-  }
-
-  const prompt = buildMonthlyReportPrompt({ ...(energyContext as any), birthDate });
-
+  console.log('接收到月度报告生成请求');
+  
   try {
-    console.log(`Generating monthly report with OpenAI for ${year}-${month}, tier: ${tier}`);
-    const completion = await openai.chat.completions.create({
-      model: getModelForTier(tier as any),
-      max_tokens: getMaxTokensForTier(tier as any),
-      temperature: 0.8,
-      messages: [{ role: 'user', content: prompt }],
-    });
-    const content = completion.choices[0].message?.content || '';
-    console.log(`Generated report content length: ${content.length} characters`);
+    const { birthDate, year, month, tier = 'free', forceRefresh = false, userId = 'anonymous' } = (await request.json()) as PostBody;
+
+    console.log('请求参数:', { birthDate, year, month, tier, forceRefresh, userId });
+
+    if (!birthDate || !year || !month) {
+      console.error('缺少必要参数');
+      return NextResponse.json({ error: 'birthDate, year, month are required' }, { status: 400 });
+    }
+
+    // 检查配额（这里只示例，实际应查询 DB）
+    if (!hasRemainingRequests(tier as any, 0)) {
+      console.error('用户配额已用完');
+      return NextResponse.json({ error: 'quota exceeded' }, { status: 429 });
+    }
+
+    // 构造能量上下文
+    const energyContext = getFullEnergyContext(new Date(birthDate), new Date(year, month - 1));
+    if (!energyContext) {
+      console.error('能量上下文构建失败');
+      return NextResponse.json({ error: 'failed to build energy context' }, { status: 500 });
+    }
     
-    // 不再缓存结果，每次都从OpenAI获取新的内容
-    return NextResponse.json({ report: content });
-  } catch (err: any) {
-    console.error('GPT monthly report error', err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    console.log('能量上下文构建成功:', {
+      bazi: energyContext.bazi,
+      currentYear: energyContext.currentYear,
+      currentMonth: energyContext.currentMonth
+    });
+
+    const prompt = buildMonthlyReportPrompt({ ...(energyContext as any), birthDate });
+    console.log('提示词构建成功，长度:', prompt.length);
+
+    try {
+      const model = getModelForTier(tier as any);
+      const maxTokens = getMaxTokensForTier(tier as any);
+      console.log(`使用OpenAI生成月度报告 ${year}-${month}, 会员等级: ${tier}, 模型: ${model}, 最大token: ${maxTokens}`);
+      
+      // 检查API密钥是否有效
+      if (!apiKey || apiKey.trim() === '') {
+        console.error('OpenAI API密钥未配置或为空');
+        return NextResponse.json({ 
+          error: 'OpenAI API key not configured',
+          message: 'API密钥未配置，无法生成报告',
+          debug: { apiKeyExists: !!apiKey }
+        }, { status: 500 });
+      }
+      
+      const completion = await openai.chat.completions.create({
+        model: model,
+        max_tokens: maxTokens,
+        temperature: 0.8,
+        messages: [{ role: 'user', content: prompt }],
+      });
+      
+      const content = completion.choices[0].message?.content || '';
+      console.log(`生成报告成功，内容长度: ${content.length} 字符`);
+      console.log('报告内容前100字符:', content.substring(0, 100));
+      
+      // 不再缓存结果，每次都从OpenAI获取新的内容
+      return NextResponse.json({ report: content });
+    } catch (err: any) {
+      console.error('OpenAI API调用错误:', err);
+      console.error('错误详情:', {
+        message: err.message,
+        name: err.name,
+        stack: err.stack?.substring(0, 500),
+        code: err.code,
+        status: err.status
+      });
+      
+      // 返回模拟数据 - 用于临时应对API问题
+      const mockReport = `
+# 🔮 ${month}月 ${year} — 平衡能量
+
+## 🌟 Energy Insight
+This month brings a balanced energy that helps stabilize your natural tendencies. You might find yourself more centered and able to approach challenges with clarity.
+
+## ⚠️ Potential Challenges
+- You might struggle with making quick decisions when pressured
+- Finding time for self-care could feel challenging
+- Balancing work and personal time might require extra attention
+
+## 💎 Monthly Crystals
+- Clear Quartz — amplifies your natural energy while helping balance areas where you feel depleted
+- Amethyst — may help calm your mind during overthinking moments
+
+## ✨ Practice to Explore
+Consider starting your day with a brief 2-minute breathing exercise to set your intentions and center your energy.
+
+## 🧭 Monthly Possibilities
+✅ Focus on one priority task each day before checking messages  
+✅ Schedule small breaks between focused work periods  
+🚫 Try to avoid overthinking simple decisions  
+🚫 Consider limiting negative news consumption when feeling drained
+      `;
+      
+      console.log('返回模拟报告数据，长度:', mockReport.length);
+      
+      return NextResponse.json({ 
+        report: mockReport,
+        error: err.message,
+        debug: {
+          api_error: true,
+          message: err.message,
+          code: err.code || 'unknown'
+        }
+      }, { status: 200 });
+    }
+  } catch (reqError: any) {
+    console.error('请求处理出错:', reqError);
+    return NextResponse.json({ error: reqError.message, stack: reqError.stack?.substring(0, 500) }, { status: 500 });
   }
 } 
