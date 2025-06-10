@@ -86,7 +86,8 @@ export default function AdminDashboard() {
       'admin.userGrowth': '用户增长',
       'admin.revenueGrowth': '收入增长',
       'admin.users': '用户管理',
-      'admin.logout': '退出登录'
+      'admin.logout': '退出登录',
+      'admin.feedback': '用户反馈'
     };
     return translations[key] || key;
   };
@@ -208,6 +209,12 @@ export default function AdminDashboard() {
               className="text-purple-200 hover:text-white transition-colors"
             >
               {t('admin.users')}
+            </Link>
+            <Link 
+              href="/admin/feedback" 
+              className="text-purple-200 hover:text-white transition-colors"
+            >
+              {t('admin.feedback')}
             </Link>
             <button 
               onClick={() => router.push('/admin/login')}

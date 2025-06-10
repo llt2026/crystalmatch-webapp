@@ -113,3 +113,18 @@ model Log {
   details   Json?
   createdAt DateTime @default(now())
 }
+
+model Feedback {
+  id           String   @id @default(uuid())
+  userId       String
+  feedbackType String
+  reportType   String
+  content      String
+  options      String[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([userId])
+  @@index([feedbackType])
+  @@index([createdAt])
+}

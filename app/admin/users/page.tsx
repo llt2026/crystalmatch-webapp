@@ -150,7 +150,8 @@ export default function AdminUsersPage() {
     const translations: Record<string, string> = {
       'admin.dashboard': '管理员仪表盘',
       'admin.users': '用户管理',
-      'admin.logout': '退出登录'
+      'admin.logout': '退出登录',
+      'admin.feedback': '用户反馈'
     };
     return translations[key] || key;
   };
@@ -184,6 +185,12 @@ export default function AdminUsersPage() {
               className={`text-purple-200 hover:text-white transition-colors ${pathname === '/admin/users' ? 'text-white border-b-2 border-purple-500' : ''}`}
             >
               {t('admin.users')}
+            </Link>
+            <Link 
+              href="/admin/feedback" 
+              className="text-purple-200 hover:text-white transition-colors"
+            >
+              {t('admin.feedback')}
             </Link>
             <button 
               onClick={() => router.push('/admin/login')}

@@ -29,12 +29,15 @@ function MayReportContent() {
   const [showFullCalendar, setShowFullCalendar] = useState(false);
   
   // State for active aspect tab
-  const [activeAspect, setActiveAspect] = useState('finance');
+  const [activeAspect, setActiveAspect] = useState<string>('relationship');
   
   // State for feedback modal
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [feedbackType, setFeedbackType] = useState('');
   const [additionalFeedback, setAdditionalFeedback] = useState('');
+  const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [submitError, setSubmitError] = useState<string>('');
   
   // Helper function to get crystal for each element
   const getCrystalForElement = (element: ElementType) => {
@@ -72,15 +75,60 @@ function MayReportContent() {
     setShowFeedbackModal(true);
   };
   
+  // Function to handle checkbox selection
+  const handleOptionSelect = (option: string) => {
+    setSelectedOptions(prev => 
+      prev.includes(option) 
+        ? prev.filter(item => item !== option) 
+        : [...prev, option]
+    );
+  };
+  
   // Function to handle feedback submission
-  const handleFeedbackSubmit = () => {
-    // Here you would typically send the feedback to your backend
-    console.log('Feedback type:', feedbackType);
-    console.log('Additional feedback:', additionalFeedback);
-    
-    // Reset and close modal
-    setAdditionalFeedback('');
-    setShowFeedbackModal(false);
+  const handleFeedbackSubmit = async () => {
+    try {
+      setIsSubmitting(true);
+      setSubmitError('');
+      
+      // 获取用户ID，如果可用的话
+      const userId = localStorage.getItem('userId') || 'anonymous';
+      
+      // 准备要发送的数据
+      const feedbackData = {
+        userId,
+        feedbackType,
+        reportType: 'Pro - Growth Track', // 当前报告类型
+        content: additionalFeedback,
+        options: selectedOptions
+      };
+      
+      // 发送到API
+      const response = await fetch('/api/feedback', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(feedbackData)
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || '提交反馈失败');
+      }
+      
+      // 成功提交
+      console.log('Feedback submitted successfully');
+      
+      // 重置并关闭模态框
+      setAdditionalFeedback('');
+      setSelectedOptions([]);
+      setShowFeedbackModal(false);
+    } catch (error) {
+      console.error('Error submitting feedback:', error);
+      setSubmitError(error instanceof Error ? error.message : '提交反馈失败');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
   
   return (
@@ -903,46 +951,106 @@ function MayReportContent() {
                 {feedbackType === 'positive' ? (
                   <>
                     <div className="flex items-start">
-                      <input id="option1" type="checkbox" className="mt-1 mr-2" />
+                      <input 
+                        id="option1" 
+                        type="checkbox" 
+                        className="mt-1 mr-2"
+                        checked={selectedOptions.includes('The energy forecast felt accurate')}
+                        onChange={() => handleOptionSelect('The energy forecast felt accurate')}
+                      />
                       <label htmlFor="option1" className="text-sm">The energy forecast felt accurate</label>
                     </div>
                     <div className="flex items-start">
-                      <input id="option2" type="checkbox" className="mt-1 mr-2" />
+                      <input 
+                        id="option2" 
+                        type="checkbox" 
+                        className="mt-1 mr-2"
+                        checked={selectedOptions.includes('The daily suggestions were actionable')}
+                        onChange={() => handleOptionSelect('The daily suggestions were actionable')}
+                      />
                       <label htmlFor="option2" className="text-sm">The daily suggestions were actionable</label>
                     </div>
                     <div className="flex items-start">
-                      <input id="option3" type="checkbox" className="mt-1 mr-2" />
+                      <input 
+                        id="option3" 
+                        type="checkbox" 
+                        className="mt-1 mr-2"
+                        checked={selectedOptions.includes('I liked the crystal and timing tips')}
+                        onChange={() => handleOptionSelect('I liked the crystal and timing tips')}
+                      />
                       <label htmlFor="option3" className="text-sm">I liked the crystal and timing tips</label>
                     </div>
                     <div className="flex items-start">
-                      <input id="option4" type="checkbox" className="mt-1 mr-2" />
+                      <input 
+                        id="option4" 
+                        type="checkbox" 
+                        className="mt-1 mr-2"
+                        checked={selectedOptions.includes('The tone felt encouraging and supportive')}
+                        onChange={() => handleOptionSelect('The tone felt encouraging and supportive')}
+                      />
                       <label htmlFor="option4" className="text-sm">The tone felt encouraging and supportive</label>
                     </div>
                     <div className="flex items-start">
-                      <input id="option5" type="checkbox" className="mt-1 mr-2" />
+                      <input 
+                        id="option5" 
+                        type="checkbox" 
+                        className="mt-1 mr-2"
+                        checked={selectedOptions.includes('It matched how I actually felt')}
+                        onChange={() => handleOptionSelect('It matched how I actually felt')}
+                      />
                       <label htmlFor="option5" className="text-sm">It matched how I actually felt</label>
                     </div>
                   </>
                 ) : (
                   <>
                     <div className="flex items-start">
-                      <input id="option1" type="checkbox" className="mt-1 mr-2" />
+                      <input 
+                        id="option1" 
+                        type="checkbox" 
+                        className="mt-1 mr-2"
+                        checked={selectedOptions.includes('The forecast didn\'t feel accurate')}
+                        onChange={() => handleOptionSelect('The forecast didn\'t feel accurate')}
+                      />
                       <label htmlFor="option1" className="text-sm">The forecast didn't feel accurate</label>
                     </div>
                     <div className="flex items-start">
-                      <input id="option2" type="checkbox" className="mt-1 mr-2" />
+                      <input 
+                        id="option2" 
+                        type="checkbox" 
+                        className="mt-1 mr-2"
+                        checked={selectedOptions.includes('Suggestions were too vague')}
+                        onChange={() => handleOptionSelect('Suggestions were too vague')}
+                      />
                       <label htmlFor="option2" className="text-sm">Suggestions were too vague</label>
                     </div>
                     <div className="flex items-start">
-                      <input id="option3" type="checkbox" className="mt-1 mr-2" />
+                      <input 
+                        id="option3" 
+                        type="checkbox" 
+                        className="mt-1 mr-2"
+                        checked={selectedOptions.includes('Felt too generic, not personal')}
+                        onChange={() => handleOptionSelect('Felt too generic, not personal')}
+                      />
                       <label htmlFor="option3" className="text-sm">Felt too generic, not personal</label>
                     </div>
                     <div className="flex items-start">
-                      <input id="option4" type="checkbox" className="mt-1 mr-2" />
+                      <input 
+                        id="option4" 
+                        type="checkbox" 
+                        className="mt-1 mr-2"
+                        checked={selectedOptions.includes('Tone felt too negative or unclear')}
+                        onChange={() => handleOptionSelect('Tone felt too negative or unclear')}
+                      />
                       <label htmlFor="option4" className="text-sm">Tone felt too negative or unclear</label>
                     </div>
                     <div className="flex items-start">
-                      <input id="option5" type="checkbox" className="mt-1 mr-2" />
+                      <input 
+                        id="option5" 
+                        type="checkbox" 
+                        className="mt-1 mr-2"
+                        checked={selectedOptions.includes('Didn\'t reflect my actual energy or mood')}
+                        onChange={() => handleOptionSelect('Didn\'t reflect my actual energy or mood')}
+                      />
                       <label htmlFor="option5" className="text-sm">Didn't reflect my actual energy or mood</label>
                     </div>
                   </>
@@ -960,12 +1068,29 @@ function MayReportContent() {
                 ></textarea>
               </div>
               
+              {submitError && (
+                <div className="mb-4 text-red-300 text-sm">
+                  {submitError}
+                </div>
+              )}
+              
               <div className="flex justify-end">
                 <button
                   onClick={handleFeedbackSubmit}
-                  className="px-4 py-2 bg-purple-700 hover:bg-purple-600 rounded-md text-sm font-medium transition-colors"
+                  disabled={isSubmitting}
+                  className={`px-4 py-2 bg-purple-700 hover:bg-purple-600 rounded-md text-sm font-medium transition-colors ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}
                 >
-                  {feedbackType === 'positive' ? "Thanks! We'll keep improving your insights 🔮" : "Thanks for your feedback. We'll fine-tune future reports just for you 💜"}
+                  {isSubmitting ? (
+                    <span className="flex items-center">
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Submitting...
+                    </span>
+                  ) : (
+                    feedbackType === 'positive' ? "Thanks! We'll keep improving your insights 🔮" : "Thanks for your feedback. We'll fine-tune future reports just for you 💜"
+                  )}
                 </button>
               </div>
             </div>
