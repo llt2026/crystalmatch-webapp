@@ -25,6 +25,9 @@ interface GPTReport {
   guidance?: string[];
   loading: boolean;
   error?: string;
+  energyScore?: number;
+  strongestElement?: ElementType;
+  weakestElement?: ElementType;
 }
 
 // Extract useSearchParams component to a separate component
@@ -86,6 +89,16 @@ function MayReportContent() {
           const titleMatch = reportContent.match(/# 🔮 .* — (.*)/);
           const title = titleMatch ? titleMatch[1] : 'Energy Rising';
           
+          // Extract energy score (look for patterns like "Energy: 83/100" or "83 / 100")
+          const energyMatch = reportContent.match(/(?:Energy:?\s*)?(\d+)\s*\/\s*100|(?:能量值?:?\s*)?(\d+)\s*\/\s*100/i);
+          const energyScore = energyMatch ? parseInt(energyMatch[1] || energyMatch[2]) : 76; // Default fallback
+          
+          // Extract strongest and weakest elements (look for element names)
+          const elementsRegex = /(Water|Fire|Earth|Metal|Wood|水|火|土|金|木)/gi;
+          const elementMatches = reportContent.match(elementsRegex) || [];
+          const strongestElement = elementMatches[0]?.toLowerCase() || 'water';
+          const weakestElement = elementMatches[1]?.toLowerCase() || 'fire';
+          
           // Extract insight
           const insightMatch = reportContent.match(/## 🌟 Energy Insight\n([\s\S]*?)(?=##)/);
           const insight = insightMatch ? insightMatch[1].trim() : '';
@@ -131,7 +144,10 @@ function MayReportContent() {
             crystals,
             ritual,
             guidance,
-            loading: false
+            loading: false,
+            energyScore,
+            strongestElement: strongestElement as ElementType,
+            weakestElement: weakestElement as ElementType
           });
         } else {
           throw new Error('Report data is missing');
@@ -158,6 +174,30 @@ function MayReportContent() {
       'wood': { name: 'Green Jade', color: 'text-green-300', bgColor: 'bg-green-900/50' }
     };
     return crystalMap[element] || crystalMap.water;
+  };
+  
+  // Helper function to get element icon
+  const getElementIcon = (element: ElementType) => {
+    const iconMap = {
+      'water': '💧',
+      'fire': '🔥',
+      'earth': '🌍',
+      'metal': '⚡',
+      'wood': '🌿'
+    };
+    return iconMap[element] || iconMap.water;
+  };
+  
+  // Helper function to get element description
+  const getElementDescription = (element: ElementType) => {
+    const descriptionMap = {
+      'water': 'Fluid Energy',
+      'fire': 'Passion Energy',
+      'earth': 'Stable Energy',
+      'metal': 'Sharp Energy',
+      'wood': 'Growth Energy'
+    };
+    return descriptionMap[element] || descriptionMap.water;
   };
   
   // Function to determine daily element based on day number
@@ -296,8 +336,8 @@ function MayReportContent() {
           <h2 className="text-lg font-semibold text-center">Energy Overview</h2>
           
           <div className="text-center">
-            <div className="text-3xl font-bold">83 / 100</div>
-            <div className="mt-1 text-purple-300">{gptReport.title || "Growth Mode"} ✨</div>
+            <div className="text-3xl font-bold">{gptReport.energyScore || 76} / 100</div>
+            <div className="mt-1 text-purple-300">{gptReport.title || "Energy Rising"} ✨</div>
           </div>
           
           {/* Enhanced progress bar */}
@@ -305,7 +345,7 @@ function MayReportContent() {
             <div className="w-full h-3 bg-gray-700 rounded-full overflow-hidden">
               <div 
                 className="h-full bg-gradient-to-r from-purple-500 to-indigo-600 rounded-full" 
-                style={{ width: "83%" }}
+                style={{ width: `${gptReport.energyScore || 76}%` }}
               >
               </div>
             </div>
@@ -315,20 +355,24 @@ function MayReportContent() {
             <div className="text-center">
               <div className="font-medium">Strongest Element</div>
               <div className="flex items-center justify-center gap-1 mt-1">
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-900 text-blue-200">
-                  💧 Water
+                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getElementColorClass(gptReport.strongestElement || 'water').bg} ${getElementColorClass(gptReport.strongestElement || 'water').text}`}>
+                  {getElementIcon(gptReport.strongestElement || 'water')} {(gptReport.strongestElement || 'water').charAt(0).toUpperCase() + (gptReport.strongestElement || 'water').slice(1)}
                 </span>
               </div>
-              <div className="text-xs text-blue-300 mt-1 font-medium">Fluid Energy</div>
+              <div className={`text-xs mt-1 font-medium ${getElementColorClass(gptReport.strongestElement || 'water').text}`}>
+                {getElementDescription(gptReport.strongestElement || 'water')}
+              </div>
             </div>
             <div className="text-center">
               <div className="font-medium">Weakest Element</div>
               <div className="flex items-center justify-center gap-1 mt-1">
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-900 text-red-200">
-                  🔥 Fire
+                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getElementColorClass(gptReport.weakestElement || 'fire').bg} ${getElementColorClass(gptReport.weakestElement || 'fire').text}`}>
+                  {getElementIcon(gptReport.weakestElement || 'fire')} {(gptReport.weakestElement || 'fire').charAt(0).toUpperCase() + (gptReport.weakestElement || 'fire').slice(1)}
                 </span>
               </div>
-              <div className="text-xs text-red-300 mt-1 font-medium">Passion Energy</div>
+              <div className={`text-xs mt-1 font-medium ${getElementColorClass(gptReport.weakestElement || 'fire').text}`}>
+                {getElementDescription(gptReport.weakestElement || 'fire')}
+              </div>
             </div>
           </div>
         </div>
