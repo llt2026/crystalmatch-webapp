@@ -333,73 +333,7 @@ function MayReportContent() {
           </div>
         </div>
 
-        {/* GPT Report Block - NEW SECTION */}
-        <div className="bg-black/30 backdrop-blur-sm rounded-xl p-5">
-          <h2 className="text-lg font-semibold mb-4 text-center">Energy Report</h2>
-          
-          {/* Energy Insight */}
-          <div className="mb-5">
-            <h3 className="text-sm font-medium text-purple-300 mb-2">🌟 Energy Insight</h3>
-            <p className="text-sm">{gptReport.insight || "Loading energy insight..."}</p>
-          </div>
-          
-          {/* Challenges */}
-          {gptReport.challenges && gptReport.challenges.length > 0 && (
-            <div className="mb-5">
-              <h3 className="text-sm font-medium text-purple-300 mb-2">⚠️ Challenges</h3>
-              <ul className="text-sm space-y-2">
-                {gptReport.challenges.map((challenge, index) => (
-                  <li key={index} className="flex items-start">
-                    <span className="text-yellow-400 mr-2">•</span>
-                    <span>{challenge}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-          
-          {/* Crystals */}
-          {gptReport.crystals && gptReport.crystals.length > 0 && (
-            <div className="mb-5">
-              <h3 className="text-sm font-medium text-purple-300 mb-2">💎 Crystals to Consider</h3>
-              <ul className="text-sm space-y-3">
-                {gptReport.crystals.map((crystal, index) => (
-                  <li key={index} className="flex items-start">
-                    <span className="text-purple-400 mr-2">•</span>
-                    <span>
-                      <span className="font-medium">{crystal.name}</span> — {crystal.benefit}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-          
-          {/* Ritual */}
-          {gptReport.ritual && (
-            <div className="mb-5">
-              <h3 className="text-sm font-medium text-purple-300 mb-2">✨ Practice to Explore</h3>
-              <p className="text-sm bg-purple-900/20 p-3 rounded-md">{gptReport.ritual}</p>
-            </div>
-          )}
-          
-          {/* Guidance */}
-          {gptReport.guidance && gptReport.guidance.length > 0 && (
-            <div>
-              <h3 className="text-sm font-medium text-purple-300 mb-2">🧭 Monthly Possibilities</h3>
-              <ul className="text-sm space-y-2">
-                {gptReport.guidance.map((item, index) => (
-                  <li key={index} className="flex items-start">
-                    <span className="mr-2">{item.includes('✅') ? '✅' : '🚫'}</span>
-                    <span>{item.replace(/[✅🚫]/g, '').trim()}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </div>
-
-        {/* Five Life Aspects Section - NEW SECTION with Navigation Tabs */}
+        {/* Five Life Aspects Section - Navigation Tabs */}
         <div className="bg-black/30 backdrop-blur-sm rounded-xl">
           {/* Aspect Navigation Tabs */}
           <div className="flex border-b border-purple-900/30">
@@ -449,7 +383,7 @@ function MayReportContent() {
               </div>
               
               <p className="text-sm text-purple-200 mb-4">
-                Your financial energy is high this month—great for initiating negotiations or exploring new income streams.
+                {gptReport.insight ? gptReport.insight.split('\n')[0] : 'Your financial energy is high this month—great for initiating negotiations or exploring new income streams.'}
               </p>
               
               {/* Favorable and unfavorable days */}
@@ -542,21 +476,10 @@ function MayReportContent() {
                       <span className="text-xs">7:00 PM–9:00 PM</span>
                     </div>
                     <div>
-                      <span className="text-xs font-medium">Score 80</span>
+                      <span className="text-xs font-medium">Score 78</span>
                     </div>
                   </div>
-                  <p className="text-xs text-purple-200 pl-6">Best for planning</p>
-                </div>
-                
-                <div className="mt-4 flex items-center">
-                  <span className="inline-block bg-yellow-900/30 rounded-full p-1 mr-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-yellow-300" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2h-1V9a1 1 0 00-1-1z" clipRule="evenodd" />
-                    </svg>
-                  </span>
-                  <p className="text-xs text-purple-200">
-                    Alerts enabled, you'll be notified 15 mins prior
-                  </p>
+                  <p className="text-xs text-purple-200 pl-6">Best for strategic planning</p>
                 </div>
               </div>
             </div>
