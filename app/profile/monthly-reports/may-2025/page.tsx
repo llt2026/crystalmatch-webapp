@@ -538,7 +538,7 @@ function MayReportContent() {
               </div>
               
               <p className="text-sm text-purple-200 mb-4">
-                {gptReport.insight ? gptReport.insight.split('\n')[0] : 'Your financial energy is high this month—great for initiating negotiations or exploring new income streams.'}
+                {gptReport.insight || 'Loading financial insights...'}
               </p>
               
               {/* Favorable and unfavorable days */}

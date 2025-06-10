@@ -32,8 +32,13 @@ export async function GET(request: NextRequest, { params }: { params: { slug: st
         cache: 'no-store' // 不使用浏览器缓存
       });
       if (!res.ok) {
-        const placeholder = `<p>Report temporarily unavailable.</p>`;
-        return NextResponse.json({ slug, report: placeholder, fallback: true });
+        const errorText = await res.text();
+        console.error(`[annual-basic-${year}] 年度报告API调用失败:`, errorText);
+        return NextResponse.json({ 
+          error: 'api_error',
+          message: 'Annual report generation service temporarily unavailable',
+          slug 
+        }, { status: 503 });
       }
       const data = await res.json();
       return NextResponse.json({ slug, report: data.report });
@@ -76,9 +81,13 @@ export async function GET(request: NextRequest, { params }: { params: { slug: st
         cache: 'no-store' // 不使用浏览器缓存
       });
       if (!res.ok) {
-        console.error(`[reports/${slug}] 月度报告API调用失败:`, await res.text());
-        const placeholder = `<p>Report temporarily unavailable.</p>`;
-        return NextResponse.json({ slug, report: placeholder, fallback: true });
+        const errorText = await res.text();
+        console.error(`[reports/${slug}] 月度报告API调用失败:`, errorText);
+        return NextResponse.json({ 
+          error: 'api_error',
+          message: 'Monthly report generation service temporarily unavailable',
+          slug 
+        }, { status: 503 });
       }
       const data = await res.json();
       return NextResponse.json({ slug, report: data.report });
