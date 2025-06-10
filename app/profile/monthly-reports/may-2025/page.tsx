@@ -31,6 +31,11 @@ function MayReportContent() {
   // State for active aspect tab
   const [activeAspect, setActiveAspect] = useState('finance');
   
+  // State for feedback modal
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [feedbackType, setFeedbackType] = useState('');
+  const [additionalFeedback, setAdditionalFeedback] = useState('');
+  
   // Helper function to get crystal for each element
   const getCrystalForElement = (element: ElementType) => {
     const crystalMap = {
@@ -59,6 +64,23 @@ function MayReportContent() {
       'wood': { bg: 'bg-green-900/40', text: 'text-green-300' }
     };
     return colorMap[element] || colorMap.water;
+  };
+  
+  // Function to open feedback modal with specified type
+  const openFeedbackModal = (type: string) => {
+    setFeedbackType(type);
+    setShowFeedbackModal(true);
+  };
+  
+  // Function to handle feedback submission
+  const handleFeedbackSubmit = () => {
+    // Here you would typically send the feedback to your backend
+    console.log('Feedback type:', feedbackType);
+    console.log('Additional feedback:', additionalFeedback);
+    
+    // Reset and close modal
+    setAdditionalFeedback('');
+    setShowFeedbackModal(false);
   };
   
   return (
@@ -826,8 +848,129 @@ function MayReportContent() {
         {/* Footer */}
         <footer className="text-center text-sm text-purple-300 mt-8">
           <p className="mt-1">This report weaves together almost 4,000 years of evolving Chinese Five-Element Feng Shui, evidence-backed modern science, and the freshest AI intelligence—ancient wisdom, updated for your everyday life.</p>
+          
+          {/* Feedback Section */}
+          <div className="mt-6 mb-4 flex flex-col items-center">
+            <p className="text-sm mb-3">Did this report feel helpful to you?</p>
+            <div className="flex space-x-4">
+              <button 
+                onClick={() => openFeedbackModal('positive')}
+                className="flex items-center px-4 py-2 rounded-lg bg-purple-900/40 hover:bg-purple-800/50 transition-colors"
+              >
+                <span className="mr-2 text-lg">👍</span>
+                <span>Yes</span>
+              </button>
+              <button 
+                onClick={() => openFeedbackModal('negative')}
+                className="flex items-center px-4 py-2 rounded-lg bg-purple-900/40 hover:bg-purple-800/50 transition-colors"
+              >
+                <span className="mr-2 text-lg">👎</span>
+                <span>Not really</span>
+              </button>
+            </div>
+          </div>
+          
           <p className="mt-3">© 2025 CrystalMatch</p>
         </footer>
+        
+        {/* Feedback Modal */}
+        {showFeedbackModal && (
+          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+            <div className="bg-gradient-to-br from-purple-900 to-purple-950 rounded-xl max-w-md w-full p-6 shadow-xl">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-medium">
+                  {feedbackType === 'positive' ? (
+                    <span className="flex items-center">
+                      <span className="mr-2 text-xl">👍</span> Awesome! What did you find most helpful?
+                    </span>
+                  ) : (
+                    <span className="flex items-center">
+                      <span className="mr-2 text-xl">👎</span> Sorry to hear that. What didn't work for you?
+                    </span>
+                  )}
+                </h3>
+                <button 
+                  onClick={() => setShowFeedbackModal(false)}
+                  className="text-gray-400 hover:text-white"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                  </svg>
+                </button>
+              </div>
+              
+              <div className="space-y-3 mb-4">
+                {feedbackType === 'positive' ? (
+                  <>
+                    <div className="flex items-start">
+                      <input id="option1" type="checkbox" className="mt-1 mr-2" />
+                      <label htmlFor="option1" className="text-sm">The energy forecast felt accurate</label>
+                    </div>
+                    <div className="flex items-start">
+                      <input id="option2" type="checkbox" className="mt-1 mr-2" />
+                      <label htmlFor="option2" className="text-sm">The daily suggestions were actionable</label>
+                    </div>
+                    <div className="flex items-start">
+                      <input id="option3" type="checkbox" className="mt-1 mr-2" />
+                      <label htmlFor="option3" className="text-sm">I liked the crystal and timing tips</label>
+                    </div>
+                    <div className="flex items-start">
+                      <input id="option4" type="checkbox" className="mt-1 mr-2" />
+                      <label htmlFor="option4" className="text-sm">The tone felt encouraging and supportive</label>
+                    </div>
+                    <div className="flex items-start">
+                      <input id="option5" type="checkbox" className="mt-1 mr-2" />
+                      <label htmlFor="option5" className="text-sm">It matched how I actually felt</label>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-start">
+                      <input id="option1" type="checkbox" className="mt-1 mr-2" />
+                      <label htmlFor="option1" className="text-sm">The forecast didn't feel accurate</label>
+                    </div>
+                    <div className="flex items-start">
+                      <input id="option2" type="checkbox" className="mt-1 mr-2" />
+                      <label htmlFor="option2" className="text-sm">Suggestions were too vague</label>
+                    </div>
+                    <div className="flex items-start">
+                      <input id="option3" type="checkbox" className="mt-1 mr-2" />
+                      <label htmlFor="option3" className="text-sm">Felt too generic, not personal</label>
+                    </div>
+                    <div className="flex items-start">
+                      <input id="option4" type="checkbox" className="mt-1 mr-2" />
+                      <label htmlFor="option4" className="text-sm">Tone felt too negative or unclear</label>
+                    </div>
+                    <div className="flex items-start">
+                      <input id="option5" type="checkbox" className="mt-1 mr-2" />
+                      <label htmlFor="option5" className="text-sm">Didn't reflect my actual energy or mood</label>
+                    </div>
+                  </>
+                )}
+              </div>
+              
+              <div className="mb-4">
+                <label htmlFor="additional-feedback" className="block text-sm mb-2">Any other thoughts?</label>
+                <textarea 
+                  id="additional-feedback"
+                  value={additionalFeedback}
+                  onChange={(e) => setAdditionalFeedback(e.target.value)}
+                  className="w-full bg-purple-950/70 border border-purple-800 rounded-md p-2 text-sm text-white"
+                  rows={3}
+                ></textarea>
+              </div>
+              
+              <div className="flex justify-end">
+                <button
+                  onClick={handleFeedbackSubmit}
+                  className="px-4 py-2 bg-purple-700 hover:bg-purple-600 rounded-md text-sm font-medium transition-colors"
+                >
+                  {feedbackType === 'positive' ? "Thanks! We'll keep improving your insights 🔮" : "Thanks for your feedback. We'll fine-tune future reports just for you 💜"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </main>
   );
