@@ -25,6 +25,9 @@ interface GPTReport {
   guidance?: string[];
   loading: boolean;
   error?: string;
+  energyScore?: number;
+  strongestElement?: ElementType;
+  weakestElement?: ElementType;
 }
 
 // Extract useSearchParams component to a separate component
@@ -54,6 +57,9 @@ function AprilReportContent() {
   // State for GPT generated report content
   const [gptReport, setGptReport] = useState<GPTReport>({
     loading: true,
+    energyScore: 0,
+    strongestElement: 'wood',
+    weakestElement: 'earth'
   });
 
   // Fetch GPT report data when component loads
@@ -61,11 +67,15 @@ function AprilReportContent() {
     async function fetchReportData() {
       try {
         console.log('Fetching report data for April 2025...');
-        const response = await fetch(`/api/reports/2025-04?birthDate=${encodeURIComponent(birthDate || '1990-01-01')}`, {
+        // 添加时间戳确保不使用缓存
+        const timestamp = new Date().getTime();
+        const response = await fetch(`/api/reports/2025-04?birthDate=${encodeURIComponent(birthDate || '1990-01-01')}&_t=${timestamp}`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
-            'Cache-Control': 'no-cache, no-store',
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0',
             'x-tier': 'plus' // Ensure we get plus-level content
           },
           cache: 'no-store'
@@ -124,6 +134,25 @@ function AprilReportContent() {
             .filter((line: string) => line.trim().startsWith('✅') || line.trim().startsWith('🚫'))
             .map((line: string) => line.trim());
           
+          // 提取能量分数 (从文本中解析)
+          const scoreMatch = reportContent.match(/Energy Score[^\d]*(\d+)/i) || 
+                             reportContent.match(/Overall Energy[^\d]*(\d+)/i) ||
+                             reportContent.match(/April Energy[^\d]*(\d+)/i);
+          const energyScore = scoreMatch ? parseInt(scoreMatch[1]) : 76;
+          
+          // 提取强元素和弱元素 (从文本中解析)
+          const strongestMatch = reportContent.match(/Strongest Element[^\w]*(Water|Fire|Earth|Metal|Wood)/i);
+          const weakestMatch = reportContent.match(/Weakest Element[^\w]*(Water|Fire|Earth|Metal|Wood)/i);
+          
+          // 将提取的元素转换为小写并作为ElementType
+          const strongestElement = strongestMatch 
+            ? strongestMatch[1].toLowerCase() as ElementType 
+            : 'wood';
+          
+          const weakestElement = weakestMatch 
+            ? weakestMatch[1].toLowerCase() as ElementType 
+            : 'earth';
+          
           setGptReport({
             title,
             insight,
@@ -131,7 +160,10 @@ function AprilReportContent() {
             crystals,
             ritual,
             guidance,
-            loading: false
+            loading: false,
+            energyScore,
+            strongestElement,
+            weakestElement
           });
         } else {
           throw new Error('Report data is missing');
@@ -140,7 +172,10 @@ function AprilReportContent() {
         console.error('Error fetching report:', error);
         setGptReport({
           loading: false,
-          error: 'Failed to load report. Please try again later.'
+          error: 'Failed to load report. Please try again later.',
+          energyScore: 0,
+          strongestElement: 'wood',
+          weakestElement: 'earth'
         });
       }
     }
@@ -240,6 +275,42 @@ function AprilReportContent() {
     return colorMap[element] || colorMap.water;
   };
   
+  // 获取元素显示名称
+  const getElementDisplayName = (element: ElementType): string => {
+    const elementNames = {
+      'water': 'Water',
+      'fire': 'Fire',
+      'earth': 'Earth',
+      'metal': 'Metal',
+      'wood': 'Wood'
+    };
+    return elementNames[element] || 'Unknown';
+  };
+  
+  // 获取元素对应的emoji
+  const getElementEmoji = (element: ElementType): string => {
+    const elementEmojis = {
+      'water': '💧',
+      'fire': '🔥',
+      'earth': '🪨',
+      'metal': '⚙️',
+      'wood': '🌿'
+    };
+    return elementEmojis[element] || '✨';
+  };
+  
+  // 获取元素对应的能量类型描述
+  const getElementEnergyType = (element: ElementType): string => {
+    const energyTypes = {
+      'water': 'Fluid Energy',
+      'fire': 'Passion Energy',
+      'earth': 'Stability Energy',
+      'metal': 'Clarity Energy',
+      'wood': 'Growth Energy'
+    };
+    return energyTypes[element] || 'Balanced Energy';
+  };
+  
   // Show loading state if the report is still loading
   if (gptReport.loading) {
     return (
@@ -296,8 +367,8 @@ function AprilReportContent() {
           <h2 className="text-lg font-semibold text-center">Energy Overview</h2>
           
           <div className="text-center">
-            <div className="text-3xl font-bold">76 / 100</div>
-            <div className="mt-1 text-indigo-300">{gptReport.title || "Balance Focus"} ✨</div>
+            <div className="text-3xl font-bold">{gptReport.energyScore} / 100</div>
+            <div className="mt-1 text-indigo-300">{gptReport.title || "Energy Focus"} ✨</div>
           </div>
           
           {/* Enhanced progress bar */}
@@ -305,7 +376,7 @@ function AprilReportContent() {
             <div className="w-full h-3 bg-gray-700 rounded-full overflow-hidden">
               <div 
                 className="h-full bg-gradient-to-r from-indigo-500 to-blue-600 rounded-full" 
-                style={{ width: "76%" }}
+                style={{ width: `${gptReport.energyScore}%` }}
               >
               </div>
             </div>
@@ -315,20 +386,24 @@ function AprilReportContent() {
             <div className="text-center">
               <div className="font-medium">Strongest Element</div>
               <div className="flex items-center justify-center gap-1 mt-1">
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-900 text-green-200">
-                  🌿 Wood
+                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getElementColorClass(gptReport.strongestElement || 'wood').bg} ${getElementColorClass(gptReport.strongestElement || 'wood').text.replace('text-', 'text-')}-200`}>
+                  {getElementEmoji(gptReport.strongestElement || 'wood')} {getElementDisplayName(gptReport.strongestElement || 'wood')}
                 </span>
               </div>
-              <div className="text-xs text-green-300 mt-1 font-medium">Growth Energy</div>
+              <div className={`text-xs ${getElementColorClass(gptReport.strongestElement || 'wood').text} mt-1 font-medium`}>
+                {getElementEnergyType(gptReport.strongestElement || 'wood')}
+              </div>
             </div>
             <div className="text-center">
               <div className="font-medium">Weakest Element</div>
               <div className="flex items-center justify-center gap-1 mt-1">
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-900 text-yellow-200">
-                  🪨 Earth
+                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getElementColorClass(gptReport.weakestElement || 'earth').bg} ${getElementColorClass(gptReport.weakestElement || 'earth').text.replace('text-', 'text-')}-200`}>
+                  {getElementEmoji(gptReport.weakestElement || 'earth')} {getElementDisplayName(gptReport.weakestElement || 'earth')}
                 </span>
               </div>
-              <div className="text-xs text-yellow-300 mt-1 font-medium">Stability Energy</div>
+              <div className={`text-xs ${getElementColorClass(gptReport.weakestElement || 'earth').text} mt-1 font-medium`}>
+                {getElementEnergyType(gptReport.weakestElement || 'earth')}
+              </div>
             </div>
           </div>
         </div>
@@ -342,10 +417,10 @@ function AprilReportContent() {
               <h3 className="font-medium text-sm mb-1">Primary Crystal</h3>
               <div className="flex items-center mb-1.5">
                 <span className="text-lg mr-2">💎</span>
-                <span className="text-sm">{gptReport.crystals && gptReport.crystals[0] ? gptReport.crystals[0].name : "Amethyst"}</span>
+                <span className="text-sm">{gptReport.crystals && gptReport.crystals.length > 0 ? gptReport.crystals[0].name : "Clear Quartz"}</span>
               </div>
               <p className="text-xs text-indigo-200">
-                {gptReport.crystals && gptReport.crystals[0] ? gptReport.crystals[0].benefit : "Enhances intuition and balances emotional fluctuations"}
+                {gptReport.crystals && gptReport.crystals.length > 0 ? gptReport.crystals[0].benefit : "Amplifies your natural energy while helping to balance areas where you may feel depleted."}
               </p>
             </div>
             
@@ -353,10 +428,10 @@ function AprilReportContent() {
               <h3 className="font-medium text-sm mb-1">Support Crystal</h3>
               <div className="flex items-center mb-1.5">
                 <span className="text-lg mr-2">💎</span>
-                <span className="text-sm">{gptReport.crystals && gptReport.crystals[1] ? gptReport.crystals[1].name : "Aquamarine"}</span>
+                <span className="text-sm">{gptReport.crystals && gptReport.crystals.length > 1 ? gptReport.crystals[1].name : "Amethyst"}</span>
               </div>
               <p className="text-xs text-indigo-200">
-                {gptReport.crystals && gptReport.crystals[1] ? gptReport.crystals[1].benefit : "Calms overthinking and enhances clear communication"}
+                {gptReport.crystals && gptReport.crystals.length > 1 ? gptReport.crystals[1].benefit : "Calms overthinking and enhances clear communication."}
               </p>
             </div>
           </div>
@@ -364,7 +439,7 @@ function AprilReportContent() {
           <div className="mt-4">
             <h3 className="font-medium text-sm mb-2">Crystal Placement</h3>
             <p className="text-xs text-indigo-300">
-              {gptReport.ritual ? gptReport.ritual.split('.')[0] + '.' : "Place your primary crystal on your workspace during morning hours. Keep your support crystal near your bed to enhance dream clarity and promote restful sleep."}
+              {gptReport.ritual ? gptReport.ritual.split('.')[0] + '.' : "Place your primary crystal on your workspace during morning hours to enhance focus."}
             </p>
           </div>
           
@@ -373,7 +448,7 @@ function AprilReportContent() {
             <div className="flex items-start">
               <span className="text-indigo-300 mr-2 mt-0.5">✦</span>
               <p className="text-xs text-indigo-300">
-                {gptReport.challenges ? gptReport.challenges[0] : "Your energy this month responds particularly well to blue and purple crystals, which can help stabilize the rapid fluctuations you'll experience."}
+                {gptReport.challenges && gptReport.challenges.length > 0 ? gptReport.challenges[0] : gptReport.insight || "Your energy this month responds particularly well to crystals that align with your dominant element."}
               </p>
             </div>
           </div>
