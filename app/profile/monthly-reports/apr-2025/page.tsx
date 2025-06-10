@@ -40,6 +40,17 @@ function AprilReportContent() {
   // State for expanding the full calendar
   const [showFullCalendar, setShowFullCalendar] = useState(false);
   
+  // State for active aspect
+  const [activeAspect, setActiveAspect] = useState('growth');
+  
+  // State for feedback modal
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [feedbackType, setFeedbackType] = useState('');
+  const [additionalFeedback, setAdditionalFeedback] = useState('');
+  const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+  
   // State for GPT generated report content
   const [gptReport, setGptReport] = useState<GPTReport>({
     loading: true,
@@ -84,16 +95,16 @@ function AprilReportContent() {
           const challengesText = challengesMatch ? challengesMatch[1] : '';
           const challenges = challengesText
             .split('\n')
-            .filter((line) => line.trim().startsWith('-'))
-            .map((line) => line.replace('-', '').trim());
+            .filter((line: string) => line.trim().startsWith('-'))
+            .map((line: string) => line.replace('-', '').trim());
           
           // Extract crystals
           const crystalsMatch = reportContent.match(/## 💎 (?:Monthly )?Crystals(?: to Consider)?\n([\s\S]*?)(?=##)/);
           const crystalsText = crystalsMatch ? crystalsMatch[1] : '';
           const crystals = crystalsText
             .split('\n')
-            .filter((line) => line.trim().startsWith('-'))
-            .map((line) => {
+            .filter((line: string) => line.trim().startsWith('-'))
+            .map((line: string) => {
               const parts = line.replace('-', '').trim().split('—');
               return {
                 name: parts[0].trim(),
@@ -110,8 +121,8 @@ function AprilReportContent() {
           const guidanceText = guidanceMatch ? guidanceMatch[1] : '';
           const guidance = guidanceText
             .split('\n')
-            .filter((line) => line.trim().startsWith('✅') || line.trim().startsWith('🚫'))
-            .map((line) => line.trim());
+            .filter((line: string) => line.trim().startsWith('✅') || line.trim().startsWith('🚫'))
+            .map((line: string) => line.trim());
           
           setGptReport({
             title,
@@ -136,6 +147,68 @@ function AprilReportContent() {
 
     fetchReportData();
   }, [birthDate]);
+  
+  // Function to open feedback modal with specified type
+  const openFeedbackModal = (type: string) => {
+    setFeedbackType(type);
+    setShowFeedbackModal(true);
+  };
+  
+  // Function to handle checkbox selection
+  const handleOptionSelect = (option: string) => {
+    setSelectedOptions(prev => 
+      prev.includes(option) 
+        ? prev.filter(item => item !== option) 
+        : [...prev, option]
+    );
+  };
+  
+  // Function to handle feedback submission
+  const handleFeedbackSubmit = async () => {
+    try {
+      setIsSubmitting(true);
+      setSubmitError('');
+      
+      // 获取用户ID，如果可用的话
+      const userId = localStorage.getItem('userId') || 'anonymous';
+      
+      // 准备要发送的数据
+      const feedbackData = {
+        userId,
+        feedbackType,
+        reportType: 'Plus - April 2025', // 当前报告类型
+        content: additionalFeedback,
+        options: selectedOptions
+      };
+      
+      // 发送到API
+      const response = await fetch('/api/feedback', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(feedbackData)
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || '提交反馈失败');
+      }
+      
+      // 成功提交
+      console.log('Feedback submitted successfully');
+      
+      // 重置并关闭模态框
+      setAdditionalFeedback('');
+      setSelectedOptions([]);
+      setShowFeedbackModal(false);
+    } catch (error) {
+      console.error('Error submitting feedback:', error);
+      setSubmitError(error instanceof Error ? error.message : '提交反馈失败');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
   
   // Helper function to get crystal for each element
   const getCrystalForElement = (element: ElementType) => {
@@ -167,6 +240,41 @@ function AprilReportContent() {
     return colorMap[element] || colorMap.water;
   };
   
+  // Show loading state if the report is still loading
+  if (gptReport.loading) {
+    return (
+      <main className="min-h-screen bg-gradient-to-br from-indigo-800 to-black py-8 px-4 text-white">
+        <div className="max-w-md mx-auto flex items-center justify-center h-[80vh]">
+          <div className="text-center">
+            <div className="animate-spin inline-block w-8 h-8 border-t-2 border-indigo-500 border-r-2 rounded-full mb-4"></div>
+            <p>Loading your personalized energy report...</p>
+          </div>
+        </div>
+      </main>
+    );
+  }
+  
+  // Show error state if there was an error loading the report
+  if (gptReport.error) {
+    return (
+      <main className="min-h-screen bg-gradient-to-br from-indigo-800 to-black py-8 px-4 text-white">
+        <div className="max-w-md mx-auto flex items-center justify-center h-[80vh]">
+          <div className="text-center">
+            <div className="text-red-500 text-4xl mb-4">⚠️</div>
+            <p className="text-xl mb-2">Report Generation Error</p>
+            <p>{gptReport.error}</p>
+            <button 
+              onClick={() => window.location.reload()}
+              className="mt-4 px-4 py-2 bg-indigo-700 hover:bg-indigo-600 rounded-md text-sm font-medium transition-colors"
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="min-h-screen bg-gradient-to-br from-indigo-800 to-black py-8 px-4 text-white">
       <div className="max-w-md mx-auto space-y-6">
@@ -225,339 +333,7 @@ function AprilReportContent() {
           </div>
         </div>
 
-        {/* Calendar Module */}
-        <div className="bg-black/30 backdrop-blur-sm rounded-xl p-5">
-          <h2 className="text-lg font-semibold mb-4 text-center">April Calendar</h2>
-          
-          <div className="grid grid-cols-7 gap-1 text-center text-xs mb-2">
-            <div>Sun</div>
-            <div>Mon</div>
-            <div>Tue</div>
-            <div>Wed</div>
-            <div>Thu</div>
-            <div>Fri</div>
-            <div>Sat</div>
-          </div>
-          
-          {/* First week (partial) */}
-          <div className="grid grid-cols-7 gap-1 mb-1">
-            {/* Empty cells for days before April 1 */}
-            <div className="aspect-square"></div>
-            <div className="aspect-square"></div>
-            <div className="aspect-square"></div>
-            <div className="aspect-square"></div>
-            <div className="aspect-square"></div>
-            <div className="aspect-square"></div>
-            <div className="bg-indigo-900/20 rounded-md flex flex-col items-center justify-center py-1">
-              <span>1</span>
-              <span className="text-[0.65rem] text-indigo-300">76</span>
-            </div>
-          </div>
-          
-          {/* Remaining calendar grid */}
-          {!showFullCalendar && (
-            <>
-              {/* Second week */}
-              <div className="grid grid-cols-7 gap-1 mb-1">
-                <div className="bg-indigo-900/20 rounded-md flex flex-col items-center justify-center py-1">
-                  <span>2</span>
-                  <span className="text-[0.65rem] text-indigo-300">77</span>
-                </div>
-                <div className="bg-indigo-900/20 rounded-md flex flex-col items-center justify-center py-1">
-                  <span>3</span>
-                  <span className="text-[0.65rem] text-indigo-300">75</span>
-                </div>
-                <div className="bg-indigo-900/20 rounded-md flex flex-col items-center justify-center py-1">
-                  <span>4</span>
-                  <span className="text-[0.65rem] text-indigo-300">74</span>
-                </div>
-                <div className="bg-indigo-900/20 rounded-md flex flex-col items-center justify-center py-1">
-                  <span>5</span>
-                  <span className="text-[0.65rem] text-indigo-300">72</span>
-                </div>
-                <div className="bg-indigo-900/20 rounded-md flex flex-col items-center justify-center py-1">
-                  <span>6</span>
-                  <span className="text-[0.65rem] text-red-300">68</span>
-                </div>
-                <div className="bg-indigo-900/20 rounded-md flex flex-col items-center justify-center py-1">
-                  <span>7</span>
-                  <span className="text-[0.65rem] text-red-300">65</span>
-                </div>
-                <div className="bg-indigo-900/20 rounded-md flex flex-col items-center justify-center py-1">
-                  <span>8</span>
-                  <span className="text-[0.65rem] text-indigo-300">70</span>
-                </div>
-              </div>
-              
-              <button 
-                onClick={() => setShowFullCalendar(true)}
-                className="w-full text-xs text-indigo-300 mt-2 flex items-center justify-center"
-              >
-                Show full calendar
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 ml-1" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                </svg>
-              </button>
-            </>
-          )}
-          
-          {showFullCalendar && (
-            <>
-              {/* Full calendar implementation (would be more rows) */}
-              {/* Second week */}
-              <div className="grid grid-cols-7 gap-1 mb-1">
-                <div className="bg-indigo-900/20 rounded-md flex flex-col items-center justify-center py-1">
-                  <span>2</span>
-                  <span className="text-[0.65rem] text-indigo-300">77</span>
-                </div>
-                <div className="bg-indigo-900/20 rounded-md flex flex-col items-center justify-center py-1">
-                  <span>3</span>
-                  <span className="text-[0.65rem] text-indigo-300">75</span>
-                </div>
-                <div className="bg-indigo-900/20 rounded-md flex flex-col items-center justify-center py-1">
-                  <span>4</span>
-                  <span className="text-[0.65rem] text-indigo-300">74</span>
-                </div>
-                <div className="bg-indigo-900/20 rounded-md flex flex-col items-center justify-center py-1">
-                  <span>5</span>
-                  <span className="text-[0.65rem] text-indigo-300">72</span>
-                </div>
-                <div className="bg-indigo-900/20 rounded-md flex flex-col items-center justify-center py-1">
-                  <span>6</span>
-                  <span className="text-[0.65rem] text-red-300">68</span>
-                </div>
-                <div className="bg-indigo-900/20 rounded-md flex flex-col items-center justify-center py-1">
-                  <span>7</span>
-                  <span className="text-[0.65rem] text-red-300">65</span>
-                </div>
-                <div className="bg-indigo-900/20 rounded-md flex flex-col items-center justify-center py-1">
-                  <span>8</span>
-                  <span className="text-[0.65rem] text-indigo-300">70</span>
-                </div>
-              </div>
-              
-              {/* Third week */}
-              <div className="grid grid-cols-7 gap-1 mb-1">
-                <div className="bg-indigo-900/20 rounded-md flex flex-col items-center justify-center py-1">
-                  <span>9</span>
-                  <span className="text-[0.65rem] text-green-300">82</span>
-                </div>
-                <div className="bg-indigo-900/20 rounded-md flex flex-col items-center justify-center py-1">
-                  <span>10</span>
-                  <span className="text-[0.65rem] text-green-300">85</span>
-                </div>
-                <div className="bg-indigo-900/20 rounded-md flex flex-col items-center justify-center py-1">
-                  <span>11</span>
-                  <span className="text-[0.65rem] text-green-300">88</span>
-                </div>
-                <div className="bg-indigo-900/20 rounded-md flex flex-col items-center justify-center py-1">
-                  <span>12</span>
-                  <span className="text-[0.65rem] text-green-300">90</span>
-                </div>
-                <div className="bg-indigo-900/20 rounded-md flex flex-col items-center justify-center py-1">
-                  <span>13</span>
-                  <span className="text-[0.65rem] text-green-300">87</span>
-                </div>
-                <div className="bg-indigo-900/20 rounded-md flex flex-col items-center justify-center py-1">
-                  <span>14</span>
-                  <span className="text-[0.65rem] text-indigo-300">80</span>
-                </div>
-                <div className="bg-indigo-900/20 rounded-md flex flex-col items-center justify-center py-1">
-                  <span>15</span>
-                  <span className="text-[0.65rem] text-indigo-300">78</span>
-                </div>
-              </div>
-              
-              {/* Fourth week */}
-              <div className="grid grid-cols-7 gap-1 mb-1">
-                <div className="bg-indigo-900/20 rounded-md flex flex-col items-center justify-center py-1">
-                  <span>16</span>
-                  <span className="text-[0.65rem] text-indigo-300">76</span>
-                </div>
-                <div className="bg-indigo-900/20 rounded-md flex flex-col items-center justify-center py-1">
-                  <span>17</span>
-                  <span className="text-[0.65rem] text-indigo-300">74</span>
-                </div>
-                <div className="bg-indigo-900/20 rounded-md flex flex-col items-center justify-center py-1">
-                  <span>18</span>
-                  <span className="text-[0.65rem] text-red-300">68</span>
-                </div>
-                <div className="bg-indigo-900/20 rounded-md flex flex-col items-center justify-center py-1">
-                  <span>19</span>
-                  <span className="text-[0.65rem] text-red-300">65</span>
-                </div>
-                <div className="bg-indigo-900/20 rounded-md flex flex-col items-center justify-center py-1">
-                  <span>20</span>
-                  <span className="text-[0.65rem] text-red-300">62</span>
-                </div>
-                <div className="bg-indigo-900/20 rounded-md flex flex-col items-center justify-center py-1">
-                  <span>21</span>
-                  <span className="text-[0.65rem] text-indigo-300">70</span>
-                </div>
-                <div className="bg-indigo-900/20 rounded-md flex flex-col items-center justify-center py-1">
-                  <span>22</span>
-                  <span className="text-[0.65rem] text-indigo-300">73</span>
-                </div>
-              </div>
-              
-              {/* Fifth week */}
-              <div className="grid grid-cols-7 gap-1 mb-1">
-                <div className="bg-indigo-900/20 rounded-md flex flex-col items-center justify-center py-1">
-                  <span>23</span>
-                  <span className="text-[0.65rem] text-indigo-300">76</span>
-                </div>
-                <div className="bg-indigo-900/20 rounded-md flex flex-col items-center justify-center py-1">
-                  <span>24</span>
-                  <span className="text-[0.65rem] text-green-300">80</span>
-                </div>
-                <div className="bg-indigo-900/20 rounded-md flex flex-col items-center justify-center py-1">
-                  <span>25</span>
-                  <span className="text-[0.65rem] text-green-300">83</span>
-                </div>
-                <div className="bg-indigo-900/20 rounded-md flex flex-col items-center justify-center py-1">
-                  <span>26</span>
-                  <span className="text-[0.65rem] text-green-300">85</span>
-                </div>
-                <div className="bg-indigo-900/20 rounded-md flex flex-col items-center justify-center py-1">
-                  <span>27</span>
-                  <span className="text-[0.65rem] text-green-300">88</span>
-                </div>
-                <div className="bg-indigo-900/20 rounded-md flex flex-col items-center justify-center py-1">
-                  <span>28</span>
-                  <span className="text-[0.65rem] text-green-300">86</span>
-                </div>
-                <div className="bg-indigo-900/20 rounded-md flex flex-col items-center justify-center py-1">
-                  <span>29</span>
-                  <span className="text-[0.65rem] text-green-300">82</span>
-                </div>
-              </div>
-              
-              {/* Last day of April */}
-              <div className="grid grid-cols-7 gap-1">
-                <div className="bg-indigo-900/20 rounded-md flex flex-col items-center justify-center py-1">
-                  <span>30</span>
-                  <span className="text-[0.65rem] text-indigo-300">78</span>
-                </div>
-                <div className="aspect-square"></div>
-                <div className="aspect-square"></div>
-                <div className="aspect-square"></div>
-                <div className="aspect-square"></div>
-                <div className="aspect-square"></div>
-                <div className="aspect-square"></div>
-              </div>
-              
-              <button 
-                onClick={() => setShowFullCalendar(false)}
-                className="w-full text-xs text-indigo-300 mt-2 flex items-center justify-center"
-              >
-                Hide full calendar
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 ml-1" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clipRule="evenodd" />
-                </svg>
-              </button>
-            </>
-          )}
-          
-          <div className="flex justify-between items-center mt-3 text-xs text-indigo-300">
-            <div className="flex items-center">
-              <span className="inline-block w-2 h-2 rounded-full bg-green-400 mr-1"></span>
-              <span>High (80+)</span>
-            </div>
-            <div className="flex items-center">
-              <span className="inline-block w-2 h-2 rounded-full bg-indigo-400 mr-1"></span>
-              <span>Medium (70-79)</span>
-            </div>
-            <div className="flex items-center">
-              <span className="inline-block w-2 h-2 rounded-full bg-red-400 mr-1"></span>
-              <span>Low (< 70)</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Daily Energy Chart Module */}
-        <div className="bg-black/30 backdrop-blur-sm rounded-xl p-5">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold">Daily Energy Chart</h2>
-            <button 
-              onClick={() => {}} 
-              className="text-xs text-indigo-300 flex items-center"
-            >
-              Show More
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 ml-1" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-              </svg>
-            </button>
-          </div>
-          
-          <div className="relative h-36 mb-2">
-            {/* SVG Chart - Simple curve representation */}
-            <svg className="w-full h-full" viewBox="0 0 300 100" preserveAspectRatio="none">
-              {/* Grid lines */}
-              <line x1="0" y1="0" x2="300" y2="0" stroke="#6366f133" strokeWidth="1" />
-              <line x1="0" y1="33" x2="300" y2="33" stroke="#6366f133" strokeWidth="1" />
-              <line x1="0" y1="66" x2="300" y2="66" stroke="#6366f133" strokeWidth="1" />
-              <line x1="0" y1="100" x2="300" y2="100" stroke="#6366f133" strokeWidth="1" />
-              
-              {/* Data line - Energy curve */}
-              <path 
-                d="M0,50 C20,70 40,80 60,30 S80,10 100,30 S120,60 140,50 S160,30 180,20 S200,10 220,25 S240,60 260,40 S280,30 300,50" 
-                fill="none" 
-                stroke="url(#energyGradient)" 
-                strokeWidth="3" 
-              />
-              
-              {/* Gradient definition */}
-              <defs>
-                <linearGradient id="energyGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="#818cf8" />
-                  <stop offset="100%" stopColor="#60a5fa" />
-                </linearGradient>
-              </defs>
-            </svg>
-            
-            {/* Y-axis labels */}
-            <div className="absolute top-0 left-0 h-full flex flex-col justify-between text-[10px] text-indigo-300 pr-2">
-              <span>High</span>
-              <span>Medium</span>
-              <span>Low</span>
-            </div>
-          </div>
-          
-          {/* X-axis labels */}
-          <div className="flex justify-between text-[10px] text-indigo-300 px-4">
-            <span>Apr 1</span>
-            <span>Apr 10</span>
-            <span>Apr 20</span>
-            <span>Apr 30</span>
-          </div>
-          
-          <div className="mt-4 border-t border-indigo-900/30 pt-4">
-            <h3 className="text-sm font-medium mb-2">Monthly Insights</h3>
-            <p className="text-xs text-indigo-300">
-              {gptReport.insight ? gptReport.insight : 'April begins with moderate energy that drops during the first week. Energy peaks around April 12th, making this an ideal time for important presentations or decisions. The third week shows a notable dip, suggesting a time to rest and recharge. The month ends with rising energy, creating momentum into May.'}
-            </p>
-            
-            <div className="mt-4">
-              <h4 className="text-xs font-medium mb-1">Key Dates</h4>
-              <div className="space-y-2">
-                <div className="flex items-start">
-                  <span className="text-green-400 mr-2 text-xs">•</span>
-                  <p className="text-xs"><span className="font-medium">April 12:</span> Peak energy day (90) — ideal for important decisions</p>
-                </div>
-                <div className="flex items-start">
-                  <span className="text-red-400 mr-2 text-xs">•</span>
-                  <p className="text-xs"><span className="font-medium">April 20:</span> Lowest energy point (62) — schedule lighter tasks</p>
-                </div>
-                <div className="flex items-start">
-                  <span className="text-green-400 mr-2 text-xs">•</span>
-                  <p className="text-xs"><span className="font-medium">April 27:</span> High creative energy (88) — excellent for brainstorming</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Recommended Crystals Section */}
+        {/* Crystal Recommendations */}
         <div className="bg-black/30 backdrop-blur-sm rounded-xl p-5">
           <h2 className="text-lg font-semibold mb-4 text-center">Crystal Recommendations</h2>
           
@@ -602,16 +378,69 @@ function AprilReportContent() {
             </div>
           </div>
         </div>
-
-        {/* Feedback button */}
-        <div className="flex justify-center pt-2 pb-6">
-          <button 
-            onClick={() => openFeedbackModal('report')} 
-            className="text-xs text-indigo-300 hover:text-white transition-colors"
-          >
-            Submit feedback about this report ↗
-          </button>
-        </div>
+        
+        {/* Feedback Modal */}
+        {showFeedbackModal && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-indigo-900/80 rounded-xl max-w-md w-full p-5 shadow-xl">
+              <h3 className="text-lg font-semibold mb-3">
+                {feedbackType === 'report' ? 'Report Feedback' : 'Share Your Thoughts'}
+              </h3>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium block mb-2">What did you think?</label>
+                  <div className="space-y-2">
+                    {['Very helpful', 'Somewhat accurate', 'Not accurate', 'Need more details'].map(option => (
+                      <div key={option} className="flex items-center">
+                        <input
+                          type="checkbox"
+                          id={`option-${option}`}
+                          checked={selectedOptions.includes(option)}
+                          onChange={() => handleOptionSelect(option)}
+                          className="mr-2 rounded"
+                        />
+                        <label htmlFor={`option-${option}`} className="text-sm">{option}</label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                
+                <div>
+                  <label htmlFor="additional-feedback" className="text-sm font-medium block mb-2">Additional comments</label>
+                  <textarea
+                    id="additional-feedback"
+                    rows={3}
+                    value={additionalFeedback}
+                    onChange={(e) => setAdditionalFeedback(e.target.value)}
+                    className="w-full bg-indigo-800/50 border border-indigo-700 rounded-md px-3 py-2 text-sm placeholder-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    placeholder="Share any additional thoughts..."
+                  />
+                </div>
+                
+                {submitError && (
+                  <div className="text-red-400 text-sm">{submitError}</div>
+                )}
+                
+                <div className="flex justify-end space-x-3 pt-2">
+                  <button
+                    onClick={() => setShowFeedbackModal(false)}
+                    className="px-4 py-2 bg-indigo-800 hover:bg-indigo-700 rounded-md text-sm font-medium transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleFeedbackSubmit}
+                    disabled={isSubmitting}
+                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-md text-sm font-medium transition-colors disabled:bg-indigo-800 disabled:cursor-not-allowed"
+                  >
+                    {isSubmitting ? 'Submitting...' : 'Submit'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </main>
   );
@@ -621,7 +450,7 @@ function AprilReportContent() {
 export default function AprilReportPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-br from-purple-900 to-black flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-indigo-800 to-black flex items-center justify-center">
         <div className="text-white">Loading...</div>
       </div>
     }>
