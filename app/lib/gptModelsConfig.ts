@@ -1,12 +1,12 @@
 /**
- * GPT模型配置文件
- * 定义不同部分使用的模型和相关参数
+ * GPT model configuration file
+ * Defines models and related parameters for different sections
  */
 
-// 模型类型定义
+// Model type definition
 export type ModelType = 'gpt-3.5-turbo' | 'gpt-4' | 'gpt-4-turbo' | 'gpt-4o';
 
-// 模型配置接口
+// Model configuration interface
 export interface ModelConfig {
   model: ModelType;
   temperature: number;
@@ -14,9 +14,9 @@ export interface ModelConfig {
   systemPrompt?: string;
 }
 
-// 不同部分的模型配置
+// Model configurations for different sections
 export const modelConfigs: Record<string, ModelConfig> = {
-  // 年度报告
+  // Annual report
   'yearlyReport': {
     model: 'gpt-4-turbo',
     temperature: 0.7,
@@ -24,7 +24,7 @@ export const modelConfigs: Record<string, ModelConfig> = {
     systemPrompt: 'You are an expert astrologer specializing in Chinese metaphysics and energy analysis.'
   },
   
-  // 月度报告 (Pro)
+  // Monthly report (Pro)
   'monthlyReportPro': {
     model: 'gpt-4o',
     temperature: 0.7,
@@ -32,7 +32,7 @@ export const modelConfigs: Record<string, ModelConfig> = {
     systemPrompt: 'You are an expert energy analyst specializing in monthly energy patterns and predictions.'
   },
   
-  // 月度报告 (Plus)
+  // Monthly report (Plus)
   'monthlyReportPlus': {
     model: 'gpt-4-turbo',
     temperature: 0.7,
@@ -40,7 +40,7 @@ export const modelConfigs: Record<string, ModelConfig> = {
     systemPrompt: 'You are an energy forecaster specializing in monthly trends and personalized guidance.'
   },
   
-  // 日能量分析
+  // Daily energy analysis
   'dailyEnergyAnalysis': {
     model: 'gpt-4-turbo',
     temperature: 0.6,
@@ -48,7 +48,7 @@ export const modelConfigs: Record<string, ModelConfig> = {
     systemPrompt: 'You are a daily energy advisor providing personalized insights based on energy calculations.'
   },
   
-  // 小时能量洞察
+  // Hourly energy insights
   'hourlyEnergyInsights': {
     model: 'gpt-3.5-turbo',
     temperature: 0.5,
@@ -56,7 +56,7 @@ export const modelConfigs: Record<string, ModelConfig> = {
     systemPrompt: 'You are an hourly energy expert providing short, practical tips based on energy peaks and valleys.'
   },
   
-  // 默认配置
+  // Default configuration
   'default': {
     model: 'gpt-4-turbo',
     temperature: 0.7,
@@ -65,7 +65,7 @@ export const modelConfigs: Record<string, ModelConfig> = {
   }
 };
 
-// 获取特定部分的模型配置
+// Get model configuration for specific section
 export function getModelConfig(section: string): ModelConfig {
   return modelConfigs[section] || modelConfigs.default;
 } 

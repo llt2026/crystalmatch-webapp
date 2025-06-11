@@ -5,34 +5,20 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '../../auth/[...nextauth]/route';
-import { rateLimit } from '../../../lib/rate-limit';
 
 // 创建OpenAI客户端
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
-// GPT请求配额限制 - 每个用户每分钟最多5个请求
-const limiter = rateLimit({
-  interval: 60 * 1000, // 1分钟
-  uniqueTokenPerInterval: 500, // 最多500个不同用户
-});
-
 export async function POST(request: NextRequest) {
   try {
-    // 获取用户会话
-    const session = await getServerSession(authOptions);
-    const userId = session?.user?.id || 'anonymous';
-    
-    // 应用限流
-    try {
-      await limiter.check(10, userId); // 10 requests per minute per user
-    } catch (error) {
+    // 检查API密钥
+    if (!process.env.OPENAI_API_KEY) {
+      console.error('OPENAI_API_KEY environment variable is not set');
       return NextResponse.json(
-        { error: 'Rate limit exceeded. Please try again later.' },
-        { status: 429 }
+        { error: 'OpenAI API key not configured' },
+        { status: 500 }
       );
     }
     
@@ -52,17 +38,21 @@ export async function POST(request: NextRequest) {
     const temperature = requestData.temperature ?? 0.7;
     const maxTokens = requestData.max_tokens || 2000;
     
+    console.log(`Calling OpenAI API with model: ${model}, maxTokens: ${maxTokens}`);
+    
     // 调用OpenAI API
     const completion = await openai.chat.completions.create({
       model,
       messages: requestData.messages,
       temperature,
       max_tokens: maxTokens,
-      user: userId
+      user: requestData.user || 'anonymous'
     });
     
     // 提取结果
     const content = completion.choices[0]?.message?.content || '';
+    
+    console.log(`OpenAI API call successful, content length: ${content.length}`);
     
     // 返回响应
     return NextResponse.json({

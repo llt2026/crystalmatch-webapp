@@ -23,6 +23,21 @@ export interface GptResponse {
 }
 
 /**
+ * 获取API基础URL
+ */
+function getApiBaseUrl(): string {
+  // 在服务器端环境中，需要使用完整的URL
+  if (typeof window === 'undefined') {
+    // 服务器端
+    return process.env.VERCEL_URL 
+      ? `https://${process.env.VERCEL_URL}`
+      : process.env.NEXTAUTH_URL || 'http://localhost:3000';
+  }
+  // 客户端
+  return '';
+}
+
+/**
  * 调用GPT模型生成内容
  * @param params 请求参数
  * @returns GPT响应
@@ -52,8 +67,14 @@ export async function generateGptContent(params: GptRequestParams): Promise<GptR
   };
   
   try {
+    // 构建完整的API URL
+    const baseUrl = getApiBaseUrl();
+    const apiUrl = `${baseUrl}/api/gpt-models/generate`;
+    
+    console.log('Calling GPT API:', apiUrl);
+    
     // 调用API端点
-    const response = await fetch('/api/gpt-models/generate', {
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'

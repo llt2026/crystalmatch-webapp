@@ -1,45 +1,45 @@
 /**
- * 数据库配置
- * 为应用提供数据库连接信息
+ * Database configuration
+ * Provides database connection information for the application
  */
 
-// 确保加载环境变量
+// Ensure environment variables are loaded
 import 'dotenv/config';
 
-// PostgreSQL 连接参数
+// PostgreSQL connection parameters
 export const DB_CONFIG = {
-  // PostgreSQL 连接字符串 - Neon
+  // PostgreSQL connection string - Neon
   DATABASE_URL: process.env.DATABASE_URL || "postgresql://user:password@localhost:5432/crystalmatch",
   
-  // 连接池配置
+  // Connection pool configuration
   CONNECTION_LIMIT: parseInt(process.env.PG_CONNECTION_LIMIT || "10"),
   IDLE_TIMEOUT: parseInt(process.env.PG_IDLE_TIMEOUT || "30000"),
   
-  // JWT密钥
+  // JWT secret key
   JWT_SECRET: process.env.JWT_SECRET || "crystalmatch-secure-jwt-secret-key",
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || "7d",
   
-  // 应用URL
+  // Application URL
   APP_URL: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
   
-  // OpenAI API密钥
+  // OpenAI API key
   OPENAI_API_KEY: process.env.OPENAI_API_KEY || "",
   
-  // 日志级别
+  // Log level
   LOG_LEVEL: process.env.LOG_LEVEL || "info"
 };
 
 /**
- * 获取数据库连接URL
- * @returns 数据库连接URL
+ * Get database connection URL
+ * @returns Database connection URL
  */
 export function getDatabaseUrl(): string {
   return DB_CONFIG.DATABASE_URL;
 }
 
 /**
- * 获取数据库连接选项
- * @returns 数据库连接选项对象
+ * Get database connection options
+ * @returns Database connection options object
  */
 export function getDbConnectionOptions() {
   return {
@@ -49,54 +49,54 @@ export function getDbConnectionOptions() {
 }
 
 /**
- * 获取JWT密钥
- * @returns JWT密钥
+ * Get JWT secret key
+ * @returns JWT secret key
  */
 export function getJwtSecret(): string {
   return DB_CONFIG.JWT_SECRET;
 }
 
 /**
- * 获取JWT过期时间
- * @returns JWT过期时间
+ * Get JWT expiration time
+ * @returns JWT expiration time
  */
 export function getJwtExpiresIn(): string {
   return DB_CONFIG.JWT_EXPIRES_IN;
 }
 
 /**
- * 获取应用URL
- * @returns 应用URL
+ * Get application URL
+ * @returns Application URL
  */
 export function getAppUrl(): string {
   return DB_CONFIG.APP_URL;
 }
 
 /**
- * 获取OpenAI API密钥
- * @returns OpenAI API密钥
+ * Get OpenAI API key
+ * @returns OpenAI API key
  */
 export function getOpenAiApiKey(): string {
-  // 优先直接获取环境变量，确保使用最新值
+  // Prioritize direct environment variable access to ensure latest value
   const directApiKey = process.env.OPENAI_API_KEY;
   if (directApiKey && directApiKey.trim() !== '') {
     console.log('Using OpenAI API key from environment variable');
     return directApiKey;
   }
   
-  // 如果环境变量中没有设置，则从配置中获取
+  // If not set in environment variables, get from config
   if (DB_CONFIG.OPENAI_API_KEY && DB_CONFIG.OPENAI_API_KEY.trim() !== '') {
     console.log('Using OpenAI API key from DB_CONFIG');
     return DB_CONFIG.OPENAI_API_KEY;
   }
   
   console.warn('WARNING: No OpenAI API key found in environment variables');
-  return ''; // 返回空字符串，这将导致OpenAI客户端初始化失败
+  return ''; // Return empty string, which will cause OpenAI client initialization to fail
 }
 
 /**
- * 获取日志级别
- * @returns 日志级别
+ * Get log level
+ * @returns Log level
  */
 export function getLogLevel(): string {
   return DB_CONFIG.LOG_LEVEL;
