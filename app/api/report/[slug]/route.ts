@@ -150,27 +150,64 @@ export async function GET(req: NextRequest, { params }: { params:{ slug:string }
     
     // Use generateGptContent instead of gptCall
     console.log('🤖 Calling GPT to generate report content...');
-    const gptResponse = await generateGptContent({
-      section: 'monthlyReportPro', 
-      prompt: promptText,
-      userContext: { userId: 'anonymous' }
-    });
+    try {
+      const gptResponse = await generateGptContent({
+        section: 'monthlyReportPro', 
+        prompt: promptText,
+        userContext: { userId: 'anonymous' }
+      });
 
-    // Extract content from GPT response
-    const reportText = gptResponse.content;
-    console.log(`✅ Report generated successfully, content length: ${reportText.length} characters, Tokens: ${gptResponse.totalTokens}`);
+      // Extract content from GPT response
+      const reportText = gptResponse.content;
+      console.log(`✅ Report generated successfully, content length: ${reportText.length} characters, Tokens: ${gptResponse.totalTokens}`);
 
-    return NextResponse.json({ 
-      overview, 
-      daily, 
-      hourly, 
-      report: reportText, // Return as report field to maintain consistency with original API
-      tokens: {
-        prompt: gptResponse.promptTokens,
-        completion: gptResponse.completionTokens,
-        total: gptResponse.totalTokens
-      }
-    });
+      return NextResponse.json({ 
+        overview, 
+        daily, 
+        hourly, 
+        report: reportText, // Return as report field to maintain consistency with original API
+        tokens: {
+          prompt: gptResponse.promptTokens,
+          completion: gptResponse.completionTokens,
+          total: gptResponse.totalTokens
+        }
+      });
+    } catch (gptError: any) {
+      console.error('❌ GPT API call failed:', gptError);
+      
+      // 使用静态回退内容，而不是抛出错误
+      const fallbackReport = `# May 2025 Energy Report
+
+## Overview
+Due to temporary technical issues, we're providing a simplified report for May 2025.
+
+## Key Dates
+- May 1-5: Focus on planning and organization
+- May 15-20: Good energy for social activities
+- May 25-30: Ideal for completing projects
+
+## Recommendations
+- Practice mindfulness daily
+- Stay hydrated and maintain regular exercise
+- Schedule important meetings in the morning hours
+
+*A complete personalized report will be available soon.*`;
+
+      console.log('Using fallback report content');
+      
+      // 返回包含回退内容的响应
+      return NextResponse.json({ 
+        overview, 
+        daily, 
+        hourly, 
+        report: fallbackReport,
+        error_info: {
+          type: 'gpt_error_with_fallback',
+          message: 'Using simplified report due to temporary API issues',
+          original_error: gptError.message
+        }
+      });
+    }
   } catch (error: any) {
     console.error('❌ Monthly report generation failed:', error);
     return NextResponse.json({ 

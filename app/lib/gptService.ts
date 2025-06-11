@@ -83,11 +83,33 @@ export async function generateGptContent(params: GptRequestParams): Promise<GptR
     });
     
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Failed to generate content');
+      // 先尝试获取响应文本，再判断是否为JSON
+      const errorText = await response.text();
+      let errorData;
+      
+      try {
+        // 尝试解析为JSON
+        errorData = JSON.parse(errorText);
+      } catch (parseError) {
+        // 如果不是有效的JSON，返回友好的错误信息
+        console.error('Received non-JSON error response:', errorText.substring(0, 200));
+        throw new Error(`API returned non-JSON response (status ${response.status}). This usually indicates a network or server issue.`);
+      }
+      
+      throw new Error(errorData.error || `API request failed with status ${response.status}`);
     }
     
-    const result = await response.json();
+    // 同样安全地处理成功响应
+    const responseText = await response.text();
+    let result;
+    
+    try {
+      result = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error('Failed to parse successful response as JSON:', responseText.substring(0, 200));
+      throw new Error('API returned invalid JSON response');
+    }
+    
     return result;
   } catch (error) {
     console.error('Error generating GPT content:', error);

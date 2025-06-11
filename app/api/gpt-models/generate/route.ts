@@ -40,28 +40,43 @@ export async function POST(request: NextRequest) {
     
     console.log(`Calling OpenAI API with model: ${model}, maxTokens: ${maxTokens}`);
     
-    // 调用OpenAI API
-    const completion = await openai.chat.completions.create({
-      model,
-      messages: requestData.messages,
-      temperature,
-      max_tokens: maxTokens,
-      user: requestData.user || 'anonymous'
-    });
-    
-    // 提取结果
-    const content = completion.choices[0]?.message?.content || '';
-    
-    console.log(`OpenAI API call successful, content length: ${content.length}`);
-    
-    // 返回响应
-    return NextResponse.json({
-      content,
-      model: completion.model,
-      promptTokens: completion.usage?.prompt_tokens || 0,
-      completionTokens: completion.usage?.completion_tokens || 0,
-      totalTokens: completion.usage?.total_tokens || 0
-    });
+    try {
+      // 调用OpenAI API
+      const completion = await openai.chat.completions.create({
+        model,
+        messages: requestData.messages,
+        temperature,
+        max_tokens: maxTokens,
+        user: requestData.user || 'anonymous'
+      });
+      
+      // 提取结果
+      const content = completion.choices[0]?.message?.content || '';
+      
+      console.log(`OpenAI API call successful, content length: ${content.length}`);
+      
+      // 返回响应
+      return NextResponse.json({
+        content,
+        model: completion.model,
+        promptTokens: completion.usage?.prompt_tokens || 0,
+        completionTokens: completion.usage?.completion_tokens || 0,
+        totalTokens: completion.usage?.total_tokens || 0
+      });
+    } catch (openaiError: any) {
+      console.error('OpenAI API error:', openaiError);
+      
+      // 确保返回有效的JSON错误响应
+      return NextResponse.json({ 
+        error: 'openai_error',
+        message: openaiError.message || 'Error calling OpenAI API',
+        details: {
+          status: openaiError.status,
+          type: openaiError.type,
+          code: openaiError.code
+        }
+      }, { status: 502 }); // 使用502 Bad Gateway表示上游服务失败
+    }
     
   } catch (error: any) {
     console.error('Error in GPT generate API:', error);
@@ -70,6 +85,10 @@ export async function POST(request: NextRequest) {
     const status = error.status || 500;
     const message = error.message || 'Internal server error';
     
-    return NextResponse.json({ error: message }, { status });
+    return NextResponse.json({ 
+      error: 'api_error',
+      message: message,
+      details: { type: 'request_processing_error' }
+    }, { status });
   }
 } 
