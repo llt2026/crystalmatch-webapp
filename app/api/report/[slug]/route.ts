@@ -175,38 +175,12 @@ export async function GET(req: NextRequest, { params }: { params:{ slug:string }
     } catch (gptError: any) {
       console.error('❌ GPT API call failed:', gptError);
       
-      // 使用静态回退内容，而不是抛出错误
-      const fallbackReport = `# May 2025 Energy Report
-
-## Overview
-Due to temporary technical issues, we're providing a simplified report for May 2025.
-
-## Key Dates
-- May 1-5: Focus on planning and organization
-- May 15-20: Good energy for social activities
-- May 25-30: Ideal for completing projects
-
-## Recommendations
-- Practice mindfulness daily
-- Stay hydrated and maintain regular exercise
-- Schedule important meetings in the morning hours
-
-*A complete personalized report will be available soon.*`;
-
-      console.log('Using fallback report content');
-      
-      // 返回包含回退内容的响应
+      // 直接返回错误信息，不使用静态回退内容
       return NextResponse.json({ 
-        overview, 
-        daily, 
-        hourly, 
-        report: fallbackReport,
-        error_info: {
-          type: 'gpt_error_with_fallback',
-          message: 'Using simplified report due to temporary API issues',
-          original_error: gptError.message
-        }
-      });
+        error: 'openai_api_error',
+        message: 'Monthly report generation service temporarily unavailable',
+        details: gptError.message
+      }, { status: 503 });
     }
   } catch (error: any) {
     console.error('❌ Monthly report generation failed:', error);
