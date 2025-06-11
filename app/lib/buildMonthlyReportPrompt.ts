@@ -2,6 +2,7 @@ import { ForecastContext } from '../types/forecast';
 
 /**
  * Build GPT prompt for monthly energy reports
+ * This function helps generate English content for reports
  * 
  * @param context Object containing overview, daily, hourly data
  * @returns Prompt string for GPT

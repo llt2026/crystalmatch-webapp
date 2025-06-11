@@ -1,6 +1,7 @@
 /**
  * GPT model configuration file
  * Defines models and related parameters for different sections
+ * Updated for Vercel deployment testing
  */
 
 // Model type definition

@@ -6,6 +6,7 @@ import { buildMonthlyReportPrompt } from '@/app/lib/buildMonthlyReportPrompt';
 import OpenAI from 'openai';
 import { getModelConfig } from '@/app/lib/gptModelsConfig';
 
+// This is a Vercel auto-deployment test
 export const dynamic = 'force-dynamic';
 
 /**
