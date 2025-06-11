@@ -17,22 +17,37 @@ export async function GET(req: NextRequest, { params }: { params:{ slug:string }
     const birthDate = req.nextUrl.searchParams.get('birthDate');
     if (!birthDate) return NextResponse.json({ error:'Missing birthDate' }, { status:400 });
 
-    // Validate birthDate format
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(birthDate)) {
+    // Convert ISO date to YYYY-MM-DD format if needed
+    let formattedBirthDate = birthDate;
+    
+    // Check if it's an ISO date format
+    if (birthDate.includes('T') || birthDate.includes('Z')) {
+      try {
+        const dateObj = new Date(birthDate);
+        if (!isNaN(dateObj.getTime())) {
+          formattedBirthDate = dateObj.toISOString().split('T')[0]; // Extract YYYY-MM-DD
+        }
+      } catch (e) {
+        // If parsing fails, continue with original validation
+      }
+    }
+
+    // Validate birthDate format (now should be YYYY-MM-DD)
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(formattedBirthDate)) {
       return NextResponse.json({ 
         error: 'Invalid birthDate format', 
-        message: 'Birth date must be in YYYY-MM-DD format',
-        details: { provided: birthDate }
+        message: 'Birth date must be in YYYY-MM-DD format or valid ISO format',
+        details: { provided: birthDate, processed: formattedBirthDate }
       }, { status: 400 });
     }
 
     // Validate birth date is realistic
-    const birthDateObj = new Date(birthDate);
+    const birthDateObj = new Date(formattedBirthDate);
     if (isNaN(birthDateObj.getTime())) {
       return NextResponse.json({ 
         error: 'Invalid birthDate', 
         message: 'Birth date is not a valid date',
-        details: { provided: birthDate }
+        details: { provided: birthDate, processed: formattedBirthDate }
       }, { status: 400 });
     }
 
@@ -42,7 +57,7 @@ export async function GET(req: NextRequest, { params }: { params:{ slug:string }
       return NextResponse.json({ error:'Invalid slug format, expected YYYY-MM' }, { status:400 });
     }
 
-    console.log(`📅 Processing monthly report request: ${slug}, birth date: ${birthDate}`);
+    console.log(`📅 Processing monthly report request: ${slug}, birth date: ${formattedBirthDate}`);
     
     const startDate = new Date(`${slug}-01`);
     if (isNaN(startDate.getTime())) {
@@ -54,7 +69,7 @@ export async function GET(req: NextRequest, { params }: { params:{ slug:string }
 
     // Calculate base data
     console.log('🧮 Calculating base bazi data...');
-    const baseBazi = getBaseBaziVector(birthDate);
+    const baseBazi = getBaseBaziVector(formattedBirthDate);
     
     console.log('🔄 Calculating monthly energy overview...');
     const overview = calculateProReportEnergy(subscriptionDate, baseBazi);
@@ -62,11 +77,11 @@ export async function GET(req: NextRequest, { params }: { params:{ slug:string }
     // Get daily energy data
     console.log('📈 Getting daily energy data...');
     const monthDays = new Date(startDate.getFullYear(), startDate.getMonth()+1, 0).getDate();
-    const daily = await getDailyEnergyForRange(birthDate, subscriptionDate, monthDays);
+    const daily = await getDailyEnergyForRange(formattedBirthDate, subscriptionDate, monthDays);
 
     // Get hourly energy data
     console.log('⏰ Getting hourly energy data...');
-    const hourly = await getHourlyEnergyHeatmap(birthDate, subscriptionDate); // Only first day, optional
+    const hourly = await getHourlyEnergyHeatmap(formattedBirthDate, subscriptionDate); // Only first day, optional
 
     // Build prompt
     console.log('📝 Building GPT prompt...');
