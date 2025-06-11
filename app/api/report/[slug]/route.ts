@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { SubscriptionTier } from '@/app/types/subscription';
+import { getBaseBaziVector } from '@/app/lib/energyCalculation2025';
+import { calculateProReportEnergy } from '@/app/lib/proReportCalculation';
+import { getDailyEnergyForRange, getHourlyEnergyHeatmap } from '@/app/lib/energyCalculation2025';
+import { buildMonthlyReportPrompt } from '@/app/lib/buildMonthlyReportPrompt';
+import { generateGptContent } from '@/app/lib/gptService';
 
 export const dynamic = 'force-dynamic';
 
@@ -8,95 +12,76 @@ export const dynamic = 'force-dynamic';
  * slug 形式： annual-basic-2025 | annual-premium-2025 | 2025-05
  * 注意：这是从/api/reports/[slug]复制而来的，保持两者功能同步
  */
-export async function GET(request: NextRequest, { params }: { params: { slug: string } }) {
-  const { slug } = params;
-  if (!slug) return NextResponse.json({ error: 'slug required' }, { status: 400 });
-
-  // 根据 slug 类型调用不同 API 生成，每次都重新生成
+export async function GET(req: NextRequest, { params }: { params:{ slug:string } }) {
   try {
-    if (slug.startsWith('annual-basic-')) {
-      // 免费年度简化版，调用年度生成 API，订阅层 free
-      const year = parseInt(slug.split('-').pop() || '0');
-      const birthDate = request.nextUrl.searchParams.get('birthDate') || '1990-01-01';
-      // 强制使用内部绝对路径调用API
-      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || request.nextUrl.origin;
-      const res = await fetch(`${baseUrl}/api/generate-energy-report`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          birthDate,
-          currentDate: new Date(`${year}-01-01`).toISOString(),
-          tier: 'free',
-          userId: 'anonymous',
-          forceRefresh: true // 强制刷新，不使用缓存
-        }),
-        cache: 'no-store' // 不使用浏览器缓存
-      });
-      if (!res.ok) {
-        const errorText = await res.text();
-        console.error(`[annual-basic-${year}] 年度报告API调用失败:`, errorText);
-        return NextResponse.json({ 
-          error: 'api_error',
-          message: 'Annual report generation service temporarily unavailable',
-          slug 
-        }, { status: 503 });
-      }
-      const data = await res.json();
-      return NextResponse.json({ slug, report: data.report });
+    const birthDate = req.nextUrl.searchParams.get('birthDate');
+    if (!birthDate) return NextResponse.json({ error:'Missing birthDate' }, { status:400 });
+
+    // 验证slug格式
+    const slug = params.slug;                // 形如 2025-05
+    if (!/^\d{4}-\d{2}$/.test(slug)) {
+      return NextResponse.json({ error:'Invalid slug format, expected YYYY-MM' }, { status:400 });
     }
 
-    if (/^\d{4}-\d{2}$/.test(slug)) {
-      // 月报 slug 如 2025-05
-      const [yearStr, monthStr] = slug.split('-');
-      const year = parseInt(yearStr);
-      const month = parseInt(monthStr);
-      const birthDate = request.nextUrl.searchParams.get('birthDate') || '1990-01-01';
-      
-      // 获取并验证订阅类型
-      const requestedTier = request.headers.get('x-tier') || 'free';
-      const validTiers: SubscriptionTier[] = ['free', 'plus', 'pro'];
-      const safeTier: SubscriptionTier = validTiers.includes(requestedTier as SubscriptionTier) 
-        ? requestedTier as SubscriptionTier 
-        : 'free';
-      
-      if (requestedTier !== safeTier) {
-        console.warn(`[report/${slug}] 请求中的订阅类型 "${requestedTier}" 无效，已转换为 "${safeTier}"`);
-      }
-      
-      // 强制使用内部绝对路径调用API
-      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || request.nextUrl.origin;
-      const res = await fetch(`${baseUrl}/api/generate-monthly-report`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache, no-store' 
-        },
-        body: JSON.stringify({
-          birthDate,
-          year,
-          month,
-          tier: safeTier,
-          userId: 'anonymous',
-          forceRefresh: true // 强制刷新，不使用缓存
-        }),
-        cache: 'no-store' // 不使用浏览器缓存
-      });
-      if (!res.ok) {
-        const errorText = await res.text();
-        console.error(`[report/${slug}] 月度报告API调用失败:`, errorText);
-        return NextResponse.json({ 
-          error: 'api_error',
-          message: 'Monthly report generation service temporarily unavailable',
-          slug 
-        }, { status: 503 });
-      }
-      const data = await res.json();
-      return NextResponse.json({ slug, report: data.report });
+    console.log(`📅 处理月度报告请求: ${slug}, 出生日期: ${birthDate}`);
+    
+    const startDate = new Date(`${slug}-01`);
+    if (isNaN(startDate.getTime())) {
+      return NextResponse.json({ error:'Invalid date in slug' }, { status:400 });
     }
 
-    return NextResponse.json({ error: 'unsupported slug' }, { status: 400 });
-  } catch (err: any) {
-    console.error('report slug error', err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    const subscriptionDate = new Date(startDate);
+    subscriptionDate.setDate(subscriptionDate.getDate() + 1);   // 订阅日+1 天
+
+    // 计算基础数据
+    console.log('🧮 计算基础八字数据...');
+    const baseBazi = getBaseBaziVector(birthDate);
+    
+    console.log('🔄 计算月度能量概览...');
+    const overview = calculateProReportEnergy(subscriptionDate, baseBazi);
+
+    // 获取每日能量数据
+    console.log('📈 获取每日能量数据...');
+    const monthDays = new Date(startDate.getFullYear(), startDate.getMonth()+1, 0).getDate();
+    const daily = await getDailyEnergyForRange(birthDate, subscriptionDate, monthDays);
+
+    // 获取小时能量数据
+    console.log('⏰ 获取小时能量数据...');
+    const hourly = await getHourlyEnergyHeatmap(birthDate, subscriptionDate); // 只取第一天，可选
+
+    // 构建提示词
+    console.log('📝 构建GPT提示词...');
+    const promptText = buildMonthlyReportPrompt({ overview, daily, hourly });
+    
+    // 使用generateGptContent而不是gptCall
+    console.log('🤖 调用GPT生成报告内容...');
+    const gptResponse = await generateGptContent({
+      section: 'monthlyReportPro', 
+      prompt: promptText,
+      userContext: { userId: 'anonymous' }
+    });
+
+    // 从GPT响应中提取内容
+    const reportText = gptResponse.content;
+    console.log(`✅ 报告生成成功，内容长度: ${reportText.length}字符, Token: ${gptResponse.totalTokens}`);
+
+    return NextResponse.json({ 
+      overview, 
+      daily, 
+      hourly, 
+      report: reportText, // 返回为report字段，与原API保持一致
+      tokens: {
+        prompt: gptResponse.promptTokens,
+        completion: gptResponse.completionTokens,
+        total: gptResponse.totalTokens
+      }
+    });
+  } catch (error: any) {
+    console.error('❌ 生成月度报告失败:', error);
+    return NextResponse.json({ 
+      error: 'api_error',
+      message: '月度报告生成服务暂时不可用',
+      details: error.message 
+    }, { status: 500 });
   }
 } 

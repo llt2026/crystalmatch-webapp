@@ -339,7 +339,7 @@ function MayReportContent() {
   const fetchReportData = async (userElements?: any, dailyData?: any[]) => {
       try {
         console.log('🔄 正在获取May 2025报告数据...');
-        // 尝试GPT建议的修改：从reports改为report
+        // 使用修改后的API路径
         const response = await fetch(`/api/report/2025-05?birthDate=${encodeURIComponent(birthDate)}`, {
           method: 'GET',
           headers: {
