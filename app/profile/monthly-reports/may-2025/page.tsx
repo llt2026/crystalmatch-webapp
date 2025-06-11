@@ -618,10 +618,10 @@ function MayReportContent() {
                 ) : gptReport.loading ? (
                   <div className="text-center py-2">
                     <div className="animate-spin inline-block w-4 h-4 border-t-2 border-purple-500 border-r-2 rounded-full mb-1"></div>
-                    <p className="text-xs text-purple-300">正在生成财务见解...</p>
+                    <p className="text-xs text-purple-300">Generating financial insights...</p>
                   </div>
                 ) : gptReport.error ? (
-                  <p className="text-xs text-red-400">无法加载财务见解</p>
+                  <p className="text-xs text-red-400">Unable to load financial insights</p>
                 ) : null}
               </div>
               
@@ -701,10 +701,10 @@ function MayReportContent() {
                 ) : gptReport.loading ? (
                   <div className="text-center py-2">
                     <div className="animate-spin inline-block w-4 h-4 border-t-2 border-purple-500 border-r-2 rounded-full mb-1"></div>
-                    <p className="text-xs text-purple-300">正在生成社交见解...</p>
+                    <p className="text-xs text-purple-300">Generating social insights...</p>
                   </div>
                 ) : gptReport.error ? (
-                  <p className="text-xs text-red-400">无法加载社交见解</p>
+                  <p className="text-xs text-red-400">Unable to load social insights</p>
                 ) : null}
               </div>
               
@@ -780,10 +780,10 @@ function MayReportContent() {
                 ) : gptReport.loading ? (
                   <div className="text-center py-2">
                     <div className="animate-spin inline-block w-4 h-4 border-t-2 border-purple-500 border-r-2 rounded-full mb-1"></div>
-                    <p className="text-xs text-purple-300">正在生成情绪分析...</p>
+                    <p className="text-xs text-purple-300">Generating mood analysis...</p>
                   </div>
                 ) : gptReport.error ? (
-                  <p className="text-xs text-red-400">无法加载情绪分析</p>
+                  <p className="text-xs text-red-400">Unable to load mood analysis</p>
                 ) : null}
               </div>
               
@@ -969,10 +969,10 @@ function MayReportContent() {
                 ) : gptReport.loading ? (
                   <div className="text-center py-2">
                     <div className="animate-spin inline-block w-4 h-4 border-t-2 border-purple-500 border-r-2 rounded-full mb-1"></div>
-                    <p className="text-xs text-purple-300">正在生成健康建议...</p>
+                    <p className="text-xs text-purple-300">Generating health recommendations...</p>
                   </div>
                 ) : gptReport.error ? (
-                  <p className="text-xs text-red-400">无法加载健康建议</p>
+                  <p className="text-xs text-red-400">Unable to load health recommendations</p>
                 ) : null}
               </div>
               
@@ -1067,10 +1067,10 @@ function MayReportContent() {
                 ) : gptReport.loading ? (
                   <div className="text-center py-2">
                     <div className="animate-spin inline-block w-4 h-4 border-t-2 border-purple-500 border-r-2 rounded-full mb-1"></div>
-                    <p className="text-xs text-purple-300">正在生成成长见解...</p>
+                    <p className="text-xs text-purple-300">Generating growth insights...</p>
                   </div>
                 ) : gptReport.error ? (
-                  <p className="text-xs text-red-400">无法加载成长见解</p>
+                  <p className="text-xs text-red-400">Unable to load growth insights</p>
                 ) : null}
               </div>
               
