@@ -615,9 +615,14 @@ function MayReportContent() {
                   <div dangerouslySetInnerHTML={{ __html: reportHTML }} />
                 ) : gptReport.insight ? (
                   <p>{gptReport.insight}</p>
-                ) : (
-                  <p>Loading financial insights...</p>
-                )}
+                ) : gptReport.loading ? (
+                  <div className="text-center py-2">
+                    <div className="animate-spin inline-block w-4 h-4 border-t-2 border-purple-500 border-r-2 rounded-full mb-1"></div>
+                    <p className="text-xs text-purple-300">正在生成财务见解...</p>
+                  </div>
+                ) : gptReport.error ? (
+                  <p className="text-xs text-red-400">无法加载财务见解</p>
+                ) : null}
               </div>
               
               {/* Pro Exclusive Section */}
@@ -693,9 +698,14 @@ function MayReportContent() {
               <div className="text-sm text-purple-200 mb-4">
                 {reportHTML ? (
                   <div dangerouslySetInnerHTML={{ __html: reportHTML }} />
-                ) : (
-                  <p>Loading social vibes insights...</p>
-                )}
+                ) : gptReport.loading ? (
+                  <div className="text-center py-2">
+                    <div className="animate-spin inline-block w-4 h-4 border-t-2 border-purple-500 border-r-2 rounded-full mb-1"></div>
+                    <p className="text-xs text-purple-300">正在生成社交见解...</p>
+                  </div>
+                ) : gptReport.error ? (
+                  <p className="text-xs text-red-400">无法加载社交见解</p>
+                ) : null}
               </div>
               
               {/* Pro Exclusive Section */}
@@ -762,9 +772,20 @@ function MayReportContent() {
                 <span className="text-lg mr-2">🌙</span>
                 <h3 className="text-lg font-medium">Mood Balance</h3>
               </div>
-              <p className="text-sm text-purple-200 mb-4">
-                Your emotional energy fluctuates this month with clear peaks and valleys to be aware of.
-              </p>
+              
+              {/* Render GPT-generated mood content */}
+              <div className="text-sm text-purple-200 mb-4">
+                {reportHTML ? (
+                  <div dangerouslySetInnerHTML={{ __html: reportHTML }} />
+                ) : gptReport.loading ? (
+                  <div className="text-center py-2">
+                    <div className="animate-spin inline-block w-4 h-4 border-t-2 border-purple-500 border-r-2 rounded-full mb-1"></div>
+                    <p className="text-xs text-purple-300">正在生成情绪分析...</p>
+                  </div>
+                ) : gptReport.error ? (
+                  <p className="text-xs text-red-400">无法加载情绪分析</p>
+                ) : null}
+              </div>
               
               {/* Mood peak periods */}
               <div className="space-y-3 mb-5">
@@ -940,12 +961,24 @@ function MayReportContent() {
                 <span className="text-lg mr-2">🔥</span>
                 <h3 className="text-lg font-medium">Body Fuel</h3>
               </div>
+              
+              {/* Render GPT-generated health content */}
+              <div className="text-sm text-purple-200 mb-4">
+                {reportHTML ? (
+                  <div dangerouslySetInnerHTML={{ __html: reportHTML }} />
+                ) : gptReport.loading ? (
+                  <div className="text-center py-2">
+                    <div className="animate-spin inline-block w-4 h-4 border-t-2 border-purple-500 border-r-2 rounded-full mb-1"></div>
+                    <p className="text-xs text-purple-300">正在生成健康建议...</p>
+                  </div>
+                ) : gptReport.error ? (
+                  <p className="text-xs text-red-400">无法加载健康建议</p>
+                ) : null}
+              </div>
+              
               {/* Monthly recommendations section - only show if we have element data */}
               {userElements && userElements.water !== undefined ? (
                 <>
-                  <p className="text-sm text-purple-200 mb-4">
-                    Based on your elemental analysis, here are personalized health recommendations.
-                  </p>
                   
                   <div className="space-y-3 mb-5">
                     <h4 className="text-sm font-medium text-white mb-2">Monthly Recommendations</h4>
@@ -977,11 +1010,7 @@ function MayReportContent() {
                     )}
                   </div>
                 </>
-              ) : (
-                <p className="text-sm text-purple-200 mb-4">
-                  Loading personalized health analysis...
-                </p>
-              )}
+              ) : null}
               
               {/* Pro Exclusive Section */}
               <div className="mt-5 pt-4 border-t border-purple-900/30">
@@ -1015,9 +1044,7 @@ function MayReportContent() {
                             })}
                           </div>
                         </>
-                      ) : (
-                        <p className="text-xs">Loading personalized exercise plan...</p>
-                      )}
+                      ) : null}
                     </div>
                   </div>
                 </div>
@@ -1032,12 +1059,20 @@ function MayReportContent() {
                 <span className="text-lg mr-2">🚀</span>
                 <h3 className="text-lg font-medium">Growth Track</h3>
               </div>
-              <p className="text-sm text-purple-200 mb-4">
-                {userElements ? 
-                  `Based on your elemental analysis, focus on ${deficientElements.length > 0 ? 'strengthening ' + deficientElements.slice(0,2).join(' and ') + ' elements' : 'maintaining your balanced energy'} this month.` :
-                  'Loading personalized growth insights...'
-                }
-              </p>
+              
+              {/* Render GPT-generated growth content */}
+              <div className="text-sm text-purple-200 mb-4">
+                {reportHTML ? (
+                  <div dangerouslySetInnerHTML={{ __html: reportHTML }} />
+                ) : gptReport.loading ? (
+                  <div className="text-center py-2">
+                    <div className="animate-spin inline-block w-4 h-4 border-t-2 border-purple-500 border-r-2 rounded-full mb-1"></div>
+                    <p className="text-xs text-purple-300">正在生成成长见解...</p>
+                  </div>
+                ) : gptReport.error ? (
+                  <p className="text-xs text-red-400">无法加载成长见解</p>
+                ) : null}
+              </div>
               
               {/* 7-Day Challenge - Dynamic based on GPT content or element analysis */}
               <div className="space-y-3 mb-5">
@@ -1065,9 +1100,7 @@ function MayReportContent() {
                       </div>
                     </div>
                   </div>
-                ) : (
-                  <p className="text-sm text-purple-300">Loading personalized challenges...</p>
-                )}
+                ) : null}
               </div>
               
               {/* Pro Exclusive Section */}
