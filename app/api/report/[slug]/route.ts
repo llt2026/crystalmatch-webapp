@@ -134,7 +134,18 @@ export async function GET(req: NextRequest, { params }: { params:{ slug:string }
     const baseBazi = getBaseBaziVector(formattedBirthDate);
     
     console.log('🔄 Calculating monthly energy overview...');
-    const overview = calculateProReportEnergy(subscriptionDate, baseBazi);
+    const energyResult = calculateProReportEnergy(subscriptionDate, baseBazi);
+    
+    // Transform energy result to match expected overview structure
+    const overview = {
+      title: `${energyResult.energyMode} ${energyResult.energyEmoji}`,
+      energyScore: energyResult.score,
+      strongestElement: energyResult.dominantElement.toLowerCase(),
+      weakestElement: energyResult.weakestElement.toLowerCase(),
+      periodStart: startDate.toISOString().split('T')[0],
+      periodEnd: new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0).toISOString().split('T')[0],
+      vector: baseBazi // Include the base bazi vector for element calculations
+    };
 
     // Get daily energy data
     console.log('📈 Getting daily energy data...');

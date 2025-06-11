@@ -29,7 +29,7 @@ export const modelConfigs: Record<string, ModelConfig> = {
     model: 'gpt-4o',
     temperature: 0.7,
     maxTokens: 3000,
-    systemPrompt: 'You are an expert energy analyst specializing in monthly energy patterns and predictions.'
+    systemPrompt: 'You are an expert English-speaking energy analyst for US customers. Always respond in English only. You specialize in monthly energy patterns and predictions.'
   },
   
   // Monthly report (Plus)

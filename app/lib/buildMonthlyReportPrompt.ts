@@ -12,22 +12,26 @@ function buildMonthlyReportPrompt(
   // Extract key information from context with default values to prevent null values
   const {
     overview = { 
-      currentMonth: { start: '', energyType: '' },
-      currentYear: { year: new Date().getFullYear() }
+      periodStart: '',
+      title: '',
+      energyScore: 0
     },
     daily = [],
     hourly = []
   } = context || {};
   
   // Extract month name and year from date string
-  const monthName = overview.currentMonth?.start ? 
-    new Date(overview.currentMonth.start).toLocaleDateString('en-US', { month: 'long' }) : 
+  const monthName = overview.periodStart ? 
+    new Date(overview.periodStart).toLocaleDateString('en-US', { month: 'long' }) : 
     'Unknown';
-  const year = overview.currentYear?.year || new Date().getFullYear();
-  const energyType = overview.currentMonth?.energyType || '';
+  const year = overview.periodStart ? new Date(overview.periodStart).getFullYear() : new Date().getFullYear();
+  const energyType = overview.title || 'Monthly Energy';
   
   // Build main prompt
   const prompt = `
+CRITICAL INSTRUCTIONS: You are an English-speaking energy consultant for US market. 
+ALWAYS respond in ENGLISH ONLY. Never use Chinese, Mandarin, or any non-English languages.
+
 You are a supportive energy consultant providing personalized insights and gentle guidance.
 Create a monthly energy report with a conversational, friendly tone that offers possibilities rather than directives.
 
@@ -90,6 +94,8 @@ Language to avoid:
 - Never use: "You will", "You must", "You should", "You need to", "This means", "You definitely are"
 - Avoid absolute statements or commands
 - Don't make definitive predictions about what will happen
+
+FINAL REMINDER: Your response must be 100% in English. This is for US customers. No Chinese characters allowed.
 `;
 
   return prompt;
