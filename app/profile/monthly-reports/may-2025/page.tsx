@@ -339,7 +339,8 @@ function MayReportContent() {
   const fetchReportData = async (userElements?: any, dailyData?: any[]) => {
       try {
         console.log('🔄 正在获取May 2025报告数据...');
-        const response = await fetch(`/api/reports/2025-05?birthDate=${encodeURIComponent(birthDate)}`, {
+        // 尝试GPT建议的修改：从reports改为report
+        const response = await fetch(`/api/report/2025-05?birthDate=${encodeURIComponent(birthDate)}`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -350,12 +351,15 @@ function MayReportContent() {
         });
 
         if (!response.ok) {
+          console.error(`❌ API响应状态码错误: ${response.status} ${response.statusText}`);
           throw new Error(`Failed to fetch report: ${response.status}`);
         }
 
         const data = await response.json();
+        console.log('📊 API响应数据:', data);
         
         if (data.error) {
+          console.error('❌ API返回错误:', data.error, data.message || '无错误信息');
           setGptReport({
             loading: false,
             error: data.message || data.error,
