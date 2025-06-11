@@ -1,400 +1,191 @@
-/**
- * April 2025 Monthly Deep Report Page - Plus Version
- */
+/** Monthly APR-2025 report (Pro, UI-only) */
 'use client';
 
-// Set page to dynamic rendering, disable static generation
 export const dynamic = 'force-dynamic';
-export const dynamicParams = true;
 export const revalidate = 0;
 
-import React, { Suspense, useState, useEffect } from 'react';
+import React, { Suspense, useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import { redirect } from 'next/navigation';
+import { marked } from 'marked';
 
-// Type for element
-type ElementType = 'water' | 'fire' | 'earth' | 'metal' | 'wood';
+import { ENERGY_CONFIG, type ElementType } from '@/app/lib/energyCalculationConfig';
+import {
+  getCrystalForElement,
+  getElementDescription,
+  getElementIcon,
+  getElementColorClass,
+} from '@/app/lib/elementHelpers';
+import { FiveElementVector } from '@/app/lib/energyCalculation2025';
 
-// Add GPT Report interface
+const {
+  HOUR_THRESHOLD,
+  MAX_PEAK_DAYS,
+  MAX_LOW_DAYS,
+  MAX_HIGH_ENERGY_HOURS,
+  ELEMENT_ACTIVITIES,
+  ELEMENT_EXERCISES,
+  ELEMENT_CHALLENGES,
+} = ENERGY_CONFIG;
+
 interface GPTReport {
   title?: string;
-  insight?: string;
-  challenges?: string[];
-  crystals?: Array<{name: string, benefit: string}>;
-  ritual?: string;
-  guidance?: string[];
-  loading: boolean;
-  error?: string;
   energyScore?: number;
   strongestElement?: ElementType;
   weakestElement?: ElementType;
+  deficientElements?: ElementType[];
+  periodStart?: string;
+  periodEnd?: string;
+  loading: boolean;
+  error?: string;
 }
 
-// Extract useSearchParams component to a separate component
-function AprilReportContent() {
-  const searchParams = useSearchParams();
-  const birthDate = searchParams?.get('birthDate') || '';
-  
-  // Calculate date range (US format: MM/DD/YYYY)
-  const startDate = "04/01/2025";
-  const endDate = "04/30/2025";
-  const dateRange = `${startDate} - ${endDate}`;
-  
-  // State for expanding the full calendar
-  const [showFullCalendar, setShowFullCalendar] = useState(false);
-  
-  // State for active aspect
-  const [activeAspect, setActiveAspect] = useState('growth');
-  
-  // State for feedback modal
-  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
-  const [feedbackType, setFeedbackType] = useState('');
-  const [additionalFeedback, setAdditionalFeedback] = useState('');
-  const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState('');
-  
-  // State for GPT generated report content
-  const [gptReport, setGptReport] = useState<GPTReport>({
-    loading: true,
-    energyScore: 0,
-    strongestElement: 'wood',
-    weakestElement: 'earth'
-  });
+interface DailyEnergyData {
+  date: Date;
+  energyChange: number;
+  trend: 'up' | 'down' | 'stable';
+  element?: ElementType;
+  crystal?: string;
+  score?: number;
+}
 
-  // Fetch GPT report data when component loads
+interface HourlyEnergyData {
+  hour: number;
+  energyChange: number;
+  trend: 'up' | 'down' | 'stable';
+  score?: number;
+}
+
+const Skeleton = () => <div className="text-purple-300 p-10">Loading…</div>;
+
+function ReportContent() {
+  const searchParams = useSearchParams();
+  const birthDate = searchParams?.get('birthDate');
+  
+  if (!birthDate) {
+    redirect('/profile');
+  }
+
+  const [gpt, setGpt] = useState<GPTReport>({ loading: true });
+  const [daily, setDaily] = useState<DailyEnergyData[]>([]);
+  const [hourly, setHourly] = useState<HourlyEnergyData[]>([]);
+  const [reportHTML, setReportHTML] = useState('');
+  const [tab, setTab] = useState<'finance'|'relationship'|'mood'|'health'|'growth'>('relationship');
+  const [showFull, setShowFull] = useState(false);
+
   useEffect(() => {
-    async function fetchReportData() {
+    async function fetchData() {
       try {
-        console.log('Fetching report data for April 2025...');
-        // 添加时间戳确保不使用缓存
-        const timestamp = new Date().getTime();
-        const apiUrl = `/api/reports/2025-04?birthDate=${encodeURIComponent(birthDate || '1990-01-01')}&_t=${timestamp}`;
+        const slug = window.location.pathname.match(/(\w+)-(\d{4})/)![0];
+        const [month, year] = slug.split('-');
+        const monthMap: Record<string, string> = {
+          'january': '01', 'jan': '01', 'february': '02', 'feb': '02',
+          'march': '03', 'mar': '03', 'april': '04', 'apr': '04',
+          'may': '05', 'june': '06', 'jun': '06', 'july': '07', 'jul': '07',
+          'august': '08', 'aug': '08', 'september': '09', 'sep': '09',
+          'october': '10', 'oct': '10', 'november': '11', 'nov': '11',
+          'december': '12', 'dec': '12'
+        };
+        const apiSlug = `${year}-${monthMap[month.toLowerCase()]}`;
         
-        console.log('API URL:', apiUrl);
-        
-        const response = await fetch(apiUrl, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            'Pragma': 'no-cache',
-            'Expires': '0',
-            'x-tier': 'plus' // Ensure we get plus-level content
-          },
+        const res = await fetch(`/api/report/${apiSlug}?birthDate=${encodeURIComponent(birthDate)}`, {
           cache: 'no-store'
         });
-
-        console.log('Response status:', response.status);
         
-        if (!response.ok) {
-          throw new Error(`Failed to fetch report: ${response.status}`);
-        }
-
-        const data = await response.json();
-        console.log('Received report data structure:', Object.keys(data));
-        
-        // 检查调试信息
-        if (data.debug) {
-          console.log('API Debug info:', data.debug);
+        if (!res.ok) {
+          throw new Error(`API request failed: ${res.status}`);
         }
         
-        // 检查错误信息
+        const data = await res.json();
+        
         if (data.error) {
-          console.error('API Error:', data.error);
+          throw new Error(data.message || data.error);
         }
-
-        if (data.report) {
-          console.log('Report content first 100 chars:', data.report.substring(0, 100));
-          
-          // Parse the markdown content
-          const reportContent = data.report;
-          
-          // Extract title
-          const titleMatch = reportContent.match(/# 🔮 .* — (.*)/);
-          console.log('Title match:', titleMatch);
-          const title = titleMatch ? titleMatch[1] : 'Energy Focus';
-          
-          // Extract insight
-          const insightMatch = reportContent.match(/## 🌟 Energy Insight\n([\s\S]*?)(?=##)/);
-          console.log('Insight match:', insightMatch ? 'found' : 'not found');
-          const insight = insightMatch ? insightMatch[1].trim() : '';
-          
-          // Extract challenges
-          const challengesMatch = reportContent.match(/## ⚠️ (?:Potential )?Challenges\n([\s\S]*?)(?=##)/);
-          console.log('Challenges match:', challengesMatch ? 'found' : 'not found');
-          const challengesText = challengesMatch ? challengesMatch[1] : '';
-          const challenges = challengesText
-            .split('\n')
-            .filter((line: string) => line.trim().startsWith('-'))
-            .map((line: string) => line.replace('-', '').trim());
-          console.log('Parsed challenges:', challenges.length);
-          
-          // Extract crystals
-          const crystalsMatch = reportContent.match(/## 💎 (?:Monthly )?Crystals(?: to Consider)?\n([\s\S]*?)(?=##)/);
-          console.log('Crystals match:', crystalsMatch ? 'found' : 'not found');
-          const crystalsText = crystalsMatch ? crystalsMatch[1] : '';
-          const crystals = crystalsText
-            .split('\n')
-            .filter((line: string) => line.trim().startsWith('-'))
-            .map((line: string) => {
-              const parts = line.replace('-', '').trim().split('—');
-              return {
-                name: parts[0].trim(),
-                benefit: parts.length > 1 ? parts[1].trim() : ''
-              };
-            });
-          console.log('Parsed crystals:', crystals.length);
-          
-          // Extract ritual
-          const ritualMatch = reportContent.match(/## ✨ (?:Ritual|Practice)(?: to Explore)?.*\n([\s\S]*?)(?=##|$)/);
-          console.log('Ritual match:', ritualMatch ? 'found' : 'not found');
-          const ritual = ritualMatch ? ritualMatch[1].trim() : '';
-          
-          // Extract guidance
-          const guidanceMatch = reportContent.match(/## 🧭 Monthly (?:Guidance|Possibilities)\n([\s\S]*?)(?=$)/);
-          console.log('Guidance match:', guidanceMatch ? 'found' : 'not found');
-          const guidanceText = guidanceMatch ? guidanceMatch[1] : '';
-          const guidance = guidanceText
-            .split('\n')
-            .filter((line: string) => line.trim().startsWith('✅') || line.trim().startsWith('🚫'))
-            .map((line: string) => line.trim());
-          console.log('Parsed guidance:', guidance.length);
-          
-          // 提取能量分数 (从文本中解析)
-          // 使用更宽松的匹配
-          const scoreMatch = reportContent.match(/Energy Score[^\d]*(\d+)/i) || 
-                             reportContent.match(/Overall Energy[^\d]*(\d+)/i) ||
-                             reportContent.match(/Energy[^\d]*(\d+)/i) ||
-                             reportContent.match(/Score[^\d]*(\d+)/i) ||
-                             reportContent.match(/(\d+)[^\d]*\/[^\d]*100/);
-                             
-          console.log('Score match:', scoreMatch);
-          const energyScore = scoreMatch ? parseInt(scoreMatch[1]) : 76;
-          console.log('Parsed energy score:', energyScore);
-          
-          // 提取强元素和弱元素 (从文本中解析)
-          // 使用更宽松的匹配
-          const strongestMatch = reportContent.match(/Strongest Element[^\w]*(Water|Fire|Earth|Metal|Wood)/i) ||
-                               reportContent.match(/Strong[^\w]*(Water|Fire|Earth|Metal|Wood)/i) ||
-                               reportContent.match(/Dominant[^\w]*(Water|Fire|Earth|Metal|Wood)/i);
-                               
-          const weakestMatch = reportContent.match(/Weakest Element[^\w]*(Water|Fire|Earth|Metal|Wood)/i) ||
-                              reportContent.match(/Weak[^\w]*(Water|Fire|Earth|Metal|Wood)/i) ||
-                              reportContent.match(/Missing[^\w]*(Water|Fire|Earth|Metal|Wood)/i);
-                              
-          console.log('Strongest match:', strongestMatch);
-          console.log('Weakest match:', weakestMatch);
-          
-          // 将提取的元素转换为小写并作为ElementType
-          const strongestElement = strongestMatch 
-            ? strongestMatch[1].toLowerCase() as ElementType 
-            : 'wood';
-          
-          const weakestElement = weakestMatch 
-            ? weakestMatch[1].toLowerCase() as ElementType 
-            : 'earth';
-            
-          console.log('Final parsed data:', {
-            title,
-            insightLength: insight.length,
-            challengesCount: challenges.length,
-            crystalsCount: crystals.length,
-            ritualLength: ritual.length,
-            guidanceCount: guidance.length,
-            energyScore,
-            strongestElement,
-            weakestElement
-          });
-          
-          setGptReport({
-            title,
-            insight,
-            challenges,
-            crystals,
-            ritual,
-            guidance,
-            loading: false,
-            energyScore,
-            strongestElement,
-            weakestElement
-          });
-        } else {
-          console.error('Report data is missing in API response');
-          throw new Error('Report data is missing');
+        
+        const { overview, daily: dailyData, hourly: hourlyData, report } = data;
+        
+        setGpt({ ...overview, loading: false });
+        setDaily(dailyData || []);
+        setHourly(hourlyData || []);
+        
+        if (report) {
+          const html = marked.parse(report.toString()) as string;
+          setReportHTML(html);
         }
       } catch (error) {
-        console.error('Error fetching report:', error);
-        setGptReport({
+        setGpt({
           loading: false,
-          error: 'Failed to load report. Please try again later.',
-          energyScore: 0,
-          strongestElement: 'wood',
-          weakestElement: 'earth'
+          error: error instanceof Error ? error.message : 'Loading failed'
         });
       }
     }
-
-    fetchReportData();
+    
+    fetchData();
   }, [birthDate]);
-  
-  // Function to open feedback modal with specified type
-  const openFeedbackModal = (type: string) => {
-    setFeedbackType(type);
-    setShowFeedbackModal(true);
-  };
-  
-  // Function to handle checkbox selection
-  const handleOptionSelect = (option: string) => {
-    setSelectedOptions(prev => 
-      prev.includes(option) 
-        ? prev.filter(item => item !== option) 
-        : [...prev, option]
-    );
-  };
-  
-  // Function to handle feedback submission
-  const handleFeedbackSubmit = async () => {
-    try {
-      setIsSubmitting(true);
-      setSubmitError('');
-      
-      // 获取用户ID，如果可用的话
-      const userId = localStorage.getItem('userId') || 'anonymous';
-      
-      // 准备要发送的数据
-      const feedbackData = {
-        userId,
-        feedbackType,
-        reportType: 'Plus - April 2025', // 当前报告类型
-        content: additionalFeedback,
-        options: selectedOptions
-      };
-      
-      // 发送到API
-      const response = await fetch('/api/feedback', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(feedbackData)
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || '提交反馈失败');
-      }
-      
-      // 成功提交
-      console.log('Feedback submitted successfully');
-      
-      // 重置并关闭模态框
-      setAdditionalFeedback('');
-      setSelectedOptions([]);
-      setShowFeedbackModal(false);
-    } catch (error) {
-      console.error('Error submitting feedback:', error);
-      setSubmitError(error instanceof Error ? error.message : '提交反馈失败');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-  
-  // Helper function to get crystal for each element
-  const getCrystalForElement = (element: ElementType) => {
-    const crystalMap = {
-      'water': { name: 'Clear Quartz', color: 'text-blue-300', bgColor: 'bg-blue-900/50' },
-      'fire': { name: 'Red Jasper', color: 'text-red-300', bgColor: 'bg-red-900/50' },
-      'earth': { name: 'Amethyst', color: 'text-purple-300', bgColor: 'bg-purple-900/50' },
-      'metal': { name: 'Citrine', color: 'text-yellow-300', bgColor: 'bg-yellow-900/50' },
-      'wood': { name: 'Green Jade', color: 'text-green-300', bgColor: 'bg-green-900/50' }
-    };
-    return crystalMap[element] || crystalMap.water;
-  };
-  
-  // Function to determine daily element based on day number
-  const getDailyElement = (day: number): ElementType => {
-    const elements: ElementType[] = ['water', 'fire', 'earth', 'metal', 'wood'];
-    return elements[day % 5];
-  };
 
-  // Function to get element color class based on element type
-  const getElementColorClass = (element: ElementType): {bg: string, text: string} => {
-    const colorMap = {
-      'water': { bg: 'bg-blue-900/40', text: 'text-blue-300' },
-      'fire': { bg: 'bg-red-900/40', text: 'text-red-300' },
-      'earth': { bg: 'bg-yellow-900/40', text: 'text-yellow-300' },
-      'metal': { bg: 'bg-purple-900/40', text: 'text-purple-300' },
-      'wood': { bg: 'bg-green-900/40', text: 'text-green-300' }
-    };
-    return colorMap[element] || colorMap.water;
-  };
-  
-  // 获取元素显示名称
-  const getElementDisplayName = (element: ElementType): string => {
-    const elementNames = {
-      'water': 'Water',
-      'fire': 'Fire',
-      'earth': 'Earth',
-      'metal': 'Metal',
-      'wood': 'Wood'
-    };
-    return elementNames[element] || 'Unknown';
-  };
-  
-  // 获取元素对应的emoji
-  const getElementEmoji = (element: ElementType): string => {
-    const elementEmojis = {
-      'water': '💧',
-      'fire': '🔥',
-      'earth': '🪨',
-      'metal': '⚙️',
-      'wood': '🌿'
-    };
-    return elementEmojis[element] || '✨';
-  };
-  
-  // 获取元素对应的能量类型描述
-  const getElementEnergyType = (element: ElementType): string => {
-    const energyTypes = {
-      'water': 'Fluid Energy',
-      'fire': 'Passion Energy',
-      'earth': 'Stability Energy',
-      'metal': 'Clarity Energy',
-      'wood': 'Growth Energy'
-    };
-    return energyTypes[element] || 'Balanced Energy';
-  };
-  
-  // Show loading state if the report is still loading
-  if (gptReport.loading) {
+  const peakDays = useMemo(() => {
+    if (!daily.length) return [];
+    return daily
+      .filter(day => day.score !== undefined)
+      .map((day, index) => ({ index: index + 1, score: day.score! }))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, MAX_PEAK_DAYS)
+      .map(item => item.index);
+  }, [daily]);
+
+  const lowDays = useMemo(() => {
+    if (!daily.length) return [];
+    return daily
+      .filter(day => day.score !== undefined)
+      .map((day, index) => ({ index: index + 1, score: day.score! }))
+      .sort((a, b) => a.score - b.score)
+      .slice(0, MAX_LOW_DAYS)
+      .map(item => item.index);
+  }, [daily]);
+
+  const deficient = useMemo((): ElementType[] => {
+    if (gpt.deficientElements && Array.isArray(gpt.deficientElements)) {
+      return gpt.deficientElements;
+    }
+    return [];
+  }, [gpt.deficientElements]);
+
+  if (gpt.loading) {
     return (
-      <main className="min-h-screen bg-gradient-to-br from-indigo-800 to-black py-8 px-4 text-white">
+      <main className="min-h-screen bg-gradient-to-br from-purple-900 to-black py-8 px-4 text-white">
         <div className="max-w-md mx-auto flex items-center justify-center h-[80vh]">
           <div className="text-center">
-            <div className="animate-spin inline-block w-8 h-8 border-t-2 border-indigo-500 border-r-2 rounded-full mb-4"></div>
+            <div className="animate-spin inline-block w-8 h-8 border-t-2 border-purple-500 border-r-2 rounded-full mb-4"></div>
             <p>Loading your personalized energy report...</p>
           </div>
         </div>
       </main>
     );
   }
-  
-  // Show error state if there was an error loading the report
-  if (gptReport.error) {
+
+  if (gpt.error) {
     return (
-      <main className="min-h-screen bg-gradient-to-br from-indigo-800 to-black py-8 px-4 text-white">
+      <main className="min-h-screen bg-gradient-to-br from-purple-900 to-black py-8 px-4 text-white">
         <div className="max-w-md mx-auto flex items-center justify-center h-[80vh]">
-          <div className="text-center">
-            <div className="text-red-500 text-4xl mb-4">⚠️</div>
-            <p className="text-xl mb-2">Report Generation Error</p>
-            <p>{gptReport.error}</p>
-            <button 
-              onClick={() => window.location.reload()}
-              className="mt-4 px-4 py-2 bg-indigo-700 hover:bg-indigo-600 rounded-md text-sm font-medium transition-colors"
-            >
-              Try Again
-            </button>
+          <div className="text-center space-y-4">
+            <div className="text-red-500 text-4xl">🔧</div>
+            <h2 className="text-xl font-semibold">Report Temporarily Unavailable</h2>
+            <p className="text-sm text-red-200">{gpt.error}</p>
+            <div className="flex gap-3">
+              <button 
+                onClick={() => window.location.reload()}
+                className="px-4 py-2 bg-purple-700 hover:bg-purple-600 rounded-md text-sm font-medium transition-colors"
+              >
+                🔄 Try Again
+              </button>
+              <Link 
+                href="/profile"
+                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-md text-sm font-medium transition-colors"
+              >
+                ← Back to Profile
+              </Link>
+            </div>
           </div>
         </div>
       </main>
@@ -402,189 +193,194 @@ function AprilReportContent() {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-indigo-800 to-black py-8 px-4 text-white">
+    <main className="min-h-screen bg-gradient-to-br from-purple-900 to-black py-8 px-4 text-white">
       <div className="max-w-md mx-auto space-y-6">
-        {/* Header */}
         <header className="text-center mb-8">
-          <h1 className="text-2xl font-bold">CrystalMatch Monthly Energy Report (Plus)</h1>
-          <p className="text-indigo-300 mt-1">{dateRange}</p>
+          <h1 className="text-2xl font-bold">CrystalMatch Monthly Energy Report (Pro)</h1>
+          <p className="text-purple-300 mt-1">
+            {gpt.periodStart && gpt.periodEnd 
+              ? `${gpt.periodStart} - ${gpt.periodEnd}` 
+              : "Loading..."}
+          </p>
         </header>
         
-        {/* Back button */}
         <div className="mb-6">
-          <Link href="/profile" className="text-indigo-300 hover:text-white flex items-center w-fit">
+          <Link href="/profile" className="text-purple-300 hover:text-white flex items-center w-fit">
             ← Back to Profile
           </Link>
         </div>
         
-        {/* Energy Overview */}
         <div className="bg-black/30 backdrop-blur-sm rounded-xl p-5 space-y-3">
           <h2 className="text-lg font-semibold text-center">Energy Overview</h2>
           
           <div className="text-center">
-            <div className="text-3xl font-bold">{gptReport.energyScore} / 100</div>
-            <div className="mt-1 text-indigo-300">{gptReport.title || "Energy Focus"} ✨</div>
+            <div className="text-3xl font-bold">{gpt.energyScore ? `${gpt.energyScore} / 100` : '--'}</div>
+            <div className="mt-1 text-purple-300">{gpt.title || "Loading..."} ✨</div>
           </div>
           
-          {/* Enhanced progress bar */}
           <div className="mt-3 relative">
             <div className="w-full h-3 bg-gray-700 rounded-full overflow-hidden">
               <div 
-                className="h-full bg-gradient-to-r from-indigo-500 to-blue-600 rounded-full" 
-                style={{ width: `${gptReport.energyScore}%` }}
-              >
-              </div>
+                className="h-full bg-gradient-to-r from-purple-500 to-indigo-600 rounded-full" 
+                style={{ width: `${gpt.energyScore || 0}%` }}
+              />
             </div>
           </div>
           
           <div className="flex justify-around mt-4">
             <div className="text-center">
               <div className="font-medium">Strongest Element</div>
-              <div className="flex items-center justify-center gap-1 mt-1">
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getElementColorClass(gptReport.strongestElement || 'wood').bg} ${getElementColorClass(gptReport.strongestElement || 'wood').text.replace('text-', 'text-')}-200`}>
-                  {getElementEmoji(gptReport.strongestElement || 'wood')} {getElementDisplayName(gptReport.strongestElement || 'wood')}
-                </span>
-              </div>
-              <div className={`text-xs ${getElementColorClass(gptReport.strongestElement || 'wood').text} mt-1 font-medium`}>
-                {getElementEnergyType(gptReport.strongestElement || 'wood')}
-              </div>
+              {gpt.strongestElement ? (
+                <>
+                  <div className="flex items-center justify-center gap-1 mt-1">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getElementColorClass(gpt.strongestElement).bg} ${getElementColorClass(gpt.strongestElement).text}`}>
+                      {getElementIcon(gpt.strongestElement)} {gpt.strongestElement.charAt(0).toUpperCase() + gpt.strongestElement.slice(1)}
+                    </span>
+                  </div>
+                  <div className={`text-xs mt-1 font-medium ${getElementColorClass(gpt.strongestElement).text}`}>
+                    {getElementDescription(gpt.strongestElement)}
+                  </div>
+                </>
+              ) : (
+                <div className="text-xs text-gray-400 mt-1">Loading...</div>
+              )}
             </div>
             <div className="text-center">
               <div className="font-medium">Weakest Element</div>
-              <div className="flex items-center justify-center gap-1 mt-1">
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getElementColorClass(gptReport.weakestElement || 'earth').bg} ${getElementColorClass(gptReport.weakestElement || 'earth').text.replace('text-', 'text-')}-200`}>
-                  {getElementEmoji(gptReport.weakestElement || 'earth')} {getElementDisplayName(gptReport.weakestElement || 'earth')}
-                </span>
-              </div>
-              <div className={`text-xs ${getElementColorClass(gptReport.weakestElement || 'earth').text} mt-1 font-medium`}>
-                {getElementEnergyType(gptReport.weakestElement || 'earth')}
-              </div>
+              {gpt.weakestElement ? (
+                <>
+                  <div className="flex items-center justify-center gap-1 mt-1">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getElementColorClass(gpt.weakestElement).bg} ${getElementColorClass(gpt.weakestElement).text}`}>
+                      {getElementIcon(gpt.weakestElement)} {gpt.weakestElement.charAt(0).toUpperCase() + gpt.weakestElement.slice(1)}
+                    </span>
+                  </div>
+                  <div className={`text-xs mt-1 font-medium ${getElementColorClass(gpt.weakestElement).text}`}>
+                    {getElementDescription(gpt.weakestElement)}
+                  </div>
+                </>
+              ) : (
+                <div className="text-xs text-gray-400 mt-1">Loading...</div>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Crystal Recommendations */}
         <div className="bg-black/30 backdrop-blur-sm rounded-xl p-5">
-          <h2 className="text-lg font-semibold mb-4 text-center">Crystal Recommendations</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-medium">Daily Energy Calendar</h3>
+            <button 
+              onClick={() => setShowFull(!showFull)}
+              className="text-purple-300 hover:text-white text-sm"
+            >
+              {showFull ? 'Show Less' : 'Show All'}
+            </button>
+          </div>
           
-          <div className="grid grid-cols-2 gap-3">
-            <div className="bg-indigo-900/20 p-3 rounded-lg">
-              <h3 className="font-medium text-sm mb-1">Primary Crystal</h3>
-              <div className="flex items-center mb-1.5">
-                <span className="text-lg mr-2">💎</span>
-                <span className="text-sm">{gptReport.crystals && gptReport.crystals.length > 0 ? gptReport.crystals[0].name : "Clear Quartz"}</span>
+          <div className="grid grid-cols-7 gap-1 text-xs">
+            {daily.slice(0, showFull ? daily.length : 5).map((day, index) => (
+              <div key={index} className="text-center p-2 rounded bg-purple-900/20">
+                <div className="font-medium">{index + 1}</div>
+                <div className={`text-xs ${day.score && day.score >= 70 ? 'text-green-400' : day.score && day.score <= 40 ? 'text-red-400' : 'text-yellow-400'}`}>
+                  {day.score || '--'}
+                </div>
               </div>
-              <p className="text-xs text-indigo-200">
-                {gptReport.crystals && gptReport.crystals.length > 0 ? gptReport.crystals[0].benefit : "Amplifies your natural energy while helping to balance areas where you may feel depleted."}
-              </p>
+            ))}
+          </div>
+        </div>
+
+        <div className="bg-black/30 backdrop-blur-sm rounded-xl">
+          <div className="flex border-b border-purple-900/30">
+            {[
+              { key: 'finance', icon: '💰', label: 'Money Flow' },
+              { key: 'relationship', icon: '👥', label: 'Social Vibes' },
+              { key: 'mood', icon: '🌙', label: 'Mood Balance' },
+              { key: 'health', icon: '🔥', label: 'Body Fuel' },
+              { key: 'growth', icon: '🚀', label: 'Growth Track' }
+            ].map(({ key, icon, label }) => (
+              <button 
+                key={key}
+                onClick={() => setTab(key as any)}
+                className={`flex flex-col items-center justify-center py-3 flex-1 ${tab === key ? 'bg-purple-900/30' : ''}`}
+              >
+                <span className="text-lg">{icon}</span>
+                <span className="text-xs mt-1">{label}</span>
+              </button>
+            ))}
+          </div>
+          
+          <div className="p-5">
+            <div className="flex items-center mb-3">
+              <span className="text-lg mr-2">
+                {tab === 'finance' && '💼'}
+                {tab === 'relationship' && '👥'}
+                {tab === 'mood' && '🌙'}
+                {tab === 'health' && '🔥'}
+                {tab === 'growth' && '🚀'}
+              </span>
+              <h3 className="text-lg font-medium">
+                {tab === 'finance' && 'Finance & Career'}
+                {tab === 'relationship' && 'Social Vibes'}
+                {tab === 'mood' && 'Mood Balance'}
+                {tab === 'health' && 'Body Fuel'}
+                {tab === 'growth' && 'Growth Track'}
+              </h3>
             </div>
             
-            <div className="bg-indigo-900/20 p-3 rounded-lg">
-              <h3 className="font-medium text-sm mb-1">Support Crystal</h3>
-              <div className="flex items-center mb-1.5">
-                <span className="text-lg mr-2">💎</span>
-                <span className="text-sm">{gptReport.crystals && gptReport.crystals.length > 1 ? gptReport.crystals[1].name : "Amethyst"}</span>
-              </div>
-              <p className="text-xs text-indigo-200">
-                {gptReport.crystals && gptReport.crystals.length > 1 ? gptReport.crystals[1].benefit : "Calms overthinking and enhances clear communication."}
-              </p>
+            <div className="text-sm text-purple-200 mb-4">
+              {reportHTML ? (
+                <div dangerouslySetInnerHTML={{ __html: reportHTML }} />
+              ) : (
+                <p className="text-purple-300">Loading insights...</p>
+              )}
             </div>
-          </div>
-          
-          <div className="mt-4">
-            <h3 className="font-medium text-sm mb-2">Crystal Placement</h3>
-            <p className="text-xs text-indigo-300">
-              {gptReport.ritual ? gptReport.ritual.split('.')[0] + '.' : "Place your primary crystal on your workspace during morning hours to enhance focus."}
-            </p>
-          </div>
-          
-          <div className="mt-4 pt-4 border-t border-indigo-900/30">
-            <h3 className="font-medium text-sm mb-2">Crystal Insight</h3>
-            <div className="flex items-start">
-              <span className="text-indigo-300 mr-2 mt-0.5">✦</span>
-              <p className="text-xs text-indigo-300">
-                {gptReport.challenges && gptReport.challenges.length > 0 ? gptReport.challenges[0] : gptReport.insight || "Your energy this month responds particularly well to crystals that align with your dominant element."}
-              </p>
+            
+            <div className="mt-5 pt-4 border-t border-purple-900/30">
+              <div className="flex items-center mb-3">
+                <span className="inline-flex items-center justify-center mr-2 w-5 h-5 rounded-full bg-purple-900/50 text-xs">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                  </svg>
+                </span>
+                <h4 className="font-medium">Pro Exclusive</h4>
+              </div>
+              
+              <h5 className="text-sm mb-2">Top Energy Hours</h5>
+              <div className="space-y-3">
+                {hourly
+                  .filter(hour => hour.score && hour.score >= HOUR_THRESHOLD)
+                  .sort((a, b) => (b.score || 0) - (a.score || 0))
+                  .slice(0, MAX_HIGH_ENERGY_HOURS)
+                  .map((hour, index) => (
+                    <div key={hour.hour}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <span className="inline-block bg-yellow-900/30 rounded-full p-1 mr-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-yellow-300" viewBox="0 0 20 20" fill="currentColor">
+                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                            </svg>
+                          </span>
+                          <span className="text-xs">{hour.hour}:00–{hour.hour + 2}:00</span>
+                        </div>
+                        <span className="text-xs font-medium">Score {hour.score}</span>
+                      </div>
+                      <p className="text-xs text-purple-200 pl-6">
+                        Best for {gpt.strongestElement && ELEMENT_ACTIVITIES[gpt.strongestElement]?.[index] || 'high-energy tasks'}
+                      </p>
+                    </div>
+                  ))}
+              </div>
             </div>
           </div>
         </div>
-        
-        {/* Feedback Modal */}
-        {showFeedbackModal && (
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-indigo-900/80 rounded-xl max-w-md w-full p-5 shadow-xl">
-              <h3 className="text-lg font-semibold mb-3">
-                {feedbackType === 'report' ? 'Report Feedback' : 'Share Your Thoughts'}
-              </h3>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium block mb-2">What did you think?</label>
-                  <div className="space-y-2">
-                    {['Very helpful', 'Somewhat accurate', 'Not accurate', 'Need more details'].map(option => (
-                      <div key={option} className="flex items-center">
-                        <input
-                          type="checkbox"
-                          id={`option-${option}`}
-                          checked={selectedOptions.includes(option)}
-                          onChange={() => handleOptionSelect(option)}
-                          className="mr-2 rounded"
-                        />
-                        <label htmlFor={`option-${option}`} className="text-sm">{option}</label>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                
-                <div>
-                  <label htmlFor="additional-feedback" className="text-sm font-medium block mb-2">Additional comments</label>
-                  <textarea
-                    id="additional-feedback"
-                    rows={3}
-                    value={additionalFeedback}
-                    onChange={(e) => setAdditionalFeedback(e.target.value)}
-                    className="w-full bg-indigo-800/50 border border-indigo-700 rounded-md px-3 py-2 text-sm placeholder-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    placeholder="Share any additional thoughts..."
-                  />
-                </div>
-                
-                {submitError && (
-                  <div className="text-red-400 text-sm">{submitError}</div>
-                )}
-                
-                <div className="flex justify-end space-x-3 pt-2">
-                  <button
-                    onClick={() => setShowFeedbackModal(false)}
-                    className="px-4 py-2 bg-indigo-800 hover:bg-indigo-700 rounded-md text-sm font-medium transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleFeedbackSubmit}
-                    disabled={isSubmitting}
-                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-md text-sm font-medium transition-colors disabled:bg-indigo-800 disabled:cursor-not-allowed"
-                  >
-                    {isSubmitting ? 'Submitting...' : 'Submit'}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </main>
   );
 }
 
-// Wrap component with Suspense to solve useSearchParams requirement
-export default function AprilReportPage() {
+export default function MonthlyReportApr25() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-br from-indigo-800 to-black flex items-center justify-center">
-        <div className="text-white">Loading...</div>
-      </div>
-    }>
-      <AprilReportContent />
+    <Suspense fallback={<Skeleton />}>
+      <ReportContent />
     </Suspense>
   );
-} 
+}
