@@ -3,7 +3,8 @@ import { getBaseBaziVector } from '@/app/lib/energyCalculation2025';
 import { calculateProReportEnergy } from '@/app/lib/proReportCalculation';
 import { getDailyEnergyForRange, getHourlyEnergyHeatmap } from '@/app/lib/energyCalculation2025';
 import { buildMonthlyReportPrompt } from '@/app/lib/buildMonthlyReportPrompt';
-import { generateGptContent } from '@/app/lib/gptService';
+import OpenAI from 'openai';
+import { getModelConfig } from '@/app/lib/gptModelsConfig';
 
 export const dynamic = 'force-dynamic';
 
@@ -148,32 +149,49 @@ export async function GET(req: NextRequest, { params }: { params:{ slug:string }
     console.log('📝 Building GPT prompt...');
     const promptText = buildMonthlyReportPrompt({ overview, daily, hourly });
     
-    // Use generateGptContent instead of gptCall
-    console.log('🤖 Calling GPT to generate report content...');
+    // Direct OpenAI API call instead of using gptService
+    console.log('🤖 Calling OpenAI API directly...');
     try {
-      const gptResponse = await generateGptContent({
-        section: 'monthlyReportPro', 
-        prompt: promptText,
-        userContext: { userId: 'anonymous' }
+      // Get model configuration
+      const modelConfig = getModelConfig('monthlyReportPro');
+      
+      // Get API key
+      const apiKey = process.env.OPENAI_API_KEY;
+      if (!apiKey) {
+        throw new Error('OpenAI API key not configured');
+      }
+      
+      // Create OpenAI client
+      const openai = new OpenAI({ apiKey });
+      
+      // Call OpenAI API directly
+      const completion = await openai.chat.completions.create({
+        model: modelConfig.model,
+        messages: [
+          { role: 'system', content: modelConfig.systemPrompt || '' },
+          { role: 'user', content: promptText }
+        ],
+        temperature: modelConfig.temperature,
+        max_tokens: modelConfig.maxTokens,
+        user: 'anonymous'
       });
 
-      // Extract content from GPT response
-      const reportText = gptResponse.content;
-      console.log(`✅ Report generated successfully, content length: ${reportText.length} characters, Tokens: ${gptResponse.totalTokens}`);
+      const reportText = completion.choices[0]?.message?.content || '';
+      console.log(`✅ Report generated successfully, content length: ${reportText.length} characters`);
 
       return NextResponse.json({ 
         overview, 
         daily, 
         hourly, 
-        report: reportText, // Return as report field to maintain consistency with original API
+        report: reportText,
         tokens: {
-          prompt: gptResponse.promptTokens,
-          completion: gptResponse.completionTokens,
-          total: gptResponse.totalTokens
+          prompt: completion.usage?.prompt_tokens || 0,
+          completion: completion.usage?.completion_tokens || 0,
+          total: completion.usage?.total_tokens || 0
         }
       });
     } catch (gptError: any) {
-      console.error('❌ GPT API call failed:', gptError);
+      console.error('❌ Direct OpenAI API call failed:', gptError);
       
       // 直接返回错误信息，不使用静态回退内容
       return NextResponse.json({ 
