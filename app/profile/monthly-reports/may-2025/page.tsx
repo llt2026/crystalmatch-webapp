@@ -12,13 +12,11 @@ import React, { Suspense, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 
-// Import real energy calculation functions
-import { 
-  getBaseBaziVector, 
-  getDailyEnergyForRange, 
-  getHourlyEnergyHeatmap,
-  FiveElementVector 
-} from '@/app/lib/energyCalculation2025';
+// Import marked for Markdown parsing
+import { marked } from 'marked';
+
+// Only keep FiveElementVector type for compatibility
+import { FiveElementVector } from '@/app/lib/energyCalculation2025';
 
 // Type for element
 type ElementType = 'water' | 'fire' | 'earth' | 'metal' | 'wood';
@@ -47,6 +45,7 @@ interface DailyEnergyData {
   trend: 'up' | 'down' | 'stable';
   element?: ElementType;
   crystal?: string;
+  score?: number; // 添加分数字段
 }
 
 interface HourlyEnergyData {
@@ -100,117 +99,105 @@ function MayReportContent() {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [submitError, setSubmitError] = useState<string>('');
 
-  // Fetch real energy data when component loads
+  // Fetch all data from a single API endpoint
   useEffect(() => {
-    async function fetchEnergyData() {
+    async function fetchAllData() {
       try {
         setEnergyDataLoading(true);
-        console.log('🔄 正在获取真实能量数据...');
+        console.log('🔄 正在获取May 2025报告数据...');
         
-        // Calculate May 2025 date range
-        const mayStartDate = new Date('2025-05-01');
-        const mayEndDate = new Date('2025-05-31');
-        const daysInMay = 31;
-        
-        // Fetch daily energy data for May 2025
-        const dailyData = await getDailyEnergyForRange(birthDate, mayStartDate, daysInMay);
-        
-        // Add element and crystal mapping if needed
-        // 添加调试输出
-        console.log('📅 dailyData:', dailyData.slice(0, 3));
-        
-        // 确保有元素和水晶信息
-        const dailyWithElements = dailyData.map((day, index) => {
-          return {
-            ...day,
-            // 如果API数据没有元素信息，使用辅助函数生成
-            element: day.element || getElementFromEnergyTrend(day.trend, index),
-            crystal: day.crystal || getCrystalFromElement(day.element || getElementFromEnergyTrend(day.trend, index))
-          };
+        // 使用单一API请求获取所有数据
+        const res = await fetch(`/api/report/2025-05?birthDate=${encodeURIComponent(birthDate)}`, { 
+          cache: 'no-store'
         });
         
-        // 再次输出处理后的数据
-        console.log('🔄 处理后的数据:', dailyWithElements.slice(0, 3));
-        
-        setDailyEnergyData(dailyWithElements);
-        
-        // Fetch hourly energy data from multiple days for more accurate analysis
-        const allHourlyData: HourlyEnergyData[] = [];
-        for (let day = 1; day <= 5; day++) { // Sample first 5 days of May
-          const sampleDate = new Date('2025-05-01');
-          sampleDate.setDate(day);
-          const dayHourlyData = await getHourlyEnergyHeatmap(birthDate, sampleDate);
-          allHourlyData.push(...dayHourlyData);
+        if (!res.ok) {
+          throw new Error(`API请求失败: ${res.status}`);
         }
         
-        // Calculate average scores by hour across multiple days
-        const hourlyAverages: HourlyEnergyData[] = [];
-        for (let hour = 0; hour < 24; hour++) {
-          const hourData = allHourlyData.filter(h => h.hour === hour);
-          const avgEnergyChange = hourData.reduce((sum, h) => sum + h.energyChange, 0) / hourData.length;
-          const avgScore = Math.round(70 + avgEnergyChange * 3);
-          const trend = avgEnergyChange > 2 ? 'up' : (avgEnergyChange < -2 ? 'down' : 'stable');
-          
-          hourlyAverages.push({
-            hour,
-            energyChange: avgEnergyChange,
-            trend,
-            score: avgScore
-          });
+        // 解析API返回的所有数据
+        const data = await res.json();
+        console.log('📊 API返回数据结构:', Object.keys(data));
+        
+        if (data.error) {
+          throw new Error(data.message || data.error);
         }
         
-        const hourlyData = hourlyAverages;
+        // 提取API返回的各部分数据
+        const { overview, daily, hourly, report: reportText } = data;
         
-        // Data already has scores calculated
-        setHourlyEnergyData(hourlyData);
+        // 更新组件状态
+        setGptReport({ ...overview, loading: false });
+        setDailyEnergyData(daily || []);
+        setHourlyEnergyData(hourly || []);
+        setUserElements(overview?.baseBazi || null);
         
-        // Get user's base Bazi for element analysis
-        const baseBazi = await getBaseBaziVector(birthDate);
-        setUserElements(baseBazi);
+        // 将Markdown报告转换为HTML
+        if (reportText) {
+          try {
+            // 使用marked库解析Markdown
+            const html = marked(reportText);
+            setReportHTML(html);
+            console.log('📄 Markdown报告已解析为HTML');
+          } catch (error) {
+            console.error('Markdown解析失败:', error);
+            setReportHTML('');
+          }
+        }
         
-        console.log('✅ 真实能量数据加载完成');
-        
-        // 在能量数据加载完成后获取GPT报告
-        await fetchReportData(baseBazi, dailyWithElements);
+        console.log('✅ 数据加载完成');
         
       } catch (error) {
-        console.error('❌ 能量数据加载失败:', error);
+        console.error('❌ 数据加载失败:', error);
+        setGptReport({
+          loading: false,
+          error: error instanceof Error ? error.message : '加载失败'
+        });
       } finally {
         setEnergyDataLoading(false);
       }
     }
     
-    fetchEnergyData();
+    fetchAllData();
   }, [birthDate]);
 
-  // Helper functions for energy data mapping
-  const getElementFromEnergyTrend = (trend: 'up' | 'down' | 'stable', dayIndex: number): ElementType => {
-    // Map energy trends to elements based on traditional Chinese medicine principles
-    if (trend === 'up') {
-      return ['wood', 'fire'][dayIndex % 2] as ElementType; // Growth and passion
-    } else if (trend === 'down') {
-      return ['metal', 'water'][dayIndex % 2] as ElementType; // Clarity and flow  
-    } else {
-      return 'earth'; // Stability
-    }
-  };
-
-  const getCrystalFromElement = (element: ElementType): string => {
-    const crystalMap: Record<ElementType, string> = {
-      wood: 'Green Aventurine',
-      fire: 'Carnelian', 
-      earth: 'Tiger\'s Eye',
-      metal: 'Clear Quartz',
-      water: 'Amethyst'
-    };
-    return crystalMap[element];
-  };
-
-  // Helper functions for mood and health calculations
-  const getDeficientElements = (): ElementType[] => {
-    if (!userElements) return [];
+  // 辅助函数 - 获取能量峰值日
+  const getMoodPeakDays = (): number[] => {
+    if (!dailyEnergyData || dailyEnergyData.length === 0) return [15, 20, 25]; // 默认值
     
-    const threshold = 15; // Elements below this value are considered deficient
+    // 根据能量分数排序获取最高的3天
+    return dailyEnergyData
+      .map((day, index) => ({ 
+        index: index + 1, 
+        energy: day.energyChange,
+        score: day.score || Math.round(70 + day.energyChange * 3)
+      }))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 3)
+      .map(item => item.index);
+  };
+
+  // 辅助函数 - 获取能量低谷日
+  const getMoodLowDays = (): number[] => {
+    if (!dailyEnergyData || dailyEnergyData.length === 0) return [5, 10]; // 默认值
+    
+    // 根据能量分数排序获取最低的2天
+    return dailyEnergyData
+      .map((day, index) => ({ 
+        index: index + 1, 
+        energy: day.energyChange,
+        score: day.score || Math.round(70 + day.energyChange * 3)
+      }))
+      .sort((a, b) => a.score - b.score)
+      .slice(0, 2)
+      .map(item => item.index);
+  };
+
+  // 辅助函数 - 获取缺失元素
+  const getDeficientElements = (): ElementType[] => {
+    if (!userElements) return ['fire', 'water']; // 默认值
+    
+    const threshold = 15; // 低于此值的元素被视为缺失
     const deficient: ElementType[] = [];
     
     if (userElements.water < threshold) deficient.push('water');
@@ -219,48 +206,7 @@ function MayReportContent() {
     if (userElements.metal < threshold) deficient.push('metal');
     if (userElements.wood < threshold) deficient.push('wood');
     
-    return deficient;
-  };
-
-  const getMoodPeakDays = (): number[] => {
-    // Calculate days with highest energy for mood peaks
-    return dailyEnergyData
-      .map((day, index) => ({ index: index + 1, energy: day.energyChange }))
-      .sort((a, b) => b.energy - a.energy)
-      .slice(0, 3)
-      .map(item => item.index);
-  };
-
-  const getMoodLowDays = (): number[] => {
-    // Calculate days with lowest energy for mood valleys
-    return dailyEnergyData
-      .map((day, index) => ({ index: index + 1, energy: day.energyChange }))
-      .sort((a, b) => a.energy - b.energy)
-      .slice(0, 2)
-      .map(item => item.index);
-  };
-
-  const getHealthRecommendations = () => {
-    const deficient = getDeficientElements();
-    const recommendations = [];
-
-    if (deficient.includes('earth')) {
-      recommendations.push({ element: 'Earth deficiency', suggestion: 'Add more root vegetables', type: 'Dietary' });
-    }
-    if (deficient.includes('fire')) {
-      recommendations.push({ element: 'Fire deficiency', suggestion: 'Add cardio exercise', type: 'Activity' });
-    }
-    if (deficient.includes('water')) {
-      recommendations.push({ element: 'Water deficiency', suggestion: 'Earlier bedtime', type: 'Sleep' });
-    }
-    if (deficient.includes('metal')) {
-      recommendations.push({ element: 'Metal deficiency', suggestion: 'Deep breathing exercises', type: 'Respiratory' });
-    }
-    if (deficient.includes('wood')) {
-      recommendations.push({ element: 'Wood deficiency', suggestion: 'Morning stretching routine', type: 'Flexibility' });
-    }
-
-    return recommendations.slice(0, 3); // Limit to 3 recommendations
+    return deficient.length > 0 ? deficient : [gptReport.weakestElement || 'earth'];
   };
 
   // Notification management functions
@@ -335,114 +281,10 @@ function MayReportContent() {
     });
   }, []);
 
-  // Fetch GPT report data when component loads  
-  const fetchReportData = async (userElements?: any, dailyData?: any[]) => {
-      try {
-        console.log('🔄 正在获取May 2025报告数据...');
-        // 使用修改后的API路径
-        const response = await fetch(`/api/report/2025-05?birthDate=${encodeURIComponent(birthDate)}`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Cache-Control': 'no-cache, no-store',
-            'x-tier': 'pro'
-          },
-          cache: 'no-store'
-        });
+  // 需要添加一个状态来存储Markdown报告
+  const [reportHTML, setReportHTML] = useState<string>('');
 
-        if (!response.ok) {
-          console.error(`❌ API响应状态码错误: ${response.status} ${response.statusText}`);
-          throw new Error(`Failed to fetch report: ${response.status}`);
-        }
-
-        const data = await response.json();
-        console.log('📊 API响应数据:', data);
-        
-        if (data.error) {
-          console.error('❌ API返回错误:', data.error, data.message || '无错误信息');
-          setGptReport({
-            loading: false,
-            error: data.message || data.error,
-            errorDetails: data.details || {}
-          });
-          return;
-        }
-        
-        if (data.report) {
-          // Parse GPT report content for text sections
-          const reportContent = data.report;
-          const titleMatch = reportContent.match(/# 🔮 .* — (.*)/);
-          const title = titleMatch ? titleMatch[1] : 'Energy Rising';
-          
-          const insightMatch = reportContent.match(/## 🌟 Energy Insight\n([\s\S]*?)(?=##)/);
-          const insight = insightMatch ? insightMatch[1].trim() : '';
-          
-          // 计算真实的能量分数和最强/最弱元素
-          let totalEnergyScore = 0;
-          let elementStrengths: Record<ElementType, number> = {
-            water: 0, fire: 0, earth: 0, metal: 0, wood: 0
-          };
-          
-          // 基于用户基础八字计算元素强度
-          const currentUserElements = userElements;
-          const currentDailyData = dailyData;
-          
-          if (currentUserElements) {
-            elementStrengths = { ...currentUserElements };
-            totalEnergyScore = Math.round(
-              (currentUserElements.water + currentUserElements.fire + currentUserElements.earth + 
-               currentUserElements.metal + currentUserElements.wood) / 5 * 20 + 50
-            );
-          } else if (currentDailyData && currentDailyData.length > 0) {
-            // 如果没有用户元素数据，基于每日数据计算
-            currentDailyData.forEach((day: any) => {
-              totalEnergyScore += Math.round(70 + day.energyChange * 3);
-              if (day.element) {
-                elementStrengths[day.element] += 1;
-              }
-            });
-            totalEnergyScore = Math.round(totalEnergyScore / Math.max(currentDailyData.length, 1));
-          } else {
-            // 默认值
-            totalEnergyScore = 70;
-          }
-          
-          // 找出最强和最弱的元素
-          let strongestElement: ElementType = 'water';
-          let weakestElement: ElementType = 'fire';
-          let maxStrength = -1;
-          let minStrength = Infinity;
-          
-          Object.entries(elementStrengths).forEach(([element, strength]) => {
-            if (strength > maxStrength) {
-              maxStrength = strength;
-              strongestElement = element as ElementType;
-            }
-            if (strength < minStrength) {
-              minStrength = strength;
-              weakestElement = element as ElementType;
-            }
-          });
-
-          setGptReport({
-            title,
-            insight,
-            loading: false,
-            energyScore: totalEnergyScore,
-            strongestElement,
-            weakestElement
-          });
-        }
-      } catch (error: any) {
-        console.error('❌ 获取报告时出错:', error);
-        setGptReport({
-          loading: false,
-          error: `Failed to load report: ${error.message}`
-        });
-      }
-    };
-
-  // Helper function to get crystal for each element
+  // 辅助函数 - 获取水晶样式
   const getCrystalForElement = (element: ElementType) => {
     const crystalMap = {
       'water': { name: 'Clear Quartz', color: 'text-blue-300', bgColor: 'bg-blue-900/50' },
@@ -454,7 +296,7 @@ function MayReportContent() {
     return crystalMap[element] || crystalMap.water;
   };
   
-  // Helper function to get element icon
+  // 辅助函数 - 获取元素图标
   const getElementIcon = (element: ElementType) => {
     const iconMap = {
       'water': '💧',
@@ -466,7 +308,7 @@ function MayReportContent() {
     return iconMap[element] || iconMap.water;
   };
   
-  // Helper function to get element description
+  // 辅助函数 - 获取元素描述
   const getElementDescription = (element: ElementType) => {
     const descriptionMap = {
       'water': 'Fluid Energy',
@@ -478,13 +320,7 @@ function MayReportContent() {
     return descriptionMap[element] || descriptionMap.water;
   };
   
-  // Function to determine daily element based on day number
-  const getDailyElement = (day: number): ElementType => {
-    const elements: ElementType[] = ['water', 'fire', 'earth', 'metal', 'wood'];
-    return elements[day % 5];
-  };
-
-  // Function to get element color class based on element type
+  // 辅助函数 - 获取元素颜色
   const getElementColorClass = (element: ElementType): {bg: string, text: string} => {
     const colorMap = {
       'water': { bg: 'bg-blue-900/40', text: 'text-blue-300' },
@@ -494,6 +330,30 @@ function MayReportContent() {
       'wood': { bg: 'bg-green-900/40', text: 'text-green-300' }
     };
     return colorMap[element] || colorMap.water;
+  };
+  
+  // 辅助函数 - 获取健康建议
+  const getHealthRecommendations = () => {
+    const deficient = getDeficientElements();
+    const recommendations = [];
+
+    if (deficient.includes('earth')) {
+      recommendations.push({ element: 'Earth deficiency', suggestion: 'Add more root vegetables', type: 'Dietary' });
+    }
+    if (deficient.includes('fire')) {
+      recommendations.push({ element: 'Fire deficiency', suggestion: 'Add cardio exercise', type: 'Activity' });
+    }
+    if (deficient.includes('water')) {
+      recommendations.push({ element: 'Water deficiency', suggestion: 'Earlier bedtime', type: 'Sleep' });
+    }
+    if (deficient.includes('metal')) {
+      recommendations.push({ element: 'Metal deficiency', suggestion: 'Deep breathing exercises', type: 'Respiratory' });
+    }
+    if (deficient.includes('wood')) {
+      recommendations.push({ element: 'Wood deficiency', suggestion: 'Morning stretching routine', type: 'Flexibility' });
+    }
+
+    return recommendations.slice(0, 3); // 限制为3条建议
   };
   
   // Function to open feedback modal with specified type
