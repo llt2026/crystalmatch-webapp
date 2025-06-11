@@ -115,8 +115,39 @@ function MayReportContent() {
         console.log('🔄 Fetching May 2025 report data...');
         
         // Use dynamic API path based on URL slug
-        const slug = window.location.pathname.match(/(\w+-\d{4})/)?.[1] || 'may-2025';
-        const res = await fetch(`/api/report/${slug}${birthDate ? `?birthDate=${encodeURIComponent(birthDate)}` : ''}`, { 
+        const pathMatch = window.location.pathname.match(/\/monthly-reports\/([a-z]+-\d{4})/i);
+        const slug = pathMatch ? pathMatch[1] : 'may-2025';
+        console.log('📌 Detected slug from URL:', slug);
+        
+        // Convert month-year format to year-month format for API
+        let apiSlug = slug;
+        if (/^([a-z]+)-(\d{4})$/i.test(slug)) {
+          const [month, year] = slug.split('-');
+          const monthMap: Record<string, string> = {
+            'january': '01', 'jan': '01',
+            'february': '02', 'feb': '02',
+            'march': '03', 'mar': '03',
+            'april': '04', 'apr': '04',
+            'may': '05',
+            'june': '06', 'jun': '06',
+            'july': '07', 'jul': '07',
+            'august': '08', 'aug': '08',
+            'september': '09', 'sep': '09',
+            'october': '10', 'oct': '10',
+            'november': '11', 'nov': '11',
+            'december': '12', 'dec': '12'
+          };
+          const monthNum = monthMap[month.toLowerCase()];
+          if (monthNum) {
+            apiSlug = `${year}-${monthNum}`;
+            console.log('📌 Converted slug for API:', apiSlug);
+          }
+        }
+        
+        const apiUrl = `/api/report/${apiSlug}${birthDate ? `?birthDate=${encodeURIComponent(birthDate)}` : ''}`;
+        console.log('📌 API URL:', apiUrl);
+        
+        const res = await fetch(apiUrl, { 
           cache: 'no-store'
         });
         
