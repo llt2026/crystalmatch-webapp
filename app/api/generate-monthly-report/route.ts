@@ -6,6 +6,7 @@ import OpenAI from 'openai';
 import { getOpenAiApiKey } from '@/app/lib/db.config';
 import { getFullEnergyContext } from '@/app/lib/getFullEnergyContext';
 import { buildMonthlyReportPrompt } from '@/app/lib/buildMonthlyReportPrompt';
+import { calculateUserElements } from '@/app/lib/calculateUserElements';
 import { hasRemainingRequests, getModelForTier, getMaxTokensForTier } from '@/app/lib/subscription-service';
 import { SubscriptionTier } from '@/app/types/subscription';
 
@@ -101,7 +102,15 @@ export async function POST(request: NextRequest) {
       currentMonth: energyContext.currentMonth
     });
 
-    const prompt = buildMonthlyReportPrompt({ ...(energyContext as any), birthDate });
+    // 计算用户真实的五行元素分布
+    const userElements = calculateUserElements(energyContext.bazi);
+    console.log('用户五行元素计算完成:', userElements);
+
+    const prompt = buildMonthlyReportPrompt({ 
+      ...(energyContext as any), 
+      userElements,
+      birthDate 
+    });
     console.log('提示词构建成功，长度:', prompt.length);
 
     try {
