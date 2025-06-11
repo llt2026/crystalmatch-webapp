@@ -671,12 +671,21 @@ export async function getDailyEnergyForRange(
   birthDate: string, 
   startDate: Date, 
   days: number
-): Promise<Array<{date: Date, energyChange: number, trend: 'up' | 'down' | 'stable'}>> {
+): Promise<Array<{date: Date, energyChange: number, trend: 'up' | 'down' | 'stable', element?: Elem, crystal?: string}>> {
   // 计算基础八字向量
   const baseBazi = getBaseBaziVector(birthDate);
   
   // 存储结果
-  const result: Array<{date: Date, energyChange: number, trend: 'up' | 'down' | 'stable'}> = [];
+  const result: Array<{date: Date, energyChange: number, trend: 'up' | 'down' | 'stable', element?: Elem, crystal?: string}> = [];
+  
+  // 水晶映射
+  const CRYSTAL_MAP: Record<Elem, string> = {
+    wood: 'Green Aventurine',
+    fire: 'Carnelian',
+    earth: 'Tiger\'s Eye',
+    metal: 'Clear Quartz',
+    water: 'Amethyst'
+  };
   
   // 计算每一天的能量变化
   for (let i = 0; i < days; i++) {
@@ -693,10 +702,29 @@ export async function getDailyEnergyForRange(
     // 确定趋势
     const trend = determineTrend(energyChange);
     
+    // 确定日期对应的元素 - 基于日柱
+    const dayBazi = getBaziFromDate(date);
+    const dayGan = dayBazi.day[0];
+    const dayZhi = dayBazi.day[1];
+    
+    // 找出最弱的元素（最小值）
+    const fiveElements = getGanZhiFiveElements(dayGan, dayZhi);
+    let lowestElement: Elem = 'water';
+    let lowestValue = Infinity;
+    
+    (['wood', 'fire', 'earth', 'metal', 'water'] as Elem[]).forEach(elem => {
+      if (fiveElements[elem] < lowestValue) {
+        lowestValue = fiveElements[elem];
+        lowestElement = elem;
+      }
+    });
+    
     result.push({
       date: new Date(date),
       energyChange,
-      trend
+      trend,
+      element: lowestElement,
+      crystal: CRYSTAL_MAP[lowestElement]
     });
   }
   

@@ -1,23 +1,27 @@
 import { Lunar, Solar } from 'lunar-javascript';
 
 /**
- * 使用lunar-javascript库计算八字（年柱、月柱、日柱）
+ * 使用lunar-javascript库计算八字（年柱、月柱、日柱、时柱）
  * @param date 公历日期对象
- * @returns 年柱、月柱、日柱及相关信息
+ * @param hour 小时（0-23），默认为12（中午）
+ * @returns 年柱、月柱、日柱、时柱及相关信息
  */
-export function getBaziFromLunar(date: Date): {
+export function getBaziFromLunar(date: Date, hour: number = 12): {
   yearPillar: string,
   monthPillar: string,
   dayPillar: string,
+  hourPillar: string,
   zodiac?: {
     year: string,
     month: string,
-    day: string
+    day: string,
+    hour: string
   },
   fiveElements?: {
     year: string[],
     month: string[],
-    day: string[]
+    day: string[],
+    hour: string[]
   }
 } | null {
   try {
@@ -51,7 +55,12 @@ export function getBaziFromLunar(date: Date): {
     console.log(`转换为阳历: ${year}年${month}月${day}日`);
     
     try {
+      // 创建Solar对象，包含具体小时
       const solar = Solar.fromYmd(year, month, day);
+      // 设置时分秒
+      solar.setHour(hour);
+      solar.setMinute(0);
+      solar.setSecond(0);
       console.log(`成功创建Solar对象: ${solar.toString()}`);
       
       const lunar = Lunar.fromSolar(solar);
@@ -61,50 +70,58 @@ export function getBaziFromLunar(date: Date): {
       const yearPillar = lunar.getYearInGanZhi();
       const monthPillar = lunar.getMonthInGanZhi();
       const dayPillar = lunar.getDayInGanZhi();
+      const hourPillar = lunar.getTimeInGanZhi();
       
-      console.log(`获取八字信息成功: 年柱=${yearPillar}, 月柱=${monthPillar}, 日柱=${dayPillar}`);
+      console.log(`获取八字信息成功: 年柱=${yearPillar}, 月柱=${monthPillar}, 日柱=${dayPillar}, 时柱=${hourPillar}`);
       
-      // 获取年、月、日柱的天干地支
+      // 获取年、月、日、时柱的天干地支
       const yearGan = yearPillar[0];
       const yearZhi = yearPillar[1];
       const monthGan = monthPillar[0];
       const monthZhi = monthPillar[1];
       const dayGan = dayPillar[0];
       const dayZhi = dayPillar[1];
+      const hourGan = hourPillar[0];
+      const hourZhi = hourPillar[1];
       
       // 打印调试信息
       console.log('使用lunar-javascript库计算八字:');
-      console.log(`日期: ${year}年${month}月${day}日`);
-      console.log(`年柱: ${yearPillar}, 月柱: ${monthPillar}, 日柱: ${dayPillar}`);
-      console.log(`天干: ${yearGan}${monthGan}${dayGan}, 地支: ${yearZhi}${monthZhi}${dayZhi}`);
+      console.log(`日期: ${year}年${month}月${day}日${hour}时`);
+      console.log(`年柱: ${yearPillar}, 月柱: ${monthPillar}, 日柱: ${dayPillar}, 时柱: ${hourPillar}`);
+      console.log(`天干: ${yearGan}${monthGan}${dayGan}${hourGan}, 地支: ${yearZhi}${monthZhi}${dayZhi}${hourZhi}`);
       
       // 获取生肖信息
       const yearZodiac = getZodiacFromDiZhi(yearZhi);
       const monthZodiac = getZodiacFromDiZhi(monthZhi);
       const dayZodiac = getZodiacFromDiZhi(dayZhi);
+      const hourZodiac = getZodiacFromDiZhi(hourZhi);
       
-      console.log(`生肖: 年-${yearZodiac}, 月-${monthZodiac}, 日-${dayZodiac}`);
+      console.log(`生肖: 年-${yearZodiac}, 月-${monthZodiac}, 日-${dayZodiac}, 时-${hourZodiac}`);
       
       // 获取五行信息
       const yearElements = [FIVE_ELEMENTS[yearGan] || '未知', FIVE_ELEMENTS[yearZhi] || '未知'];
       const monthElements = [FIVE_ELEMENTS[monthGan] || '未知', FIVE_ELEMENTS[monthZhi] || '未知'];
       const dayElements = [FIVE_ELEMENTS[dayGan] || '未知', FIVE_ELEMENTS[dayZhi] || '未知'];
+      const hourElements = [FIVE_ELEMENTS[hourGan] || '未知', FIVE_ELEMENTS[hourZhi] || '未知'];
       
-      console.log(`五行: 年-${yearElements.join(',')}, 月-${monthElements.join(',')}, 日-${dayElements.join(',')}`);
+      console.log(`五行: 年-${yearElements.join(',')}, 月-${monthElements.join(',')}, 日-${dayElements.join(',')}, 时-${hourElements.join(',')}`);
       
       return {
         yearPillar,
         monthPillar,
         dayPillar,
+        hourPillar,
         zodiac: {
           year: yearZodiac,
           month: monthZodiac,
-          day: dayZodiac
+          day: dayZodiac,
+          hour: hourZodiac
         },
         fiveElements: {
           year: yearElements,
           month: monthElements,
-          day: dayElements
+          day: dayElements,
+          hour: hourElements
         }
       };
     } catch (innerError) {

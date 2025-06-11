@@ -115,32 +115,63 @@ function MayReportContent() {
         // Fetch daily energy data for May 2025
         const dailyData = await getDailyEnergyForRange(birthDate, mayStartDate, daysInMay);
         
-        // Add element and crystal mapping based on energy patterns
-        const dailyWithElements = dailyData.map((day, index) => ({
-          ...day,
-          element: getElementFromEnergyTrend(day.trend, index),
-          crystal: getCrystalFromElement(getElementFromEnergyTrend(day.trend, index))
-        }));
+        // Add element and crystal mapping if needed
+        // 添加调试输出
+        console.log('📅 dailyData:', dailyData.slice(0, 3));
+        
+        // 确保有元素和水晶信息
+        const dailyWithElements = dailyData.map((day, index) => {
+          return {
+            ...day,
+            // 如果API数据没有元素信息，使用辅助函数生成
+            element: day.element || getElementFromEnergyTrend(day.trend, index),
+            crystal: day.crystal || getCrystalFromElement(day.element || getElementFromEnergyTrend(day.trend, index))
+          };
+        });
+        
+        // 再次输出处理后的数据
+        console.log('🔄 处理后的数据:', dailyWithElements.slice(0, 3));
         
         setDailyEnergyData(dailyWithElements);
         
-        // Fetch hourly energy data for a sample day (May 15th)
-        const sampleDate = new Date('2025-05-15');
-        const hourlyData = await getHourlyEnergyHeatmap(birthDate, sampleDate);
+        // Fetch hourly energy data from multiple days for more accurate analysis
+        const allHourlyData: HourlyEnergyData[] = [];
+        for (let day = 1; day <= 5; day++) { // Sample first 5 days of May
+          const sampleDate = new Date('2025-05-01');
+          sampleDate.setDate(day);
+          const dayHourlyData = await getHourlyEnergyHeatmap(birthDate, sampleDate);
+          allHourlyData.push(...dayHourlyData);
+        }
         
-        // Convert energy changes to scores (base 70 + energy change scaled)
-        const hourlyWithScores = hourlyData.map(hour => ({
-          ...hour,
-          score: Math.round(70 + hour.energyChange * 3) // Scale energy change to score
-        }));
+        // Calculate average scores by hour across multiple days
+        const hourlyAverages: HourlyEnergyData[] = [];
+        for (let hour = 0; hour < 24; hour++) {
+          const hourData = allHourlyData.filter(h => h.hour === hour);
+          const avgEnergyChange = hourData.reduce((sum, h) => sum + h.energyChange, 0) / hourData.length;
+          const avgScore = Math.round(70 + avgEnergyChange * 3);
+          const trend = avgEnergyChange > 2 ? 'up' : (avgEnergyChange < -2 ? 'down' : 'stable');
+          
+          hourlyAverages.push({
+            hour,
+            energyChange: avgEnergyChange,
+            trend,
+            score: avgScore
+          });
+        }
         
-        setHourlyEnergyData(hourlyWithScores);
+        const hourlyData = hourlyAverages;
+        
+        // Data already has scores calculated
+        setHourlyEnergyData(hourlyData);
         
         // Get user's base Bazi for element analysis
         const baseBazi = await getBaseBaziVector(birthDate);
         setUserElements(baseBazi);
         
         console.log('✅ 真实能量数据加载完成');
+        
+        // 在能量数据加载完成后获取GPT报告
+        await fetchReportData(baseBazi, dailyWithElements);
         
       } catch (error) {
         console.error('❌ 能量数据加载失败:', error);
@@ -305,8 +336,7 @@ function MayReportContent() {
   }, []);
 
   // Fetch GPT report data when component loads  
-  useEffect(() => {
-    async function fetchReportData() {
+  const fetchReportData = async (userElements?: any, dailyData?: any[]) => {
       try {
         console.log('🔄 正在获取May 2025报告数据...');
         const response = await fetch(`/api/reports/2025-05?birthDate=${encodeURIComponent(birthDate)}`, {
@@ -343,13 +373,60 @@ function MayReportContent() {
           const insightMatch = reportContent.match(/## 🌟 Energy Insight\n([\s\S]*?)(?=##)/);
           const insight = insightMatch ? insightMatch[1].trim() : '';
           
+          // 计算真实的能量分数和最强/最弱元素
+          let totalEnergyScore = 0;
+          let elementStrengths: Record<ElementType, number> = {
+            water: 0, fire: 0, earth: 0, metal: 0, wood: 0
+          };
+          
+          // 基于用户基础八字计算元素强度
+          const currentUserElements = userElements;
+          const currentDailyData = dailyData;
+          
+          if (currentUserElements) {
+            elementStrengths = { ...currentUserElements };
+            totalEnergyScore = Math.round(
+              (currentUserElements.water + currentUserElements.fire + currentUserElements.earth + 
+               currentUserElements.metal + currentUserElements.wood) / 5 * 20 + 50
+            );
+          } else if (currentDailyData && currentDailyData.length > 0) {
+            // 如果没有用户元素数据，基于每日数据计算
+            currentDailyData.forEach((day: any) => {
+              totalEnergyScore += Math.round(70 + day.energyChange * 3);
+              if (day.element) {
+                elementStrengths[day.element] += 1;
+              }
+            });
+            totalEnergyScore = Math.round(totalEnergyScore / Math.max(currentDailyData.length, 1));
+          } else {
+            // 默认值
+            totalEnergyScore = 70;
+          }
+          
+          // 找出最强和最弱的元素
+          let strongestElement: ElementType = 'water';
+          let weakestElement: ElementType = 'fire';
+          let maxStrength = -1;
+          let minStrength = Infinity;
+          
+          Object.entries(elementStrengths).forEach(([element, strength]) => {
+            if (strength > maxStrength) {
+              maxStrength = strength;
+              strongestElement = element as ElementType;
+            }
+            if (strength < minStrength) {
+              minStrength = strength;
+              weakestElement = element as ElementType;
+            }
+          });
+
           setGptReport({
             title,
             insight,
             loading: false,
-            energyScore: 76,
-            strongestElement: 'water',
-            weakestElement: 'fire'
+            energyScore: totalEnergyScore,
+            strongestElement,
+            weakestElement
           });
         }
       } catch (error: any) {
@@ -359,10 +436,7 @@ function MayReportContent() {
           error: `Failed to load report: ${error.message}`
         });
       }
-    }
-    
-    fetchReportData();
-  }, [birthDate]);
+    };
 
   // Helper function to get crystal for each element
   const getCrystalForElement = (element: ElementType) => {
@@ -775,7 +849,11 @@ function MayReportContent() {
                 <div className="flex items-start">
                   <span className="text-green-400 mr-2 mt-0.5">✓</span>
                   <div>
-                    <p className="text-sm"><span className="font-medium">May 24th - 26th</span>: Strong connection energy</p>
+                    <p className="text-sm">
+                      <span className="font-medium">
+                        May {Math.max(...getMoodPeakDays())}th - {Math.max(...getMoodPeakDays()) + 2}th
+                      </span>: Strong connection energy
+                    </p>
                   </div>
                 </div>
               </div>
@@ -840,7 +918,9 @@ function MayReportContent() {
                       .sort((a, b) => (b.score || 0) - (a.score || 0)) // Sort by score descending
                       .slice(0, 3) // Take top 3 hours
                       .map((hour, index) => {
-                        const dayNum = 12 + index * 6; // Sample days: May 12th, 18th, 24th
+                        // 使用能量峰值日期而不是固定日期
+                        const peakDays = getMoodPeakDays();
+                        const dayNum = peakDays[index] || (index + 1);
                         const hourTime = `${hour.hour}:00`;
                         const endTime = `${hour.hour + 2}:00`;
                         const activities = ['deep conversations', 'relationship building', 'social gatherings'];
@@ -1263,9 +1343,9 @@ function MayReportContent() {
                         <div className={`text-sm ${trendColor}`}>{trendIcon}</div>
                       </div>
                       <p className="text-xs text-purple-200">
-                        {day.trend === 'up' ? 'Great day for new initiatives and creative work' :
-                         day.trend === 'down' ? 'Focus on rest and reflection today' :
-                         'Balanced energy, good for steady progress'}
+                        {day.trend === 'up' ? `能量上升日，适合新计划和创造性工作（能量值：${day.energyChange > 0 ? '+' : ''}${day.energyChange}）` :
+                         day.trend === 'down' ? `能量下降日，适合休息和反思（能量值：${day.energyChange > 0 ? '+' : ''}${day.energyChange}）` :
+                         `能量平稳日，适合稳步推进工作（能量值：${day.energyChange > 0 ? '+' : ''}${day.energyChange}）`}
                       </p>
                       <div className="mt-1 flex items-center">
                         <span className="text-xs text-purple-300 mr-2">Crystal:</span>
@@ -1311,9 +1391,9 @@ function MayReportContent() {
                           <div className={`text-sm ${trendColor}`}>{trendIcon}</div>
                         </div>
                         <p className="text-xs text-purple-200 mt-1">
-                          {day.trend === 'up' ? 'Great day for new initiatives and creative work' :
-                           day.trend === 'down' ? 'Focus on rest and reflection today' :
-                           'Balanced energy, good for steady progress'}
+                          {day.trend === 'up' ? `能量上升日，适合新计划和创造性工作（能量值：${day.energyChange > 0 ? '+' : ''}${day.energyChange}）` :
+                           day.trend === 'down' ? `能量下降日，适合休息和反思（能量值：${day.energyChange > 0 ? '+' : ''}${day.energyChange}）` :
+                           `能量平稳日，适合稳步推进工作（能量值：${day.energyChange > 0 ? '+' : ''}${day.energyChange}）`}
                         </p>
                         <div className="mt-1 flex items-center">
                           <span className="text-xs text-purple-300 mr-2">Crystal:</span>
