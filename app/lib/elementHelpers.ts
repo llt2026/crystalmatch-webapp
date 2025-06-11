@@ -1,49 +1,37 @@
-import { type ElementType } from './energyCalculationConfig';
+import { ElementType } from './energyCalculationConfig';
 
-// Crystal information for each element
-export const getCrystalForElement = (element: ElementType) => {
-  const crystals = {
-    'water': { name: 'Moonstone', bgColor: 'bg-blue-900/30', color: 'text-blue-300' },
-    'fire': { name: 'Carnelian', bgColor: 'bg-red-900/30', color: 'text-red-300' },
-    'earth': { name: 'Citrine', bgColor: 'bg-yellow-900/30', color: 'text-yellow-300' },
-    'metal': { name: 'Clear Quartz', bgColor: 'bg-gray-900/30', color: 'text-gray-300' },
-    'wood': { name: 'Green Aventurine', bgColor: 'bg-green-900/30', color: 'text-green-300' }
-  };
-  return crystals[element] || crystals.water;
-};
+export const elementColors = {
+  water: { bg: 'bg-blue-900/40', text: 'text-blue-300' },
+  fire:  { bg: 'bg-red-900/40',  text: 'text-red-300' },
+  earth: { bg: 'bg-yellow-900/40', text: 'text-yellow-300' },
+  metal: { bg: 'bg-purple-900/40', text: 'text-purple-300' },
+  wood:  { bg: 'bg-green-900/40', text: 'text-green-300' }
+} as const;
 
-// Element icons
-export const getElementIcon = (element: ElementType) => {
-  const icons = {
-    'water': '💧',
-    'fire': '🔥',
-    'earth': '🌱',
-    'metal': '⚡',
-    'wood': '🌿'
-  };
-  return icons[element] || '💎';
-};
+export function getElementColorClass(el: ElementType) {
+  return elementColors[el] ?? elementColors.water;
+}
 
-// Element descriptions
-export const getElementDescription = (element: ElementType) => {
-  const descriptions = {
-    'water': 'Flow & Intuition',
-    'fire': 'Passion & Energy',
-    'earth': 'Grounding & Stability',
-    'metal': 'Clarity & Structure',
-    'wood': 'Growth & Creativity'
-  };
-  return descriptions[element] || 'Balance';
-};
+export function getElementIcon(el: ElementType) {
+  return { water: '💧', fire: '🔥', earth: '🌍', metal: '⚡', wood: '🌿' }[el] ?? '💧';
+}
 
-// Element color classes for UI
-export const getElementColorClass = (element: ElementType): {bg: string, text: string} => {
-  const colors = {
-    'water': { bg: 'bg-blue-900/30', text: 'text-blue-300' },
-    'fire': { bg: 'bg-red-900/30', text: 'text-red-300' },
-    'earth': { bg: 'bg-yellow-900/30', text: 'text-yellow-300' },
-    'metal': { bg: 'bg-gray-900/30', text: 'text-gray-300' },
-    'wood': { bg: 'bg-green-900/30', text: 'text-green-300' }
-  };
-  return colors[element] || colors.water;
-}; 
+export function getElementDescription(el: ElementType) {
+  return {
+    water: 'Fluid Energy',
+    fire:  'Passion Energy',
+    earth: 'Stable Energy',
+    metal: 'Sharp Energy',
+    wood:  'Growth Energy'
+  }[el] ?? 'Fluid Energy';
+}
+
+export function getCrystalForElement(el: ElementType) {
+  return {
+    water: { name: 'Clear Quartz',   bgColor: 'bg-blue-900/50',  color: 'text-blue-300' },
+    fire:  { name: 'Red Jasper',     bgColor: 'bg-red-900/50',   color: 'text-red-300' },
+    earth: { name: 'Amethyst',       bgColor: 'bg-purple-900/50',color: 'text-purple-300' },
+    metal: { name: 'Citrine',        bgColor: 'bg-yellow-900/50',color: 'text-yellow-300' },
+    wood:  { name: 'Green Jade',     bgColor: 'bg-green-900/50', color: 'text-green-300' }
+  }[el] ?? { name: 'Clear Quartz', bgColor: 'bg-blue-900/50', color: 'text-blue-300' };
+}

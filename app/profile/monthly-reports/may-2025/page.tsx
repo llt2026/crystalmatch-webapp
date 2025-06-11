@@ -121,7 +121,10 @@ function MayReportContent() {
         });
         
         if (!res.ok) {
-          throw new Error(`API request failed: ${res.status}`);
+          const errorData = await res.json().catch(() => ({}));
+          const errorMessage = errorData.message || errorData.error || `API request failed: ${res.status}`;
+          console.error('API Error Details:', errorData);
+          throw new Error(errorMessage);
         }
         
         // Parse all data returned from the API

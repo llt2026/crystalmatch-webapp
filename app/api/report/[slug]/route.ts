@@ -17,6 +17,25 @@ export async function GET(req: NextRequest, { params }: { params:{ slug:string }
     const birthDate = req.nextUrl.searchParams.get('birthDate');
     if (!birthDate) return NextResponse.json({ error:'Missing birthDate' }, { status:400 });
 
+    // Validate birthDate format
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(birthDate)) {
+      return NextResponse.json({ 
+        error: 'Invalid birthDate format', 
+        message: 'Birth date must be in YYYY-MM-DD format',
+        details: { provided: birthDate }
+      }, { status: 400 });
+    }
+
+    // Validate birth date is realistic
+    const birthDateObj = new Date(birthDate);
+    if (isNaN(birthDateObj.getTime())) {
+      return NextResponse.json({ 
+        error: 'Invalid birthDate', 
+        message: 'Birth date is not a valid date',
+        details: { provided: birthDate }
+      }, { status: 400 });
+    }
+
     // Validate slug format
     const slug = params.slug;                // Format like 2025-05
     if (!/^\d{4}-\d{2}$/.test(slug)) {
