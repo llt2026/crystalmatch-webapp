@@ -51,15 +51,39 @@ export async function GET(req: NextRequest, { params }: { params:{ slug:string }
       }, { status: 400 });
     }
 
-    // Validate slug format
-    const slug = params.slug;                // Format like 2025-05
-    if (!/^\d{4}-\d{2}$/.test(slug)) {
-      return NextResponse.json({ error:'Invalid slug format, expected YYYY-MM' }, { status:400 });
+    // Validate slug format and convert to YYYY-MM if needed
+    const slug = params.slug;                
+    let formattedSlug = slug;
+    
+    // Support both formats: YYYY-MM (like 2025-05) and month-YYYY (like may-2025)
+    if (/^\d{4}-\d{2}$/.test(slug)) {
+      // Already in YYYY-MM format
+      formattedSlug = slug;
+    } else if (/^(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)-\d{4}$/i.test(slug)) {
+      // Convert month-YYYY to YYYY-MM format
+      const [monthName, year] = slug.split('-');
+      const monthMap: Record<string, string> = {
+        'jan': '01', 'feb': '02', 'mar': '03', 'apr': '04', 
+        'may': '05', 'jun': '06', 'jul': '07', 'aug': '08', 
+        'sep': '09', 'oct': '10', 'nov': '11', 'dec': '12'
+      };
+      const monthNum = monthMap[monthName.toLowerCase()];
+      if (monthNum) {
+        formattedSlug = `${year}-${monthNum}`;
+      } else {
+        return NextResponse.json({ error:'Invalid month name in slug' }, { status:400 });
+      }
+    } else {
+      return NextResponse.json({ 
+        error:'Invalid slug format', 
+        message: 'Expected YYYY-MM (e.g., 2025-05) or month-YYYY (e.g., may-2025) format',
+        details: { provided: slug }
+      }, { status:400 });
     }
 
-    console.log(`📅 Processing monthly report request: ${slug}, birth date: ${formattedBirthDate}`);
+    console.log(`📅 Processing monthly report request: ${slug} -> ${formattedSlug}, birth date: ${formattedBirthDate}`);
     
-    const startDate = new Date(`${slug}-01`);
+    const startDate = new Date(`${formattedSlug}-01`);
     if (isNaN(startDate.getTime())) {
       return NextResponse.json({ error:'Invalid date in slug' }, { status:400 });
     }
