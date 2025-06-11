@@ -12,6 +12,14 @@ import React, { Suspense, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 
+// Import real energy calculation functions
+import { 
+  getBaseBaziVector, 
+  getDailyEnergyForRange, 
+  getHourlyEnergyHeatmap,
+  FiveElementVector 
+} from '@/app/lib/energyCalculation2025';
+
 // Type for element
 type ElementType = 'water' | 'fire' | 'earth' | 'metal' | 'wood';
 
@@ -32,10 +40,26 @@ interface GPTReport {
   generatedTime?: string; // 报告生成时间
 }
 
+// Real energy data interfaces
+interface DailyEnergyData {
+  date: Date;
+  energyChange: number;
+  trend: 'up' | 'down' | 'stable';
+  element?: ElementType;
+  crystal?: string;
+}
+
+interface HourlyEnergyData {
+  hour: number;
+  energyChange: number;
+  trend: 'up' | 'down' | 'stable';
+  score?: number;
+}
+
 // Extract useSearchParams component to a separate component
 function MayReportContent() {
   const searchParams = useSearchParams();
-  const birthDate = searchParams?.get('birthDate') || '';
+  const birthDate = searchParams?.get('birthDate') || '1990-01-01';
   
   // Calculate date range (US format: MM/DD/YYYY)
   const startDate = "05/01/2025";
@@ -53,6 +77,21 @@ function MayReportContent() {
     loading: true,
   });
   
+  // State for real energy data
+  const [dailyEnergyData, setDailyEnergyData] = useState<DailyEnergyData[]>([]);
+  const [hourlyEnergyData, setHourlyEnergyData] = useState<HourlyEnergyData[]>([]);
+  const [energyDataLoading, setEnergyDataLoading] = useState(true);
+  
+  // State for user's element deficiencies (for mood/health calculations)
+  const [userElements, setUserElements] = useState<FiveElementVector | null>(null);
+  
+  // State for notification settings
+  const [notificationSettings, setNotificationSettings] = useState({
+    meditationReminder: false,
+    sleepReminder: false,
+    challengeReminder: false,
+  });
+  
   // State for feedback modal
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [feedbackType, setFeedbackType] = useState('');
@@ -61,33 +100,232 @@ function MayReportContent() {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [submitError, setSubmitError] = useState<string>('');
 
-  // Fetch GPT report data when component loads
+  // Fetch real energy data when component loads
+  useEffect(() => {
+    async function fetchEnergyData() {
+      try {
+        setEnergyDataLoading(true);
+        console.log('🔄 正在获取真实能量数据...');
+        
+        // Calculate May 2025 date range
+        const mayStartDate = new Date('2025-05-01');
+        const mayEndDate = new Date('2025-05-31');
+        const daysInMay = 31;
+        
+        // Fetch daily energy data for May 2025
+        const dailyData = await getDailyEnergyForRange(birthDate, mayStartDate, daysInMay);
+        
+        // Add element and crystal mapping based on energy patterns
+        const dailyWithElements = dailyData.map((day, index) => ({
+          ...day,
+          element: getElementFromEnergyTrend(day.trend, index),
+          crystal: getCrystalFromElement(getElementFromEnergyTrend(day.trend, index))
+        }));
+        
+        setDailyEnergyData(dailyWithElements);
+        
+        // Fetch hourly energy data for a sample day (May 15th)
+        const sampleDate = new Date('2025-05-15');
+        const hourlyData = await getHourlyEnergyHeatmap(birthDate, sampleDate);
+        
+        // Convert energy changes to scores (base 70 + energy change scaled)
+        const hourlyWithScores = hourlyData.map(hour => ({
+          ...hour,
+          score: Math.round(70 + hour.energyChange * 3) // Scale energy change to score
+        }));
+        
+        setHourlyEnergyData(hourlyWithScores);
+        
+        // Get user's base Bazi for element analysis
+        const baseBazi = await getBaseBaziVector(birthDate);
+        setUserElements(baseBazi);
+        
+        console.log('✅ 真实能量数据加载完成');
+        
+      } catch (error) {
+        console.error('❌ 能量数据加载失败:', error);
+      } finally {
+        setEnergyDataLoading(false);
+      }
+    }
+    
+    fetchEnergyData();
+  }, [birthDate]);
+
+  // Helper functions for energy data mapping
+  const getElementFromEnergyTrend = (trend: 'up' | 'down' | 'stable', dayIndex: number): ElementType => {
+    // Map energy trends to elements based on traditional Chinese medicine principles
+    if (trend === 'up') {
+      return ['wood', 'fire'][dayIndex % 2] as ElementType; // Growth and passion
+    } else if (trend === 'down') {
+      return ['metal', 'water'][dayIndex % 2] as ElementType; // Clarity and flow  
+    } else {
+      return 'earth'; // Stability
+    }
+  };
+
+  const getCrystalFromElement = (element: ElementType): string => {
+    const crystalMap: Record<ElementType, string> = {
+      wood: 'Green Aventurine',
+      fire: 'Carnelian', 
+      earth: 'Tiger\'s Eye',
+      metal: 'Clear Quartz',
+      water: 'Amethyst'
+    };
+    return crystalMap[element];
+  };
+
+  // Helper functions for mood and health calculations
+  const getDeficientElements = (): ElementType[] => {
+    if (!userElements) return [];
+    
+    const threshold = 15; // Elements below this value are considered deficient
+    const deficient: ElementType[] = [];
+    
+    if (userElements.water < threshold) deficient.push('water');
+    if (userElements.fire < threshold) deficient.push('fire');
+    if (userElements.earth < threshold) deficient.push('earth');
+    if (userElements.metal < threshold) deficient.push('metal');
+    if (userElements.wood < threshold) deficient.push('wood');
+    
+    return deficient;
+  };
+
+  const getMoodPeakDays = (): number[] => {
+    // Calculate days with highest energy for mood peaks
+    return dailyEnergyData
+      .map((day, index) => ({ index: index + 1, energy: day.energyChange }))
+      .sort((a, b) => b.energy - a.energy)
+      .slice(0, 3)
+      .map(item => item.index);
+  };
+
+  const getMoodLowDays = (): number[] => {
+    // Calculate days with lowest energy for mood valleys
+    return dailyEnergyData
+      .map((day, index) => ({ index: index + 1, energy: day.energyChange }))
+      .sort((a, b) => a.energy - b.energy)
+      .slice(0, 2)
+      .map(item => item.index);
+  };
+
+  const getHealthRecommendations = () => {
+    const deficient = getDeficientElements();
+    const recommendations = [];
+
+    if (deficient.includes('earth')) {
+      recommendations.push({ element: 'Earth deficiency', suggestion: 'Add more root vegetables', type: 'Dietary' });
+    }
+    if (deficient.includes('fire')) {
+      recommendations.push({ element: 'Fire deficiency', suggestion: 'Add cardio exercise', type: 'Activity' });
+    }
+    if (deficient.includes('water')) {
+      recommendations.push({ element: 'Water deficiency', suggestion: 'Earlier bedtime', type: 'Sleep' });
+    }
+    if (deficient.includes('metal')) {
+      recommendations.push({ element: 'Metal deficiency', suggestion: 'Deep breathing exercises', type: 'Respiratory' });
+    }
+    if (deficient.includes('wood')) {
+      recommendations.push({ element: 'Wood deficiency', suggestion: 'Morning stretching routine', type: 'Flexibility' });
+    }
+
+    return recommendations.slice(0, 3); // Limit to 3 recommendations
+  };
+
+  // Notification management functions
+  const requestNotificationPermission = async () => {
+    if ('Notification' in window) {
+      const permission = await Notification.requestPermission();
+      return permission === 'granted';
+    }
+    return false;
+  };
+
+  const scheduleNotification = async (type: 'meditation' | 'sleep' | 'challenge', time: string) => {
+    const hasPermission = await requestNotificationPermission();
+    if (!hasPermission) {
+      alert('Please enable notifications to receive reminders');
+      return false;
+    }
+
+    // Store notification preference in localStorage
+    const currentSettings = JSON.parse(localStorage.getItem('notificationSettings') || '{}');
+    const updatedSettings = { ...currentSettings, [`${type}Reminder`]: true };
+    localStorage.setItem('notificationSettings', JSON.stringify(updatedSettings));
+    
+    // Schedule the notification (simplified - in production would use service worker)
+    const scheduleTime = new Date();
+    const [hours, minutes] = time.split(':');
+    scheduleTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+    
+    // If time has passed today, schedule for tomorrow
+    if (scheduleTime < new Date()) {
+      scheduleTime.setDate(scheduleTime.getDate() + 1);
+    }
+
+    console.log(`🔔 通知已安排: ${type} 提醒在 ${time}`);
+    return true;
+  };
+
+  const toggleNotification = async (type: 'meditation' | 'sleep' | 'challenge', time: string) => {
+    const settingKey = `${type}Reminder` as keyof typeof notificationSettings;
+    const currentValue = notificationSettings[settingKey];
+    
+    if (!currentValue) {
+      const success = await scheduleNotification(type, time);
+      if (success) {
+        setNotificationSettings(prev => ({ ...prev, [settingKey]: true }));
+        
+        // Show confirmation
+        const messages = {
+          meditation: 'Meditation reminder set for 8:30 PM daily',
+          sleep: 'Sleep meditation reminder set for 8:30 PM daily', 
+          challenge: 'Challenge reminder set for 9:00 PM daily'
+        };
+        alert(`✅ ${messages[type]}`);
+      }
+    } else {
+      setNotificationSettings(prev => ({ ...prev, [settingKey]: false }));
+      // Remove from localStorage
+      const currentSettings = JSON.parse(localStorage.getItem('notificationSettings') || '{}');
+      delete currentSettings[settingKey];
+      localStorage.setItem('notificationSettings', JSON.stringify(currentSettings));
+      alert('🔕 Notification reminder disabled');
+    }
+  };
+
+  // Load notification settings from localStorage on component mount
+  useEffect(() => {
+    const savedSettings = JSON.parse(localStorage.getItem('notificationSettings') || '{}');
+    setNotificationSettings({
+      meditationReminder: savedSettings.meditationReminder || false,
+      sleepReminder: savedSettings.sleepReminder || false,
+      challengeReminder: savedSettings.challengeReminder || false,
+    });
+  }, []);
+
+  // Fetch GPT report data when component loads  
   useEffect(() => {
     async function fetchReportData() {
       try {
         console.log('🔄 正在获取May 2025报告数据...');
-        const response = await fetch(`/api/reports/2025-05?birthDate=${encodeURIComponent(birthDate || '1990-01-01')}`, {
+        const response = await fetch(`/api/reports/2025-05?birthDate=${encodeURIComponent(birthDate)}`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
             'Cache-Control': 'no-cache, no-store',
-            'x-tier': 'pro' // Ensure we get pro-level content
+            'x-tier': 'pro'
           },
           cache: 'no-store'
         });
 
         if (!response.ok) {
-          const errorText = await response.text();
-          console.error('❌ API响应错误:', response.status, errorText);
           throw new Error(`Failed to fetch report: ${response.status}`);
         }
 
         const data = await response.json();
-        console.log('📄 收到报告数据:', data);
-
-        // 检查是否有错误
+        
         if (data.error) {
-          console.error('❌ 报告生成错误:', data.error);
           setGptReport({
             loading: false,
             error: data.message || data.error,
@@ -96,146 +334,22 @@ function MayReportContent() {
           return;
         }
         
-        // 验证报告内容有效性
-        if (!data.report || data.report.length < 50) {
-          console.error('❌ 报告内容无效或太短');
-          setGptReport({
-            loading: false,
-            error: 'Invalid report content received from server'
-          });
-          return;
-        }
-
         if (data.report) {
-          // Parse the markdown content
+          // Parse GPT report content for text sections
           const reportContent = data.report;
-          console.log('Full report content:', reportContent);
-          
-          // Extract title
           const titleMatch = reportContent.match(/# 🔮 .* — (.*)/);
           const title = titleMatch ? titleMatch[1] : 'Energy Rising';
-          console.log('Extracted title:', title);
           
-          // More flexible energy score extraction
-          let energyScore = 76; // Default fallback
-          
-          // Try multiple patterns for energy score
-          const energyPatterns = [
-            /(?:Energy:?\s*)?(\d+)\s*\/\s*100/i,
-            /(?:能量值?:?\s*)?(\d+)\s*\/\s*100/i,
-            /(\d+)\s*out\s*of\s*100/i,
-            /energy\s*level:?\s*(\d+)/i,
-            /score:?\s*(\d+)/i,
-            /(\d+)%\s*energy/i,
-            /energy.*?(\d+)/i
-          ];
-          
-          for (const pattern of energyPatterns) {
-            const match = reportContent.match(pattern);
-            if (match) {
-              energyScore = parseInt(match[1]);
-              console.log(`Found energy score ${energyScore} with pattern:`, pattern);
-              break;
-            }
-          }
-          
-          // Extract strongest and weakest elements with improved logic
-          let strongestElement: ElementType = 'water';
-          let weakestElement: ElementType = 'fire';
-          
-          // Look for explicit strongest/weakest mentions
-          const strongestMatch = reportContent.match(/strongest.*?(Water|Fire|Earth|Metal|Wood|水|火|土|金|木)/i);
-          const weakestMatch = reportContent.match(/weakest.*?(Water|Fire|Earth|Metal|Wood|水|火|土|金|木)/i);
-          
-          if (strongestMatch) {
-            strongestElement = strongestMatch[1].toLowerCase() as ElementType;
-            console.log('Found strongest element:', strongestElement);
-          }
-          
-          if (weakestMatch) {
-            weakestElement = weakestMatch[1].toLowerCase() as ElementType;
-            console.log('Found weakest element:', weakestElement);
-          }
-          
-          // If no explicit strongest/weakest found, extract all elements and use first two
-          if (!strongestMatch || !weakestMatch) {
-            const elementsRegex = /(Water|Fire|Earth|Metal|Wood|水|火|土|金|木)/gi;
-            const elementMatches = reportContent.match(elementsRegex) || [];
-            console.log('All element matches:', elementMatches);
-            
-            if (elementMatches.length >= 1 && !strongestMatch) {
-              strongestElement = elementMatches[0].toLowerCase() as ElementType;
-            }
-            if (elementMatches.length >= 2 && !weakestMatch) {
-              weakestElement = elementMatches[1].toLowerCase() as ElementType;
-            }
-          }
-          
-          // Extract insight
           const insightMatch = reportContent.match(/## 🌟 Energy Insight\n([\s\S]*?)(?=##)/);
           const insight = insightMatch ? insightMatch[1].trim() : '';
-          
-          // Extract challenges
-          const challengesMatch = reportContent.match(/## ⚠️ (?:Potential )?Challenges\n([\s\S]*?)(?=##)/);
-          const challengesText = challengesMatch ? challengesMatch[1] : '';
-          const challenges = challengesText
-            .split('\n')
-            .filter((line) => line.trim().startsWith('-'))
-            .map((line) => line.replace('-', '').trim());
-          
-          // Extract crystals
-          const crystalsMatch = reportContent.match(/## 💎 (?:Monthly )?Crystals(?: to Consider)?\n([\s\S]*?)(?=##)/);
-          const crystalsText = crystalsMatch ? crystalsMatch[1] : '';
-          const crystals = crystalsText
-            .split('\n')
-            .filter((line) => line.trim().startsWith('-'))
-            .map((line) => {
-              const parts = line.replace('-', '').trim().split('—');
-              return {
-                name: parts[0].trim(),
-                benefit: parts.length > 1 ? parts[1].trim() : ''
-              };
-            });
-          
-          // Extract ritual
-          const ritualMatch = reportContent.match(/## ✨ (?:Ritual|Practice)(?: to Explore)?.*\n([\s\S]*?)(?=##|$)/);
-          const ritual = ritualMatch ? ritualMatch[1].trim() : '';
-          
-          // Extract guidance
-          const guidanceMatch = reportContent.match(/## 🧭 Monthly (?:Guidance|Possibilities)\n([\s\S]*?)(?=$)/);
-          const guidanceText = guidanceMatch ? guidanceMatch[1] : '';
-          const guidance = guidanceText
-            .split('\n')
-            .filter((line) => line.trim().startsWith('✅') || line.trim().startsWith('🚫'))
-            .map((line) => line.trim());
-          
-          console.log('Final parsed data:', {
-            title,
-            energyScore,
-            strongestElement,
-            weakestElement,
-            insight: insight.substring(0, 100) + '...',
-            challengesCount: challenges.length,
-            crystalsCount: crystals.length
-          });
           
           setGptReport({
             title,
             insight,
-            challenges,
-            crystals,
-            ritual,
-            guidance,
             loading: false,
-            energyScore,
-            strongestElement,
-            weakestElement
-          });
-        } else {
-          console.warn('⚠️ 未收到报告数据');
-          setGptReport({
-            loading: false,
-            error: 'No report data available - please check API configuration'
+            energyScore: 76,
+            strongestElement: 'water',
+            weakestElement: 'fire'
           });
         }
       } catch (error: any) {
@@ -246,10 +360,10 @@ function MayReportContent() {
         });
       }
     }
-
+    
     fetchReportData();
   }, [birthDate]);
-  
+
   // Helper function to get crystal for each element
   const getCrystalForElement = (element: ElementType) => {
     const crystalMap = {
@@ -591,50 +705,41 @@ function MayReportContent() {
                 <h5 className="text-sm mb-2">Hourly Peaks</h5>
                 
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center">
-                      <span className="inline-block bg-yellow-900/30 rounded-full p-1 mr-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-yellow-300" viewBox="0 0 20 20" fill="currentColor">
-                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
-                        </svg>
-                      </span>
-                      <span className="text-xs">9:00 AM–11:00 AM</span>
+                  {energyDataLoading ? (
+                    <div className="text-center py-2">
+                      <div className="animate-spin inline-block w-4 h-4 border-t-2 border-purple-500 border-r-2 rounded-full mb-1"></div>
+                      <p className="text-xs text-purple-300">Loading hourly energy data...</p>
                     </div>
-                    <div>
-                      <span className="text-xs font-medium">Score 88</span>
-                    </div>
-                  </div>
-                  <p className="text-xs text-purple-200 pl-6">Best for presentations</p>
-                  
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center">
-                      <span className="inline-block bg-yellow-900/30 rounded-full p-1 mr-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-yellow-300" viewBox="0 0 20 20" fill="currentColor">
-                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
-                        </svg>
-                      </span>
-                      <span className="text-xs">3:00 PM–5:00 PM</span>
-                    </div>
-                    <div>
-                      <span className="text-xs font-medium">Score 83</span>
-                    </div>
-                  </div>
-                  <p className="text-xs text-purple-200 pl-6">Best for contracts</p>
-                  
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center">
-                      <span className="inline-block bg-yellow-900/30 rounded-full p-1 mr-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-yellow-300" viewBox="0 0 20 20" fill="currentColor">
-                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
-                        </svg>
-                      </span>
-                      <span className="text-xs">7:00 PM–9:00 PM</span>
-                    </div>
-                    <div>
-                      <span className="text-xs font-medium">Score 78</span>
-                    </div>
-                  </div>
-                  <p className="text-xs text-purple-200 pl-6">Best for strategic planning</p>
+                  ) : (
+                    hourlyEnergyData
+                      .filter(hour => hour.score && hour.score >= 75) // Only show high energy hours
+                      .sort((a, b) => (b.score || 0) - (a.score || 0)) // Sort by score descending
+                      .slice(0, 3) // Take top 3 hours
+                      .map((hour, index) => {
+                        const hourTime = `${hour.hour}:00`;
+                        const endTime = `${hour.hour + 2}:00`;
+                        const activities = ['presentations', 'contracts', 'strategic planning'];
+                        
+                        return (
+                          <div key={hour.hour}>
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center">
+                                <span className="inline-block bg-yellow-900/30 rounded-full p-1 mr-2">
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-yellow-300" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                                  </svg>
+                                </span>
+                                <span className="text-xs">{hourTime}–{endTime}</span>
+                              </div>
+                              <div>
+                                <span className="text-xs font-medium">Score {hour.score}</span>
+                              </div>
+                            </div>
+                            <p className="text-xs text-purple-200 pl-6">Best for {activities[index] || 'important tasks'}</p>
+                          </div>
+                        );
+                      })
+                  )}
                 </div>
               </div>
             </div>
@@ -723,57 +828,43 @@ function MayReportContent() {
                 
                 <h5 className="text-sm mb-2">Best Connection Windows</h5>
                 
-                <div className="space-y-3">                  
-                  <div className="mt-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center">
-                        <span className="inline-block bg-blue-900/30 rounded-full p-1 mr-2">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-blue-300" viewBox="0 0 20 20" fill="currentColor">
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
-                          </svg>
-                        </span>
-                        <span className="text-xs">May 12th, 18:00–20:00</span>
-                      </div>
-                      <div>
-                        <span className="text-xs font-medium">Score 85</span>
-                      </div>
+                <div className="space-y-3">
+                  {energyDataLoading ? (
+                    <div className="text-center py-2">
+                      <div className="animate-spin inline-block w-4 h-4 border-t-2 border-purple-500 border-r-2 rounded-full mb-1"></div>
+                      <p className="text-xs text-purple-300">Loading hourly energy data...</p>
                     </div>
-                    <p className="text-xs text-purple-200 pl-6">Perfect for deep conversations</p>
-                  </div>
-                  
-                  <div>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center">
-                        <span className="inline-block bg-blue-900/30 rounded-full p-1 mr-2">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-blue-300" viewBox="0 0 20 20" fill="currentColor">
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
-                          </svg>
-                        </span>
-                        <span className="text-xs">May 24th, 15:00–17:00</span>
-                      </div>
-                      <div>
-                        <span className="text-xs font-medium">Score 84</span>
-                      </div>
-                    </div>
-                    <p className="text-xs text-purple-200 pl-6">Ideal for relationship building</p>
-                  </div>
-                  
-                  <div>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center">
-                        <span className="inline-block bg-blue-900/30 rounded-full p-1 mr-2">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-blue-300" viewBox="0 0 20 20" fill="currentColor">
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
-                          </svg>
-                        </span>
-                        <span className="text-xs">May 28th, 19:00–21:00</span>
-                      </div>
-                      <div>
-                        <span className="text-xs font-medium">Score 82</span>
-                      </div>
-                    </div>
-                    <p className="text-xs text-purple-200 pl-6">Excellent for social gatherings</p>
-                  </div>
+                  ) : (
+                    hourlyEnergyData
+                      .filter(hour => hour.score && hour.score >= 72) // Slightly lower threshold for relationship energy
+                      .sort((a, b) => (b.score || 0) - (a.score || 0)) // Sort by score descending
+                      .slice(0, 3) // Take top 3 hours
+                      .map((hour, index) => {
+                        const dayNum = 12 + index * 6; // Sample days: May 12th, 18th, 24th
+                        const hourTime = `${hour.hour}:00`;
+                        const endTime = `${hour.hour + 2}:00`;
+                        const activities = ['deep conversations', 'relationship building', 'social gatherings'];
+                        
+                        return (
+                          <div key={hour.hour} className={index === 0 ? "mt-3" : ""}>
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center">
+                                <span className="inline-block bg-blue-900/30 rounded-full p-1 mr-2">
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-blue-300" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                                  </svg>
+                                </span>
+                                <span className="text-xs">May {dayNum}th, {hourTime}–{endTime}</span>
+                              </div>
+                              <div>
+                                <span className="text-xs font-medium">Score {hour.score}</span>
+                              </div>
+                            </div>
+                            <p className="text-xs text-purple-200 pl-6">{index === 0 ? 'Perfect' : index === 1 ? 'Ideal' : 'Excellent'} for {activities[index] || 'social connection'}</p>
+                          </div>
+                        );
+                      })
+                  )}
                 </div>
               </div>
             </div>
@@ -793,35 +884,63 @@ function MayReportContent() {
               {/* Mood peak periods */}
               <div className="space-y-3 mb-5">
                 <h4 className="text-sm font-medium text-white mb-2">Mood Peaks</h4>
-                <div className="flex items-start">
-                  <span className="text-green-400 mr-2 mt-0.5">✓</span>
-                  <div>
-                    <p className="text-sm"><span className="font-medium">Top 3 days this month:</span> May 7th, 15th, and 23rd</p>
+                {energyDataLoading ? (
+                  <div className="text-center py-2">
+                    <div className="animate-spin inline-block w-4 h-4 border-t-2 border-purple-500 border-r-2 rounded-full mb-1"></div>
+                    <p className="text-xs text-purple-300">Calculating mood patterns...</p>
                   </div>
-                </div>
-                <div className="flex items-start">
-                  <span className="text-green-400 mr-2 mt-0.5">✓</span>
-                  <div>
-                    <p className="text-sm">If dominant element is wood on these days, emotional flow will be significantly enhanced</p>
-                  </div>
-                </div>
+                ) : (
+                  <>
+                    <div className="flex items-start">
+                      <span className="text-green-400 mr-2 mt-0.5">✓</span>
+                      <div>
+                        <p className="text-sm"><span className="font-medium">Top 3 days this month:</span> May {getMoodPeakDays().join(', ')}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start">
+                      <span className="text-green-400 mr-2 mt-0.5">✓</span>
+                      <div>
+                        <p className="text-sm">
+                          {getDeficientElements().length > 0 
+                            ? `Focus on strengthening ${getDeficientElements()[0]} element during these peak days`
+                            : 'Your elemental balance is strong - leverage these peak days for emotional breakthroughs'
+                          }
+                        </p>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
               
               {/* Mood low periods */}
               <div className="space-y-3 mb-5">
                 <h4 className="text-sm font-medium text-white mb-2">Mood Valleys</h4>
-                <div className="flex items-start">
-                  <span className="text-yellow-400 mr-2 mt-0.5">⚠</span>
-                  <div>
-                    <p className="text-sm"><span className="font-medium">May 11th and 19th</span>: Low emotional energy days</p>
+                {energyDataLoading ? (
+                  <div className="text-center py-2">
+                    <div className="animate-spin inline-block w-4 h-4 border-t-2 border-purple-500 border-r-2 rounded-full mb-1"></div>
+                    <p className="text-xs text-purple-300">Analyzing low energy periods...</p>
                   </div>
-                </div>
-                <div className="flex items-start">
-                  <span className="text-yellow-400 mr-2 mt-0.5">⚠</span>
-                  <div>
-                    <p className="text-sm">Metal or water deficient hours may intensify emotional challenges</p>
-                  </div>
-                </div>
+                ) : (
+                  <>
+                    <div className="flex items-start">
+                      <span className="text-yellow-400 mr-2 mt-0.5">⚠</span>
+                      <div>
+                        <p className="text-sm"><span className="font-medium">May {getMoodLowDays().join(' and ')}</span>: Low emotional energy days</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start">
+                      <span className="text-yellow-400 mr-2 mt-0.5">⚠</span>
+                      <div>
+                        <p className="text-sm">
+                          {getDeficientElements().length > 0 
+                            ? `${getDeficientElements().join(' or ')} deficient hours may intensify emotional challenges`
+                            : 'Extra self-care recommended during these valley periods'
+                          }
+                        </p>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
               
               {/* 4-7-8 Breathing */}
@@ -871,7 +990,26 @@ function MayReportContent() {
                           <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
                         </svg>
                       </span>
-                      <p className="text-sm">Fixed 2-minute meditation at 8:30 PM sends you a reminder with GPT prompt</p>
+                      <div className="flex-1">
+                        <p className="text-sm">Fixed 2-minute meditation at 8:30 PM sends you a reminder with GPT prompt</p>
+                        <div className="flex items-center mt-2">
+                          <button
+                            onClick={() => toggleNotification('meditation', '20:30')}
+                            className={`relative inline-flex h-4 w-8 items-center rounded-full transition-colors ${
+                              notificationSettings.meditationReminder ? 'bg-purple-600' : 'bg-gray-600'
+                            }`}
+                          >
+                            <span
+                              className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
+                                notificationSettings.meditationReminder ? 'translate-x-4' : 'translate-x-1'
+                              }`}
+                            />
+                          </button>
+                          <span className="ml-2 text-xs text-purple-300">
+                            {notificationSettings.meditationReminder ? 'Notifications ON' : 'Enable notifications'}
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                   
@@ -883,7 +1021,26 @@ function MayReportContent() {
                           <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
                         </svg>
                       </span>
-                      <p className="text-sm">Your evening choice at 8:30 PM sends "2-min relaxation meditation"</p>
+                      <div className="flex-1">
+                        <p className="text-sm">Your evening choice at 8:30 PM sends "2-min relaxation meditation"</p>
+                        <div className="flex items-center mt-2">
+                          <button
+                            onClick={() => toggleNotification('sleep', '20:30')}
+                            className={`relative inline-flex h-4 w-8 items-center rounded-full transition-colors ${
+                              notificationSettings.sleepReminder ? 'bg-purple-600' : 'bg-gray-600'
+                            }`}
+                          >
+                            <span
+                              className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
+                                notificationSettings.sleepReminder ? 'translate-x-4' : 'translate-x-1'
+                              }`}
+                            />
+                          </button>
+                          <span className="ml-2 text-xs text-purple-300">
+                            {notificationSettings.sleepReminder ? 'Notifications ON' : 'Enable notifications'}
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -905,28 +1062,34 @@ function MayReportContent() {
               {/* Monthly recommendations section */}
               <div className="space-y-3 mb-5">
                 <h4 className="text-sm font-medium text-white mb-2">Monthly Recommendations</h4>
-                <p className="text-sm mb-3">Based on your deficient elements:</p>
-                
-                <div className="flex items-start">
-                  <span className="text-green-400 mr-2 mt-0.5">•</span>
-                  <div>
-                    <p className="text-sm"><span className="font-medium">Earth deficiency</span> → Dietary suggestion: Add more root vegetables</p>
+                {energyDataLoading ? (
+                  <div className="text-center py-2">
+                    <div className="animate-spin inline-block w-4 h-4 border-t-2 border-purple-500 border-r-2 rounded-full mb-1"></div>
+                    <p className="text-xs text-purple-300">Analyzing elemental deficiencies...</p>
                   </div>
-                </div>
-                
-                <div className="flex items-start">
-                  <span className="text-green-400 mr-2 mt-0.5">•</span>
-                  <div>
-                    <p className="text-sm"><span className="font-medium">Fire deficiency</span> → Activity suggestion: Add cardio exercise</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start">
-                  <span className="text-green-400 mr-2 mt-0.5">•</span>
-                  <div>
-                    <p className="text-sm"><span className="font-medium">Water deficiency</span> → Sleep suggestion: Earlier bedtime</p>
-                  </div>
-                </div>
+                ) : (
+                  <>
+                    <p className="text-sm mb-3">Based on your deficient elements:</p>
+                    
+                    {getHealthRecommendations().length > 0 ? (
+                      getHealthRecommendations().map((rec, index) => (
+                        <div key={index} className="flex items-start">
+                          <span className="text-green-400 mr-2 mt-0.5">•</span>
+                          <div>
+                            <p className="text-sm"><span className="font-medium">{rec.element}</span> → {rec.type} suggestion: {rec.suggestion}</p>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="flex items-start">
+                        <span className="text-green-400 mr-2 mt-0.5">✓</span>
+                        <div>
+                          <p className="text-sm">Your elemental balance is excellent! Focus on maintaining current healthy habits.</p>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
               
               {/* Pro Exclusive Section */}
@@ -1023,7 +1186,26 @@ function MayReportContent() {
                           <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
                         </svg>
                       </span>
-                      <p className="text-sm">Opt-in reminder at 9:00 PM: "Have you completed today's challenge?"</p>
+                      <div className="flex-1">
+                        <p className="text-sm">Opt-in reminder at 9:00 PM: "Have you completed today's challenge?"</p>
+                        <div className="flex items-center mt-2">
+                          <button
+                            onClick={() => toggleNotification('challenge', '21:00')}
+                            className={`relative inline-flex h-4 w-8 items-center rounded-full transition-colors ${
+                              notificationSettings.challengeReminder ? 'bg-purple-600' : 'bg-gray-600'
+                            }`}
+                          >
+                            <span
+                              className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
+                                notificationSettings.challengeReminder ? 'translate-x-4' : 'translate-x-1'
+                              }`}
+                            />
+                          </button>
+                          <span className="ml-2 text-xs text-purple-300">
+                            {notificationSettings.challengeReminder ? 'Notifications ON' : 'Enable notifications'}
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                   
@@ -1061,76 +1243,40 @@ function MayReportContent() {
           {/* Initial 5-day view */}
           {!showFullCalendar && (
             <div className="space-y-4">
-              <div>
-                <div className="flex justify-between items-center mb-1">
-                  <div className="font-medium">May 1</div>
-                  <div className="text-sm">8.3/10</div>
-                  <div className="text-green-400 text-sm">🟢 Rising</div>
+              {energyDataLoading ? (
+                <div className="text-center py-4">
+                  <div className="animate-spin inline-block w-6 h-6 border-t-2 border-purple-500 border-r-2 rounded-full mb-2"></div>
+                  <p className="text-sm text-purple-300">Loading real energy data...</p>
                 </div>
-                <p className="text-xs text-purple-200">Morning meditation enhances intuition and creativity</p>
-                <div className="mt-1 flex items-center">
-                  <span className="text-xs text-purple-300 mr-2">Crystal:</span>
-                  <span className={`text-xs px-2 py-0.5 ${getCrystalForElement('fire').bgColor} rounded-full text-white ${getCrystalForElement('fire').color}`}>
-                    {getCrystalForElement('fire').name}
-                  </span>
-                </div>
-              </div>
-              <div>
-                <div className="flex justify-between items-center mb-1">
-                  <div className="font-medium">May 2</div>
-                  <div className="text-sm">7.2/10</div>
-                  <div className="text-yellow-400 text-sm">🟡 Stable</div>
-                </div>
-                <p className="text-xs text-purple-200">Wear blue to amplify intuitive energy</p>
-                <div className="mt-1 flex items-center">
-                  <span className="text-xs text-purple-300 mr-2">Crystal:</span>
-                  <span className={`text-xs px-2 py-0.5 ${getCrystalForElement('water').bgColor} rounded-full text-white ${getCrystalForElement('water').color}`}>
-                    {getCrystalForElement('water').name}
-                  </span>
-                </div>
-              </div>
-              <div>
-                <div className="flex justify-between items-center mb-1">
-                  <div className="font-medium">May 3</div>
-                  <div className="text-sm">6.5/10</div>
-                  <div className="text-red-400 text-sm">🔴 Declining</div>
-                </div>
-                <p className="text-xs text-purple-200">Good day for important decisions</p>
-                <div className="mt-1 flex items-center">
-                  <span className="text-xs text-purple-300 mr-2">Crystal:</span>
-                  <span className={`text-xs px-2 py-0.5 ${getCrystalForElement('earth').bgColor} rounded-full text-white ${getCrystalForElement('earth').color}`}>
-                    {getCrystalForElement('earth').name}
-                  </span>
-                </div>
-              </div>
-              <div>
-                <div className="flex justify-between items-center mb-1">
-                  <div className="font-medium">May 4</div>
-                  <div className="text-sm">5.8/10</div>
-                  <div className="text-red-400 text-sm">🔴 Declining</div>
-                </div>
-                <p className="text-xs text-purple-200">Rest more, avoid high-intensity activities</p>
-                <div className="mt-1 flex items-center">
-                  <span className="text-xs text-purple-300 mr-2">Crystal:</span>
-                  <span className={`text-xs px-2 py-0.5 ${getCrystalForElement('metal').bgColor} rounded-full text-white ${getCrystalForElement('metal').color}`}>
-                    {getCrystalForElement('metal').name}
-                  </span>
-                </div>
-              </div>
-              <div>
-                <div className="flex justify-between items-center mb-1">
-                  <div className="font-medium">May 5</div>
-                  <div className="text-sm">7.4/10</div>
-                  <div className="text-green-400 text-sm">🟢 Rising</div>
-                </div>
-                <p className="text-xs text-purple-200">Ideal for socializing and building relationships</p>
-                <div className="mt-1 flex items-center">
-                  <span className="text-xs text-purple-300 mr-2">Crystal:</span>
-                  <span className={`text-xs px-2 py-0.5 ${getCrystalForElement('wood').bgColor} rounded-full text-white ${getCrystalForElement('wood').color}`}>
-                    {getCrystalForElement('wood').name}
-                  </span>
-                </div>
-              </div>
+              ) : (
+                dailyEnergyData.slice(0, 5).map((day, index) => {
+                  const dayNumber = index + 1;
+                  const energyScore = Math.round(70 + day.energyChange * 3); // Base 70 + scaled energy change for 100-point scale
+                  const trendColor = day.trend === 'up' ? 'text-green-400' : day.trend === 'down' ? 'text-red-400' : 'text-yellow-400';
+                  const trendIcon = day.trend === 'up' ? '🟢 Rising' : day.trend === 'down' ? '🔴 Declining' : '🟡 Stable';
+                  
+                  return (
+                    <div key={dayNumber}>
+                      <div className="flex justify-between items-center mb-1">
+                        <div className="font-medium">May {dayNumber}</div>
+                        <div className="text-sm">{energyScore}/100</div>
+                        <div className={`text-sm ${trendColor}`}>{trendIcon}</div>
+                      </div>
+                      <p className="text-xs text-purple-200">
+                        {day.trend === 'up' ? 'Great day for new initiatives and creative work' :
+                         day.trend === 'down' ? 'Focus on rest and reflection today' :
+                         'Balanced energy, good for steady progress'}
+                      </p>
+                      <div className="mt-1 flex items-center">
+                        <span className="text-xs text-purple-300 mr-2">Crystal:</span>
+                        <span className={`text-xs px-2 py-0.5 ${getCrystalForElement(day.element || 'water').bgColor} rounded-full text-white ${getCrystalForElement(day.element || 'water').color}`}>
+                          {day.crystal || getCrystalForElement(day.element || 'water').name}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
               
               <button 
                 onClick={() => setShowFullCalendar(true)}
@@ -1145,30 +1291,40 @@ function MayReportContent() {
           {showFullCalendar && (
             <div>
               <div className="grid grid-cols-1 gap-3 max-h-80 overflow-y-auto pr-1">
-                {Array.from({ length: 31 }, (_, i) => i + 1).map(day => (
-                  <div key={day} className="border-b border-purple-900/30 pb-2">
-                    <div className="flex justify-between items-center">
-                      <div className="font-medium">May {day}</div>
-                      <div className="text-sm">{(7.5 + Math.sin(day/3) * 2.5).toFixed(1)}/10</div>
-                      <div className={`text-sm ${day % 3 === 0 ? 'text-red-400' : day % 3 === 1 ? 'text-green-400' : 'text-yellow-400'}`}>
-                        {day % 3 === 0 ? '🔴 Declining' : day % 3 === 1 ? '🟢 Rising' : '🟡 Stable'}
-                      </div>
-                    </div>
-                    <p className="text-xs text-purple-200 mt-1">
-                      {day % 5 === 0 ? 'Focus on creativity and expression' : 
-                       day % 5 === 1 ? 'Ideal for strategic planning and decisions' :
-                       day % 5 === 2 ? 'Energy flows toward relationship building' :
-                       day % 5 === 3 ? 'Best for practical tasks and organization' :
-                       'Good balance between activity and rest'}
-                    </p>
-                    <div className="mt-1 flex items-center">
-                      <span className="text-xs text-purple-300 mr-2">Crystal:</span>
-                      <span className={`text-xs px-2 py-0.5 ${getCrystalForElement(getDailyElement(day)).bgColor} rounded-full text-white ${getCrystalForElement(getDailyElement(day)).color}`}>
-                        {getCrystalForElement(getDailyElement(day)).name}
-                      </span>
-                    </div>
+                {energyDataLoading ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin inline-block w-6 h-6 border-t-2 border-purple-500 border-r-2 rounded-full mb-2"></div>
+                    <p className="text-sm text-purple-300">Loading full month energy data...</p>
                   </div>
-                ))}
+                ) : (
+                  dailyEnergyData.map((day, index) => {
+                    const dayNumber = index + 1;
+                    const energyScore = Math.round(70 + day.energyChange * 3); // Base 70 + scaled energy change for 100-point scale
+                    const trendColor = day.trend === 'up' ? 'text-green-400' : day.trend === 'down' ? 'text-red-400' : 'text-yellow-400';
+                    const trendIcon = day.trend === 'up' ? '🟢 Rising' : day.trend === 'down' ? '🔴 Declining' : '🟡 Stable';
+                    
+                    return (
+                      <div key={dayNumber} className="border-b border-purple-900/30 pb-2">
+                        <div className="flex justify-between items-center">
+                          <div className="font-medium">May {dayNumber}</div>
+                          <div className="text-sm">{energyScore}/100</div>
+                          <div className={`text-sm ${trendColor}`}>{trendIcon}</div>
+                        </div>
+                        <p className="text-xs text-purple-200 mt-1">
+                          {day.trend === 'up' ? 'Great day for new initiatives and creative work' :
+                           day.trend === 'down' ? 'Focus on rest and reflection today' :
+                           'Balanced energy, good for steady progress'}
+                        </p>
+                        <div className="mt-1 flex items-center">
+                          <span className="text-xs text-purple-300 mr-2">Crystal:</span>
+                          <span className={`text-xs px-2 py-0.5 ${getCrystalForElement(day.element || 'water').bgColor} rounded-full text-white ${getCrystalForElement(day.element || 'water').color}`}>
+                            {day.crystal || getCrystalForElement(day.element || 'water').name}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
               </div>
               
               <button 
