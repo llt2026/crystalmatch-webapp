@@ -31,11 +31,11 @@ interface GPTReport {
   guidance?: string[];
   loading: boolean;
   error?: string;
-  errorDetails?: any;   // 详细错误信息
+  errorDetails?: any;   // Detailed error information
   energyScore?: number;
   strongestElement?: ElementType;
   weakestElement?: ElementType;
-  generatedTime?: string; // 报告生成时间
+  generatedTime?: string; // Report generation time
 }
 
 // Real energy data interfaces
@@ -45,7 +45,7 @@ interface DailyEnergyData {
   trend: 'up' | 'down' | 'stable';
   element?: ElementType;
   crystal?: string;
-  score?: number; // 添加分数字段
+  score?: number; // Add score field
 }
 
 interface HourlyEnergyData {
@@ -104,54 +104,55 @@ function MayReportContent() {
     async function fetchAllData() {
       try {
         setEnergyDataLoading(true);
-        console.log('🔄 正在获取May 2025报告数据...');
+        console.log('🔄 Fetching May 2025 report data...');
         
-        // 使用单一API请求获取所有数据
+        // Use a single API request to get all data
         const res = await fetch(`/api/report/2025-05?birthDate=${encodeURIComponent(birthDate)}`, { 
           cache: 'no-store'
         });
         
         if (!res.ok) {
-          throw new Error(`API请求失败: ${res.status}`);
+          throw new Error(`API request failed: ${res.status}`);
         }
         
-        // 解析API返回的所有数据
+        // Parse all data returned from the API
         const data = await res.json();
-        console.log('📊 API返回数据结构:', Object.keys(data));
+        console.log('📊 API returned data structure:', Object.keys(data));
         
         if (data.error) {
           throw new Error(data.message || data.error);
         }
         
-        // 提取API返回的各部分数据
+        // Extract various parts of data returned from the API
         const { overview, daily, hourly, report: reportText } = data;
         
-        // 更新组件状态
+        // Update component state
         setGptReport({ ...overview, loading: false });
         setDailyEnergyData(daily || []);
         setHourlyEnergyData(hourly || []);
         setUserElements(overview?.baseBazi || null);
         
-        // 将Markdown报告转换为HTML
+        // Convert Markdown report to HTML
         if (reportText) {
           try {
-            // 使用marked库解析Markdown
-            const html = marked(reportText);
+            // Use a simpler synchronous approach with marked
+            // marked.parse can return a Promise in some configurations, but we'll use it in sync mode
+            const html = marked.parse(reportText.toString()) as string;
             setReportHTML(html);
-            console.log('📄 Markdown报告已解析为HTML');
+            console.log('📄 Markdown report parsed to HTML');
           } catch (error) {
-            console.error('Markdown解析失败:', error);
+            console.error('Markdown parsing failed:', error);
             setReportHTML('');
           }
         }
         
-        console.log('✅ 数据加载完成');
+        console.log('✅ Data loading complete');
         
       } catch (error) {
-        console.error('❌ 数据加载失败:', error);
+        console.error('❌ Data loading failed:', error);
         setGptReport({
           loading: false,
-          error: error instanceof Error ? error.message : '加载失败'
+          error: error instanceof Error ? error.message : 'Loading failed'
         });
       } finally {
         setEnergyDataLoading(false);
@@ -161,11 +162,11 @@ function MayReportContent() {
     fetchAllData();
   }, [birthDate]);
 
-  // 辅助函数 - 获取能量峰值日
+  // Helper function - Get energy peak days
   const getMoodPeakDays = (): number[] => {
-    if (!dailyEnergyData || dailyEnergyData.length === 0) return [15, 20, 25]; // 默认值
+    if (!dailyEnergyData || dailyEnergyData.length === 0) return [15, 20, 25]; // Default values
     
-    // 根据能量分数排序获取最高的3天
+    // Sort by energy score to get the 3 highest days
     return dailyEnergyData
       .map((day, index) => ({ 
         index: index + 1, 
@@ -177,11 +178,11 @@ function MayReportContent() {
       .map(item => item.index);
   };
 
-  // 辅助函数 - 获取能量低谷日
+  // Helper function - Get energy low days
   const getMoodLowDays = (): number[] => {
-    if (!dailyEnergyData || dailyEnergyData.length === 0) return [5, 10]; // 默认值
+    if (!dailyEnergyData || dailyEnergyData.length === 0) return [5, 10]; // Default values
     
-    // 根据能量分数排序获取最低的2天
+    // Sort by energy score to get the 2 lowest days
     return dailyEnergyData
       .map((day, index) => ({ 
         index: index + 1, 
@@ -193,11 +194,11 @@ function MayReportContent() {
       .map(item => item.index);
   };
 
-  // 辅助函数 - 获取缺失元素
+  // Helper function - Get deficient elements
   const getDeficientElements = (): ElementType[] => {
-    if (!userElements) return ['fire', 'water']; // 默认值
+    if (!userElements) return ['fire', 'water']; // Default values
     
-    const threshold = 15; // 低于此值的元素被视为缺失
+    const threshold = 15; // Elements below this value are considered deficient
     const deficient: ElementType[] = [];
     
     if (userElements.water < threshold) deficient.push('water');
@@ -240,7 +241,7 @@ function MayReportContent() {
       scheduleTime.setDate(scheduleTime.getDate() + 1);
     }
 
-    console.log(`🔔 通知已安排: ${type} 提醒在 ${time}`);
+    console.log(`🔔 Notification scheduled: ${type} reminder at ${time}`);
     return true;
   };
 
@@ -377,19 +378,19 @@ function MayReportContent() {
       setIsSubmitting(true);
       setSubmitError('');
       
-      // 获取用户ID，如果可用的话
+      // Get user ID if available
       const userId = localStorage.getItem('userId') || 'anonymous';
       
-      // 准备要发送的数据
+      // Prepare data to send
       const feedbackData = {
         userId,
         feedbackType,
-        reportType: 'Pro - Growth Track', // 当前报告类型
+        reportType: 'Pro - Growth Track', // Current report type
         content: additionalFeedback,
         options: selectedOptions
       };
       
-      // 发送到API
+      // Send to API
       const response = await fetch('/api/feedback', {
         method: 'POST',
         headers: {
@@ -400,19 +401,19 @@ function MayReportContent() {
       
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || '提交反馈失败');
+        throw new Error(errorData.error || 'Failed to submit feedback');
       }
       
-      // 成功提交
+      // Successfully submitted
       console.log('Feedback submitted successfully');
       
-      // 重置并关闭模态框
+      // Reset and close modal
       setAdditionalFeedback('');
       setSelectedOptions([]);
       setShowFeedbackModal(false);
     } catch (error) {
       console.error('Error submitting feedback:', error);
-      setSubmitError(error instanceof Error ? error.message : '提交反馈失败');
+      setSubmitError(error instanceof Error ? error.message : 'Failed to submit feedback');
     } finally {
       setIsSubmitting(false);
     }
@@ -1207,9 +1208,9 @@ function MayReportContent() {
                         <div className={`text-sm ${trendColor}`}>{trendIcon}</div>
                       </div>
                       <p className="text-xs text-purple-200">
-                        {day.trend === 'up' ? `能量上升日，适合新计划和创造性工作（能量值：${day.energyChange > 0 ? '+' : ''}${day.energyChange}）` :
-                         day.trend === 'down' ? `能量下降日，适合休息和反思（能量值：${day.energyChange > 0 ? '+' : ''}${day.energyChange}）` :
-                         `能量平稳日，适合稳步推进工作（能量值：${day.energyChange > 0 ? '+' : ''}${day.energyChange}）`}
+                        {day.trend === 'up' ? `Energy rising day, suitable for new plans and creative work (energy value: ${day.energyChange > 0 ? '+' : ''}${day.energyChange})` :
+                         day.trend === 'down' ? `Energy declining day, suitable for rest and reflection (energy value: ${day.energyChange > 0 ? '+' : ''}${day.energyChange})` :
+                         `Energy stable day, suitable for steady progress (energy value: ${day.energyChange > 0 ? '+' : ''}${day.energyChange})`}
                       </p>
                       <div className="mt-1 flex items-center">
                         <span className="text-xs text-purple-300 mr-2">Crystal:</span>
@@ -1255,9 +1256,9 @@ function MayReportContent() {
                           <div className={`text-sm ${trendColor}`}>{trendIcon}</div>
                         </div>
                         <p className="text-xs text-purple-200 mt-1">
-                          {day.trend === 'up' ? `能量上升日，适合新计划和创造性工作（能量值：${day.energyChange > 0 ? '+' : ''}${day.energyChange}）` :
-                           day.trend === 'down' ? `能量下降日，适合休息和反思（能量值：${day.energyChange > 0 ? '+' : ''}${day.energyChange}）` :
-                           `能量平稳日，适合稳步推进工作（能量值：${day.energyChange > 0 ? '+' : ''}${day.energyChange}）`}
+                          {day.trend === 'up' ? `Energy rising day, suitable for new plans and creative work (energy value: ${day.energyChange > 0 ? '+' : ''}${day.energyChange})` :
+                           day.trend === 'down' ? `Energy declining day, suitable for rest and reflection (energy value: ${day.energyChange > 0 ? '+' : ''}${day.energyChange})` :
+                           `Energy stable day, suitable for steady progress (energy value: ${day.energyChange > 0 ? '+' : ''}${day.energyChange})`}
                         </p>
                         <div className="mt-1 flex items-center">
                           <span className="text-xs text-purple-300 mr-2">Crystal:</span>

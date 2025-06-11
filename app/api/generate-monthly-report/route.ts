@@ -10,28 +10,28 @@ import { calculateUserElements } from '@/app/lib/calculateUserElements';
 import { hasRemainingRequests, getModelForTier, getMaxTokensForTier } from '@/app/lib/subscription-service';
 import { SubscriptionTier } from '@/app/types/subscription';
 
-// 获取API密钥并添加调试信息
+// Get API key and add debug information
 const apiKey = getOpenAiApiKey();
-console.log('OpenAI API密钥状态:', {
+console.log('OpenAI API key status:', {
   exists: !!apiKey,
   length: apiKey?.length || 0,
-  maskedKey: apiKey ? `${apiKey.substring(0, 7)}...${apiKey.substring(apiKey.length - 4)}` : '无API密钥',
+  maskedKey: apiKey ? `${apiKey.substring(0, 7)}...${apiKey.substring(apiKey.length - 4)}` : 'No API key',
   hasNewlines: apiKey?.includes('\n') || apiKey?.includes('\r'),
   hasSpaces: apiKey?.includes(' '),
   startsWithPrefix: apiKey?.startsWith('sk-'),
   isEmpty: !apiKey || apiKey?.trim() === ''
 });
 
-// 验证API密钥格式
+// Validate API key format
 if (!apiKey || !apiKey.startsWith('sk-') || apiKey.length < 50) {
-  console.error('OpenAI API密钥格式不正确或缺失');
+  console.error('OpenAI API key format is incorrect or missing');
 }
 
-// 创建OpenAI客户端
+// Create OpenAI client
 const openai = new OpenAI({ 
   apiKey: apiKey,
-  timeout: 90000,  // 较长的超时时间
-  maxRetries: 3    // 自动重试次数
+  timeout: 90000,  // Longer timeout
+  maxRetries: 3    // Automatic retry count
 });
 
 interface PostBody {
@@ -44,40 +44,40 @@ interface PostBody {
 }
 
 export async function POST(request: NextRequest) {
-  console.log('接收到月度报告生成请求');
+  console.log('Received monthly report generation request');
   
   try {
     const { birthDate, year, month, tier = 'free', forceRefresh = false, userId = 'anonymous' } = (await request.json()) as PostBody;
 
-    console.log('请求参数:', { birthDate, year, month, tier, forceRefresh, userId });
+    console.log('Request parameters:', { birthDate, year, month, tier, forceRefresh, userId });
 
     if (!birthDate || !year || !month) {
-      console.error('缺少必要参数');
+      console.error('Missing required parameters');
       return NextResponse.json({ error: 'birthDate, year, month are required' }, { status: 400 });
     }
 
-    // 验证订阅类型是否有效
+    // Validate subscription tier
     const validTiers: SubscriptionTier[] = ['free', 'plus', 'pro'];
     const safeTier: SubscriptionTier = validTiers.includes(tier as SubscriptionTier) 
       ? tier as SubscriptionTier 
       : 'free';
     
     if (tier !== safeTier) {
-      console.warn(`请求中的订阅类型 "${tier}" 无效，已转换为 "${safeTier}"`);
+      console.warn(`Subscription tier "${tier}" in request is invalid, converted to "${safeTier}"`);
     }
 
-    // 检查配额（这里只示例，实际应查询 DB）
+    // Check quota (example only, should query DB in production)
     if (!hasRemainingRequests(safeTier, 0)) {
-      console.error('用户配额已用完');
+      console.error('User quota exceeded');
       return NextResponse.json({ error: 'quota exceeded' }, { status: 429 });
     }
 
-    // 构造能量上下文
+    // Build energy context
     const birthDateObj = new Date(birthDate);
-    // 使用月份中间的日期（15号）来确保匹配正确的能量周期
+    // Use the middle day of the month (15th) to ensure correct energy cycle matching
     const targetDateObj = new Date(year, month - 1, 15);
     
-    console.log('尝试构建能量上下文:', {
+    console.log('Attempting to build energy context:', {
       birthDate: birthDateObj.toISOString(),
       targetDate: targetDateObj.toISOString(),
       year,
@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
     
     const energyContext = getFullEnergyContext(birthDateObj, targetDateObj);
     if (!energyContext) {
-      console.error('能量上下文构建失败 - 详细调试信息:', {
+      console.error('Energy context build failed - Debug details:', {
         birthDateValid: !isNaN(birthDateObj.getTime()),
         targetDateValid: !isNaN(targetDateObj.getTime()),
         birthDateStr: birthDateObj.toString(),
@@ -96,45 +96,45 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'failed to build energy context' }, { status: 500 });
     }
     
-    console.log('能量上下文构建成功:', {
+    console.log('Energy context built successfully:', {
       bazi: energyContext.bazi,
       currentYear: energyContext.currentYear,
       currentMonth: energyContext.currentMonth
     });
 
-    // 计算用户真实的五行元素分布
+    // Calculate user's actual five element distribution
     const userElements = calculateUserElements(energyContext.bazi);
-    console.log('用户五行元素计算完成:', userElements);
+    console.log('User five elements calculation complete:', userElements);
 
     const prompt = buildMonthlyReportPrompt({ 
       ...(energyContext as any), 
       userElements,
       birthDate 
     });
-    console.log('提示词构建成功，长度:', prompt.length);
+    console.log('Prompt build successful, length:', prompt.length);
 
     try {
       const model = getModelForTier(safeTier);
       const maxTokens = getMaxTokensForTier(safeTier);
-      console.log(`使用OpenAI生成月度报告 ${year}-${month}, 会员等级: ${safeTier}, 模型: ${model}, 最大token: ${maxTokens}`);
+      console.log(`Using OpenAI to generate monthly report ${year}-${month}, membership tier: ${safeTier}, model: ${model}, max tokens: ${maxTokens}`);
       
-      // 严格检查API密钥是否有效
+      // Strictly check if API key is valid
       if (!apiKey || apiKey.trim() === '') {
-        console.error('OpenAI API密钥未配置');
+        console.error('OpenAI API key not configured');
         throw new Error('OpenAI API key not configured');
       }
       
       if (!apiKey.startsWith('sk-')) {
-        console.error('OpenAI API密钥格式不正确，应以sk-开头');
+        console.error('OpenAI API key format is incorrect, should start with sk-');
         throw new Error('OpenAI API key has invalid format, should start with sk-');
       }
       
       if (apiKey.length < 40) {
-        console.error('OpenAI API密钥长度不足');
+        console.error('OpenAI API key length is insufficient');
         throw new Error('OpenAI API key length is too short');
       }
       
-      console.log('开始调用OpenAI API...');
+      console.log('Starting OpenAI API call...');
       const completion = await openai.chat.completions.create({
         model: model,
         max_tokens: maxTokens,
@@ -143,10 +143,10 @@ export async function POST(request: NextRequest) {
       });
       
       const content = completion.choices[0].message?.content || '';
-      console.log(`✅ OpenAI API调用成功！生成报告内容长度: ${content.length} 字符`);
-      console.log('报告内容前100字符:', content.substring(0, 100));
+      console.log(`✅ OpenAI API call successful! Generated report content length: ${content.length} characters`);
+      console.log('First 100 characters of report:', content.substring(0, 100));
       
-      // 验证生成的内容是否有效
+      // Validate that generated content is valid
       if (!content || content.length < 100) {
         throw new Error('Generated content is too short or empty');
       }
@@ -160,8 +160,8 @@ export async function POST(request: NextRequest) {
         }
       });
     } catch (err: any) {
-      console.error('❌ OpenAI API调用失败:', err);
-      console.error('错误详情:', {
+      console.error('❌ OpenAI API call failed:', err);
+      console.error('Error details:', {
         message: err.message,
         name: err.name,
         code: err.code,
@@ -169,10 +169,10 @@ export async function POST(request: NextRequest) {
         type: err.type
       });
       
-      // 正式环境中直接返回错误信息，不使用模拟数据
-      console.error('API调用错误，返回错误信息');
+      // In production, return error information directly without using mock data
+      console.error('API call error, returning error information');
       
-      // 记录详细的错误信息以便调试
+      // Record detailed error information for debugging
       const errorDetails = {
         message: err.message,
         code: err.code || 'unknown',
@@ -180,9 +180,9 @@ export async function POST(request: NextRequest) {
         cause: err.cause?.code || 'unknown'
       };
       
-      console.log('错误详情:', JSON.stringify(errorDetails));
+      console.log('Error details:', JSON.stringify(errorDetails));
       
-      // 返回标准化的错误响应
+      // Return standardized error response
       return NextResponse.json({ 
         error: 'api_error',
         message: 'Report generation service is temporarily unavailable. Please try again later.',
@@ -193,15 +193,15 @@ export async function POST(request: NextRequest) {
           timestamp: new Date().toISOString()
         }
       }, { 
-        status: 503, // Service Unavailable更适合暂时性问题
+        status: 503, // Service Unavailable is more appropriate for temporary issues
         headers: {
           'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-          'Retry-After': '300' // 建议5分钟后重试
+          'Retry-After': '300' // Suggest retry after 5 minutes
         }
       });
     }
   } catch (reqError: any) {
-    console.error('请求处理出错:', reqError);
+    console.error('Request processing error:', reqError);
     return NextResponse.json({ error: reqError.message, stack: reqError.stack?.substring(0, 500) }, { status: 500 });
   }
 } 

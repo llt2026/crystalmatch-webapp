@@ -26,8 +26,8 @@ const months = [
 
 // 获取水晶推荐
 const getCrystalRecommendation = (fiveElements: any) => {
-  // 这里应该基于五行数据返回水晶推荐
-  // 简化实现，实际应该分析五行强弱
+  // This should return crystal recommendations based on five elements data
+  // Simplified implementation, should analyze the strength and weakness of five elements
   return {
     name: 'Citrine',
     description: 'Citrine enhances your personal power and confidence. It helps you stay focused when your energy is scattered—especially when Fire is weak in your chart.'
@@ -160,7 +160,7 @@ export default function EnergyReportPage() {
   
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* 报告头部 */}
+      {/* Report Header */}
       <div className="text-center mb-10">
         <h1 className="text-3xl font-bold text-emerald-800 mb-6">Your 2025 Energy Forecast</h1>
         
@@ -175,7 +175,7 @@ export default function EnergyReportPage() {
         </div>
       </div>
       
-      {/* 用户专属水晶推荐（免费可见） */}
+      {/* User's Crystal Recommendation (Free Tier) */}
       <div className="bg-white rounded-lg shadow-md p-6 mb-10">
         <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
           <div className="w-40 h-40 relative flex-shrink-0">
@@ -194,33 +194,33 @@ export default function EnergyReportPage() {
             <p className="text-gray-700">{crystalRecommendation.description}</p>
             <div className="flex flex-wrap gap-2 mt-4">
               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
-                ✅ 基于您的八字五行分析
+                ✅ Based on your birth chart analysis
               </span>
               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                ✅ 专属能量匹配
+                ✅ Personalized energy match
               </span>
               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                ✅ 全年指导水晶
+                ✅ Year-round guiding crystal
               </span>
             </div>
           </div>
         </div>
       </div>
       
-      {/* 年度能量评分表（核心交互区） */}
+      {/* Yearly Energy Score Table (Core Interaction Area) */}
       <div className="bg-white rounded-lg shadow-md p-6 mb-8">
         <h2 className="text-xl font-bold text-emerald-800 mb-4">Your 2025 Energy Timeline</h2>
         
-        {/* 移动端滑动提示 */}
+        {/* Mobile scroll hint */}
         <div className="md:hidden text-sm text-gray-500 mb-2">
-          👈 滑动查看更多数据
+          👈 Swipe to see more data
         </div>
         
-        {/* 评分表 */}
+        {/* Score table */}
         <EnergyScoreTable currentMonth={currentMonthWithDay} userTier={userTier} />
       </div>
       
-      {/* 表格下说明文字（增强转化引导） */}
+      {/* Explanatory text below table (Conversion enhancement) */}
       <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-lg p-6 mb-10">
         <h3 className="font-medium text-purple-900 mb-3">📝 Note:</h3>
         <p className="text-gray-700 mb-4">
@@ -231,7 +231,7 @@ export default function EnergyReportPage() {
           👉 That's why it's essential to adjust monthly—with the right focus, crystals, and small rituals—to stay balanced and empowered.
         </p>
         
-        {/* 订阅按钮（仅对免费用户显示） */}
+        {/* Subscription button (free users only) */}
         {userTier === 'free' && (
           <div className="mt-6 text-center">
             <button 
@@ -258,7 +258,7 @@ export default function EnergyReportPage() {
   );
 }
 
-// 辅助函数：订阅弹窗（在实际应用中应独立组件化）
+// Helper function: subscription modal (should be a separate component in production)
 function showSubscriptionModal() {
   alert('Subscribe to unlock full reports for all months!');
 } 
