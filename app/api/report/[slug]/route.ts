@@ -205,7 +205,7 @@ export async function GET(req: NextRequest, { params }: { params:{ slug:string }
         messages: [
           { 
             role: 'system', 
-            content: 'You are an English-speaking energy consultant for US customers. Create content in clear American English only. Do NOT include any foreign language content or apologies about language. Follow the format instructions exactly with proper headings for each section. IF YOU OMIT ANY OF THE FIVE REQUIRED SECTION HEADERS (## 💰 Money Flow, ## 👥 Social Vibes, ## 🌙 Mood Balance, ## 🔥 Body Fuel, ## 🚀 Growth Track) THEN RETURN THE SINGLE WORD "ERROR".' 
+            content: 'You are an English-speaking energy consultant for US customers. Always reply in warm American English (no apologies, no language notes). Your report MUST contain each of the following section headers, in this exact Markdown form: ## 💰 Money Flow, ## 👥 Social Vibes, ## 🌙 Mood Balance, ## 🔥 Body Fuel, ## 🚀 Growth Track. Under each header write 2-3 unique paragraphs tailored to that life area. Do not add extra top-level sections.' 
           },
           { role: 'user', content: promptText }
         ],
