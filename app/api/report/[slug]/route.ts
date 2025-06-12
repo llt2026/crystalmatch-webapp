@@ -205,11 +205,11 @@ export async function GET(req: NextRequest, { params }: { params:{ slug:string }
         messages: [
           { 
             role: 'system', 
-            content: 'You are an English-speaking energy consultant for US customers. Create content in clear American English only. Do NOT include any foreign language content or apologies about language. Follow the format instructions exactly with proper headings for each section.' 
+            content: 'You are an English-speaking energy consultant for US customers. Create content in clear American English only. Do NOT include any foreign language content or apologies about language. Follow the format instructions exactly with proper headings for each section. IF YOU OMIT ANY OF THE FIVE REQUIRED SECTION HEADERS (## 💰 Money Flow, ## 👥 Social Vibes, ## 🌙 Mood Balance, ## 🔥 Body Fuel, ## 🚀 Growth Track) THEN RETURN THE SINGLE WORD "ERROR".' 
           },
           { role: 'user', content: promptText }
         ],
-        temperature: modelConfig.temperature,
+        temperature: 0.3,
         max_tokens: modelConfig.maxTokens,
         user: 'anonymous'
       });
