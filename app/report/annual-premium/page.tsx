@@ -464,7 +464,7 @@ export default function AnnualPremiumReport() {
         <EnergyCalendar birthDate={userData.birthDate} subscriptionTier={userData.subscriptionTier} />
       </div>
       
-      {/* Pro member benefits */}
+      {/* Pro member benefits with integrated Back button */}
       <div className="rounded-lg bg-black/40 p-6 mb-8 backdrop-blur-sm border border-purple-500/30">
         <div className="text-center">
           <h2 className="text-xl font-bold mb-3 bg-gradient-to-r from-yellow-300 to-orange-300 bg-clip-text text-transparent">
@@ -473,28 +473,33 @@ export default function AnnualPremiumReport() {
           <p className="text-purple-200 text-sm mb-4">
             Upgrade to <span className="text-yellow-300 font-semibold">Plus ($4.99)</span> for 12-month crystal guidance or <span className="text-orange-300 font-semibold">Pro ($9.99)</span> for full lucky color insights
           </p>
-          <Link 
-            href="/subscription" 
-            className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400 text-black font-bold rounded-lg shadow-lg transform hover:scale-105 transition-all duration-200"
-          >
-            <span className="mr-2">🔮</span>
-            Upgrade Now
-            <span className="ml-2">→</span>
-          </Link>
-          <p className="text-purple-300 text-xs mt-3">
+          
+          {/* Buttons row */}
+          <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4 mt-4">
+            <Link 
+              href="/subscription" 
+              className="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400 text-black font-bold rounded-lg shadow-lg transform hover:scale-105 transition-all duration-200"
+            >
+              <span className="mr-2">🔮</span>
+              Upgrade Now
+              <span className="ml-2">→</span>
+            </Link>
+            
+            <Link 
+              href="/profile" 
+              className="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-br from-purple-700 to-indigo-800 hover:from-purple-600 hover:to-indigo-700 text-white font-bold rounded-lg shadow-lg transform hover:scale-105 transition-all duration-200 border border-purple-500/30"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M9.707 14.707a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 1.414L7.414 9H15a1 1 0 110 2H7.414l2.293 2.293a1 1 0 010 1.414z" clipRule="evenodd" />
+              </svg>
+              Back to Profile
+            </Link>
+          </div>
+          
+          <p className="text-purple-300 text-xs mt-4">
             Cancel anytime • 14-day money-back guarantee
           </p>
         </div>
-      </div>
-      
-      {/* Back to Profile button */}
-      <div className="mt-10 mb-6 text-center">
-        <Link href="/profile" className="inline-flex items-center text-white bg-purple-800 hover:bg-purple-700 px-6 py-3 rounded-lg font-semibold transition-colors">
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-            <path fillRule="evenodd" d="M9.707 14.707a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 1.414L7.414 9H15a1 1 0 110 2H7.414l2.293 2.293a1 1 0 010 1.414z" clipRule="evenodd" />
-          </svg>
-          Back to Profile
-        </Link>
       </div>
     </main>
   );
