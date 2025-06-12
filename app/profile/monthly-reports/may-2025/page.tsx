@@ -14,6 +14,7 @@ import { useSearchParams } from 'next/navigation';
 
 // Import marked for Markdown parsing
 import { marked } from 'marked';
+import { parseISO, addDays, format as formatDate } from 'date-fns';
 
 // Only keep FiveElementVector type for compatibility
 import { FiveElementVector } from '@/app/lib/energyCalculation2025';
@@ -533,6 +534,13 @@ function MayReportContent() {
     );
   }
 
+  // helper to convert day index (1-based) to formatted date string
+  const dayNumberToDate = (day:number):string => {
+    if (!gptReport.periodStart) return `Day ${day}`;
+    const base = parseISO(gptReport.periodStart);
+    const dateObj = addDays(base, day-1);
+    return formatDate(dateObj, 'MMM d'); // e.g. May 3
+  };
 
   
   return (
@@ -542,9 +550,8 @@ function MayReportContent() {
         <header className="text-center mb-8">
           <h1 className="text-2xl font-bold">CrystalMatch Monthly Energy Report (Pro)</h1>
           <p className="text-purple-300 mt-1">{
-            gptReport.periodStart && gptReport.periodEnd 
-              ? `${gptReport.periodStart} - ${gptReport.periodEnd}` 
-              : "Loading..."
+            gptReport.periodStart && gptReport.periodEnd ?
+              `${formatDate(parseISO(gptReport.periodStart),'MMM d, yyyy')} - ${formatDate(parseISO(gptReport.periodEnd),'MMM d, yyyy')}` : 'Loading...'
           }</p>
         </header>
         
@@ -703,8 +710,9 @@ function MayReportContent() {
                       .sort((a, b) => (b.score || 0) - (a.score || 0)) // Sort by score descending
                       .slice(0, ENERGY_CONFIG.MAX_HIGH_ENERGY_HOURS) // Take top high energy hours
                       .map((hour, index) => {
-                        const hourTime = `${hour.hour}:00`;
-                        const endTime = `${hour.hour + 2}:00`;
+                        const hourTime = `${String(hour.hour).padStart(2,'0')}:00`;
+                        const endHourVal = (hour.hour + 2) % 24;
+                        const endTime = `${String(endHourVal).padStart(2,'0')}:00`;
                         
                         // Generate activity suggestions based on strongest element
                         const getActivitySuggestion = () => {
@@ -787,8 +795,9 @@ function MayReportContent() {
                         // 使用能量峰值日期而不是固定日期
                         const peakDays = moodPeakDays;
                         const dayNum = peakDays[index] || (index + 1);
-                        const hourTime = `${hour.hour}:00`;
-                        const endTime = `${hour.hour + 2}:00`;
+                        const hourTime = `${String(hour.hour).padStart(2,'0')}:00`;
+                        const endHourVal = (hour.hour + 2) % 24;
+                        const endTime = `${String(endHourVal).padStart(2,'0')}:00`;
                         const activities = ['deep conversations', 'relationship building', 'social gatherings'];
                         
                         return (
@@ -849,7 +858,7 @@ function MayReportContent() {
                     <div className="flex items-start">
                       <span className="text-green-400 mr-2 mt-0.5">✓</span>
                       <div>
-                        <p className="text-sm"><span className="font-medium">Top {ENERGY_CONFIG.MAX_PEAK_DAYS} days this month:</span> Day {moodPeakDays.join(', Day ')}</p>
+                        <p className="text-sm"><span className="font-medium">Top {ENERGY_CONFIG.MAX_PEAK_DAYS} days this month:</span> {moodPeakDays.map(d=>dayNumberToDate(d)).join(', ')}</p>
                       </div>
                     </div>
                     <div className="flex items-start">
@@ -880,7 +889,7 @@ function MayReportContent() {
                     <div className="flex items-start">
                       <span className="text-yellow-400 mr-2 mt-0.5">⚠</span>
                       <div>
-                        <p className="text-sm"><span className="font-medium">Day {moodLowDays.join(' and Day ')}</span>: Low emotional energy days</p>
+                        <p className="text-sm"><span className="font-medium">{moodLowDays.map(d=>dayNumberToDate(d)).join(' and ')}</span>: Low emotional energy days</p>
                       </div>
                     </div>
                     <div className="flex items-start">
@@ -888,7 +897,7 @@ function MayReportContent() {
                       <div>
                         <p className="text-sm">
                           {deficientElements.length > 0 
-                            ? `${deficientElements.join(' or ')} deficient hours may intensify emotional challenges`
+                            ? `Hours when your ${deficientElements.join(' or ')} element is lower may intensify emotional challenges`
                             : 'Extra self-care recommended during these valley periods'
                           }
                         </p>
@@ -1028,7 +1037,7 @@ function MayReportContent() {
                 <>
                   
                   <div className="space-y-3 mb-5">
-                    <h4 className="text-sm font-medium text-white mb-2">Monthly Recommendations</h4>
+                    <h4 className="text-sm font-medium text-white mb-2">This Month's Suggestions</h4>
                     {energyDataLoading ? (
                       <div className="text-center py-2">
                         <div className="animate-spin inline-block w-4 h-4 border-t-2 border-purple-500 border-r-2 rounded-full mb-1"></div>
