@@ -829,7 +829,10 @@ function MayReportContent() {
                                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
                                   </svg>
                                 </span>
-                                <span className="text-xs">Day {dayNum}, {hourTime}–{endTime}</span>
+                                {(() => {
+                                  const dateLabel = dayNumberToDate(dayNum);
+                                  return <span className="text-xs">{dateLabel}, {hourTime}–{endTime}</span>;
+                                })()}
                               </div>
                               <div>
                                 <span className="text-xs font-medium">Score {hour.score}</span>
@@ -1148,8 +1151,8 @@ function MayReportContent() {
                 )}
               </div>
               
-              {/* 7-Day Challenge - Dynamic based on GPT content or element analysis */}
-              <div className="space-y-3 mb-5">
+              {/* 7-Day Challenge - (hidden) */}
+              <div className="hidden space-y-3 mb-5">
                 <h4 className="text-sm font-medium text-white mb-2">7-Day Micro-Challenge</h4>
                 
                 {reportHTML ? (
@@ -1177,8 +1180,8 @@ function MayReportContent() {
                 ) : null}
               </div>
               
-              {/* Pro Exclusive Section */}
-              <div className="mt-5 pt-4 border-t border-purple-900/30">
+              {/* Pro Exclusive Section (hidden) */}
+              <div className="hidden mt-5 pt-4 border-t border-purple-900/30">
                 <div className="flex items-center mb-3">
                   <span className="inline-flex items-center justify-center mr-2 w-5 h-5 rounded-full bg-purple-900/50 text-xs">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
