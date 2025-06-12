@@ -100,28 +100,28 @@ FINAL REMINDER: Your response must be 100% in English. This is for US customers.
 
 ## ✍️ Response format
 
-请严格按照以下 Markdown 结构输出（不要添加额外的道歉或语言声明）：
+Please output strictly in the following Markdown structure (no apologies, no language declarations):
 
 # 🔮 ${monthName} ${year} — Monthly Energy Insights
 
 ## 💰 Money Flow (Finance & Career)
-[2-3 段，围绕事业、财务机会、可能的风险。使用不确定语气。]
+<Write 2-3 short paragraphs with gentle, open-ended observations about finances & career. Use conditional language (might, could, perhaps).>
 
 ## 👥 Social Vibes (Relationships)
-[2-3 段，围绕社交、家人、人际关系。]
+<2-3 paragraphs about relationships, family, friendships in the same gentle style.>
 
 ## 🌙 Mood Balance (Emotional Well-being)
-[2-3 段，情绪高峰与挑战，调节建议。]
+<2-3 paragraphs about emotional peaks & valleys, plus a simple practice suggestion.>
 
 ## 🔥 Body Fuel (Health & Vitality)
-[2-3 段，身体状态、运动、饮食、睡眠可能性。]
+<2-3 paragraphs about physical vitality, sleep, nutrition, exercise.>
 
 ## 🚀 Growth Track (Personal Growth)
-[2-3 段，自我提升、学习、目标设定。]
+<2-3 paragraphs about learning, goals, creativity, personal challenges.>
 
-在每个主题下，可再附 **Pro Exclusive** 子标题，列出 1-3 条额外建议。
+Each section MAY finish with a **Pro Exclusive** sub-heading followed by 1-3 bullet suggestions.
 
-IMPORTANT: Do not include any phrases like "I'm sorry" or "I can only respond in English". Begin directly with the content.
+IMPORTANT: Do NOT include any phrases like "I'm sorry" or "I can only respond in English". Begin directly with the section content in English only.
 `;
 
   return prompt;
