@@ -71,6 +71,7 @@ function ReportContent() {
   const [daily, setDaily] = useState<DailyEnergyData[]>([]);
   const [hourly, setHourly] = useState<HourlyEnergyData[]>([]);
   const [reportHTML, setReportHTML] = useState('');
+  const [sections, setSections] = useState<Record<string,string>>({});
   const [tab, setTab] = useState<'finance'|'relationship'|'mood'|'health'|'growth'>('relationship');
   const [showFull, setShowFull] = useState(false);
 
@@ -89,7 +90,7 @@ function ReportContent() {
         };
         const apiSlug = `${year}-${monthMap[month.toLowerCase()]}`;
         
-        const res = await fetch(`/api/report/${apiSlug}?birthDate=${encodeURIComponent(birthDate)}`, {
+        const res = await fetch(`/api/report/${apiSlug}?birthDate=${encodeURIComponent(birthDate as string)}`, {
           cache: 'no-store'
         });
         
@@ -110,8 +111,28 @@ function ReportContent() {
         setHourly(hourlyData || []);
         
         if (report) {
-          const html = marked.parse(report.toString()) as string;
-          setReportHTML(html);
+          const mdString = report.toString();
+          // 解析 markdown 二级标题 ## Section
+          const regex = /^##\s*(.+?)\s*$/gm;
+          const lines = mdString.split(/\r?\n/);
+          const tmp: Record<string,string[]> = {};
+          let currentKey = 'overview';
+          lines.forEach((line: string) => {
+            const match = line.match(/^##\s*(.+?)\s*$/);
+            if (match) {
+              currentKey = match[1].toLowerCase();
+              tmp[currentKey] = [];
+            } else {
+              if (!tmp[currentKey]) tmp[currentKey] = [];
+              tmp[currentKey].push(line);
+            }
+          });
+          const htmlSections: Record<string,string> = {};
+          Object.entries(tmp).forEach(([k, arr]) => {
+            htmlSections[k] = marked.parse(arr.join('\n')) as string;
+          });
+          setSections(htmlSections);
+          setReportHTML(marked.parse(mdString) as string);
         }
       } catch (error) {
         setGpt({
@@ -328,7 +349,21 @@ function ReportContent() {
             
             <div className="text-sm text-purple-200 mb-4">
               {reportHTML ? (
-                <div dangerouslySetInnerHTML={{ __html: reportHTML }} />
+                <div dangerouslySetInnerHTML={{ __html: (() => {
+                  const keyMap: Record<string,string[]> = {
+                    finance: ['finance', 'money'],
+                    relationship: ['social', 'relationship'],
+                    mood: ['mood', 'balance'],
+                    health: ['body', 'fuel', 'health'],
+                    growth: ['growth', 'track']
+                  };
+                  const keys = keyMap[tab] || [];
+                  for (const k of keys) {
+                    const matchedKey = Object.keys(sections).find(title => title.includes(k));
+                    if (matchedKey && sections[matchedKey]) return sections[matchedKey];
+                  }
+                  return reportHTML; // fallback
+                })() }} />
               ) : (
                 <p className="text-purple-300">Loading insights...</p>
               )}

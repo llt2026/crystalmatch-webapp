@@ -154,19 +154,13 @@ export async function GET(req: NextRequest, { params }: { params:{ slug:string }
     const dailyRaw = await getDailyEnergyForRange(formattedBirthDate, subscriptionDate, monthDays);
 
     // Add score 0-100 for UI and GPT
-    const dailyWithScore = dailyRaw.map(d => ({
-      ...d,
-      score: Math.round((d.energyChange + 10) * 5) // map -10..10 → 0..100
-    }));
+    const dailyWithScore = dailyRaw;
 
     // Get hourly energy data
     console.log('⏰ Getting hourly energy data...');
     const hourlyRaw = await getHourlyEnergyHeatmap(formattedBirthDate, subscriptionDate); // Only first day, optional
 
-    const hourlyWithScore = hourlyRaw.map(h => ({
-      ...h,
-      score: Math.round((h.energyChange + 10) * 5)
-    }));
+    const hourlyWithScore = hourlyRaw;
 
     // Build prompt - only pass minimal, English-safe fields
     console.log('📝 Building GPT prompt...');

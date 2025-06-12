@@ -671,12 +671,12 @@ export async function getDailyEnergyForRange(
   birthDate: string, 
   startDate: Date, 
   days: number
-): Promise<Array<{date: Date, energyChange: number, trend: 'up' | 'down' | 'stable', element?: Elem, crystal?: string}>> {
+): Promise<Array<{date: Date, score: number, energyChange: number, trend: 'up' | 'down' | 'stable', element?: Elem, crystal?: string}>> {
   // 计算基础八字向量
   const baseBazi = getBaseBaziVector(birthDate);
   
   // 存储结果
-  const result: Array<{date: Date, energyChange: number, trend: 'up' | 'down' | 'stable', element?: Elem, crystal?: string}> = [];
+  const result: Array<{date: Date, score: number, energyChange: number, trend: 'up' | 'down' | 'stable', element?: Elem, crystal?: string}> = [];
   
   // 水晶映射
   const CRYSTAL_MAP: Record<Elem, string> = {
@@ -688,6 +688,7 @@ export async function getDailyEnergyForRange(
   };
   
   // 计算每一天的能量变化
+  let prevScore: number | null = null;
   for (let i = 0; i < days; i++) {
     const date = new Date(startDate);
     date.setDate(startDate.getDate() + i);
@@ -697,10 +698,10 @@ export async function getDailyEnergyForRange(
     const dayEnergy = calculateDayEnergy(baseBazi, date);
     
     // 缩放差异值
-    const energyChange = scaleDiff(dayEnergy.diff);
-    
-    // 确定趋势
+    const score = dayEnergy.score;
+    const energyChange = prevScore === null ? 0 : score - prevScore;
     const trend = determineTrend(energyChange);
+    prevScore = score;
     
     // 确定日期对应的元素 - 基于日柱
     const dayBazi = getBaziFromDate(date);
@@ -721,6 +722,7 @@ export async function getDailyEnergyForRange(
     
     result.push({
       date: new Date(date),
+      score: dayEnergy.score,
       energyChange,
       trend,
       element: lowestElement,
@@ -740,12 +742,12 @@ export async function getDailyEnergyForRange(
 export async function getHourlyEnergyHeatmap(
   birthDate: string,
   date: Date
-): Promise<Array<{hour: number, energyChange: number, trend: 'up' | 'down' | 'stable'}>> {
+): Promise<Array<{hour: number, score: number, energyChange: number, trend: 'up' | 'down' | 'stable'}>> {
   // 计算基础八字向量
   const baseBazi = getBaseBaziVector(birthDate);
   
   // 存储结果
-  const result: Array<{hour: number, energyChange: number, trend: 'up' | 'down' | 'stable'}> = [];
+  const result: Array<{hour: number, score: number, energyChange: number, trend: 'up' | 'down' | 'stable'}> = [];
   
   // 计算每个小时的能量变化
   for (let hour = 0; hour < 24; hour++) {
@@ -756,13 +758,13 @@ export async function getHourlyEnergyHeatmap(
     const hourlyEnergy = calculateHourEnergy(baseBazi, dateTime);
     
     // 缩放差异值
-    const energyChange = scaleDiff(hourlyEnergy.diff);
-    
-    // 确定趋势
+    const score = hourlyEnergy.score;
+    const energyChange = score - 50;
     const trend = determineTrend(energyChange);
     
     result.push({
       hour,
+      score: hourlyEnergy.score,
       energyChange,
       trend
     });
