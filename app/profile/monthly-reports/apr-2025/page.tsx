@@ -112,15 +112,16 @@ function ReportContent() {
         
         if (report) {
           const mdString = report.toString();
-          // 解析 markdown 二级标题 ## Section
-          const regex = /^##\s*(.+?)\s*$/gm;
+          // 解析 markdown 标题（支持 # / ## / ###）
+          const headingRegex = /^#{1,3}\s*(.+?)\s*$/;
           const lines = mdString.split(/\r?\n/);
           const tmp: Record<string,string[]> = {};
           let currentKey = 'overview';
+          const normalize = (s: string) => s.toLowerCase().replace(/[^a-z]/g, '');
           lines.forEach((line: string) => {
-            const match = line.match(/^##\s*(.+?)\s*$/);
+            const match = line.match(/^#{1,3}\s*(.+?)\s*$/);
             if (match) {
-              currentKey = match[1].toLowerCase();
+              currentKey = normalize(match[1]);
               tmp[currentKey] = [];
             } else {
               if (!tmp[currentKey]) tmp[currentKey] = [];
@@ -357,7 +358,8 @@ function ReportContent() {
                     health: ['body', 'fuel', 'health'],
                     growth: ['growth', 'track']
                   };
-                  const keys = keyMap[tab] || [];
+                  const normalize = (s: string) => s.toLowerCase().replace(/[^a-z]/g, '');
+                  const keys = (keyMap[tab] || []).map(normalize);
                   for (const k of keys) {
                     const matchedKey = Object.keys(sections).find(title => title.includes(k));
                     if (matchedKey && sections[matchedKey]) return sections[matchedKey];
