@@ -205,6 +205,7 @@ export async function GET(req: NextRequest, { params }: { params:{ slug:string }
       });
 
       const reportText = completion.choices[0]?.message?.content || '';
+      console.log('GPT PREVIEW >>>', reportText.substring(0, 500));
       console.log(`✅ Report generated successfully, content length: ${reportText.length} characters`);
 
       return NextResponse.json({ 
