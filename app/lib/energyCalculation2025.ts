@@ -771,4 +771,60 @@ export async function getHourlyEnergyHeatmap(
   }
   
   return result;
+}
+
+/**
+ * Calculate section-specific energy scores
+ * @param vector Five element vector 
+ * @returns Object with scores for each life aspect
+ */
+export function calculateSectionScores(vector: FiveElementVector): {
+  finance: number;  // Money Flow
+  social: number;   // Social Vibes
+  mood: number;     // Mood Balance
+  health: number;   // Body Fuel
+  growth: number;   // Growth Track
+} {
+  // Calculate base energy score from 0-100
+  const baseScore = calculateEnergyScore(vector);
+  
+  // Calculate section scores based on element combinations
+  // Finance (Money): Metal & Earth primarily
+  const financeScore = Math.round(
+    baseScore * 0.4 + 
+    ((vector.metal * 0.35) + (vector.earth * 0.25) + (vector.water * 0.2) + (vector.wood * 0.15) + (vector.fire * 0.05)) * 20
+  );
+  
+  // Social (Relationships): Fire & Earth primarily
+  const socialScore = Math.round(
+    baseScore * 0.4 + 
+    ((vector.fire * 0.35) + (vector.earth * 0.25) + (vector.wood * 0.2) + (vector.water * 0.15) + (vector.metal * 0.05)) * 20
+  );
+  
+  // Mood (Emotional Balance): Water & Fire primarily
+  const moodScore = Math.round(
+    baseScore * 0.4 + 
+    ((vector.water * 0.35) + (vector.fire * 0.25) + (vector.earth * 0.2) + (vector.metal * 0.15) + (vector.wood * 0.05)) * 20
+  );
+  
+  // Health (Physical Energy): Wood & Water primarily
+  const healthScore = Math.round(
+    baseScore * 0.4 + 
+    ((vector.wood * 0.35) + (vector.water * 0.25) + (vector.fire * 0.2) + (vector.earth * 0.15) + (vector.metal * 0.05)) * 20
+  );
+  
+  // Growth (Personal Development): Wood & Fire primarily
+  const growthScore = Math.round(
+    baseScore * 0.4 + 
+    ((vector.wood * 0.35) + (vector.fire * 0.25) + (vector.metal * 0.2) + (vector.earth * 0.15) + (vector.water * 0.05)) * 20
+  );
+  
+  // Ensure all scores are between 0-100
+  return {
+    finance: Math.max(0, Math.min(100, financeScore)),
+    social: Math.max(0, Math.min(100, socialScore)),
+    mood: Math.max(0, Math.min(100, moodScore)),
+    health: Math.max(0, Math.min(100, healthScore)),
+    growth: Math.max(0, Math.min(100, growthScore))
+  };
 } 

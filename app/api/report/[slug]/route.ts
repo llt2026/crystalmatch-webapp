@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getBaseBaziVector } from '@/app/lib/energyCalculation2025';
 import { calculateProReportEnergy } from '@/app/lib/proReportCalculation';
-import { getDailyEnergyForRange, getHourlyEnergyHeatmap } from '@/app/lib/energyCalculation2025';
+import { getDailyEnergyForRange, getHourlyEnergyHeatmap, calculateSectionScores } from '@/app/lib/energyCalculation2025';
 import { buildMonthlyReportPrompt } from '@/app/lib/buildMonthlyReportPrompt';
 import OpenAI from 'openai';
 import { getModelConfig } from '@/app/lib/gptModelsConfig';
@@ -137,6 +137,11 @@ export async function GET(req: NextRequest, { params }: { params:{ slug:string }
     console.log('🔄 Calculating monthly energy overview...');
     const energyResult = calculateProReportEnergy(subscriptionDate, baseBazi);
     
+    // Calculate section-specific scores
+    console.log('🔢 Calculating section scores...');
+    const sectionScores = calculateSectionScores(baseBazi);
+    console.log('Section scores:', sectionScores);
+    
     // Transform energy result to match expected overview structure
     const overview = {
       title: `${energyResult.energyMode} ${energyResult.energyEmoji}`,
@@ -145,7 +150,8 @@ export async function GET(req: NextRequest, { params }: { params:{ slug:string }
       weakestElement: energyResult.weakestElement.toLowerCase(),
       periodStart: startDate.toISOString().split('T')[0],
       periodEnd: new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0).toISOString().split('T')[0],
-      vector: baseBazi // Include the base bazi vector for element calculations
+      vector: baseBazi, // Include the base bazi vector for element calculations
+      sectionScores // Add section scores
     };
 
     // Get daily energy data
@@ -169,7 +175,8 @@ export async function GET(req: NextRequest, { params }: { params:{ slug:string }
       title: overview.title,
       energyScore: overview.energyScore,
       periodStart: overview.periodStart,
-      periodEnd: overview.periodEnd
+      periodEnd: overview.periodEnd,
+      sectionScores: overview.sectionScores // Add section scores to prompt
     };
 
     const safeDaily = dailyWithScore.map(({ score, trend }) => ({ score, trend }));
@@ -196,7 +203,10 @@ export async function GET(req: NextRequest, { params }: { params:{ slug:string }
       const completion = await openai.chat.completions.create({
         model: modelConfig.model,
         messages: [
-          { role: 'system', content: modelConfig.systemPrompt || '' },
+          { 
+            role: 'system', 
+            content: 'You are an English-speaking energy consultant for US customers. Create content in clear American English only. Do NOT include any foreign language content or apologies about language. Follow the format instructions exactly with proper headings for each section.' 
+          },
           { role: 'user', content: promptText }
         ],
         temperature: modelConfig.temperature,
@@ -205,7 +215,32 @@ export async function GET(req: NextRequest, { params }: { params:{ slug:string }
       });
 
       const reportText = completion.choices[0]?.message?.content || '';
+      
+      // Log the first part of the report for debugging
       console.log('GPT PREVIEW >>>', reportText.substring(0, 500));
+      
+      // Check if response contains proper section headers
+      const requiredSections = [
+        '## 💰 Money Flow',
+        '## 👥 Social Vibes',
+        '## 🌙 Mood Balance',
+        '## 🔥 Body Fuel',
+        '## 🚀 Growth Track'
+      ];
+      
+      const containsAllSections = requiredSections.every(section => 
+        reportText.includes(section)
+      );
+      
+      if (!containsAllSections) {
+        console.warn('⚠️ Warning: Generated report is missing some required section headers');
+        console.log('Required sections:', requiredSections);
+        console.log('Response sections check:', requiredSections.map(section => ({ 
+          section, 
+          found: reportText.includes(section) 
+        })));
+      }
+      
       console.log(`✅ Report generated successfully, content length: ${reportText.length} characters`);
 
       return NextResponse.json({ 

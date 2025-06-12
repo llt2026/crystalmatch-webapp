@@ -15,7 +15,14 @@ function buildMonthlyReportPrompt(
     overview = { 
       periodStart: '',
       title: '',
-      energyScore: 0
+      energyScore: 0,
+      sectionScores: {
+        finance: 50,
+        social: 50,
+        mood: 50,
+        health: 50,
+        growth: 50
+      }
     },
     daily = [],
     hourly = []
@@ -27,6 +34,15 @@ function buildMonthlyReportPrompt(
     'Unknown';
   const year = overview.periodStart ? new Date(overview.periodStart).getFullYear() : new Date().getFullYear();
   const energyType = overview.title || 'Monthly Energy';
+  
+  // Get section scores with defaults
+  const sectionScores = overview.sectionScores || {
+    finance: 50,
+    social: 50,
+    mood: 50,
+    health: 50,
+    growth: 50
+  };
   
   // Build main prompt
   const prompt = `
@@ -41,6 +57,13 @@ Note: You are only responsible for writing content, do not attempt any energy ca
 **System-calculated data available to you** (you can base your content on this data, but don't directly quote these technical terms):
 - Month: ${monthName} ${year}
 - Monthly energy type: ${energyType}
+- Overall energy score: ${overview.energyScore}/100
+- Section-specific scores:
+  - Finance/Money Flow: ${sectionScores.finance}/100
+  - Social/Relationships: ${sectionScores.social}/100
+  - Mood/Emotional: ${sectionScores.mood}/100
+  - Health/Physical: ${sectionScores.health}/100
+  - Growth/Personal: ${sectionScores.growth}/100
 - System has calculated: Daily energy data (${daily.length} days) and hourly energy data
 
 Tone and approach guidelines (please follow strictly):
@@ -61,67 +84,35 @@ Content guidelines:
 3. Focus on practical possibilities rather than theoretical explanations
 4. Write as if having a thoughtful conversation with this specific person
 
+**EXTREMELY IMPORTANT FORMAT REQUIREMENTS**:
+1. Create content for FIVE SEPARATE SECTIONS, each with its own heading and content
+2. Each section MUST have different, unique content specific to that life area
+3. Include the exact section headers specified below - these are used for parsing
+4. Each section should be 2-3 paragraphs focused on that specific life area
+5. Use the section-specific scores to calibrate your tone and suggestions
+6. NEVER use Chinese characters or apologize about language
+7. Your response must be 100% in English with NO EXCEPTIONS
+
 Please respond in English and organize your response in the following markdown format:
 
 # 🔮 ${monthName} ${year} — Monthly Energy Insights
 
-## 🌟 Energy Overview
-[Brief description using phrases like "This month seems to invite you to..." or "You might notice a gentle shift toward...". Always include an energy score like "Your energy feels like it might be around 76/100." Use conditional language. Maximum 2-3 sentences.]
-
-## ⚠️ Potential Challenges
-- [Challenge 1: Use "You might find yourself..." or "There could be moments when..." or "You may notice..."]
-- [Challenge 2: Frame as gentle observations, not predictions: "Some days might feel..." or "You could experience..."]
-- [Challenge 3 (optional): Always include uncertainty: "Perhaps you'll encounter..." or "It seems you might..."]
-
-## 💎 Crystals to Consider
-- [Crystal 1] — [Use "might support you in..." or "could gently encourage..." or "some find this helpful for..."]
-- [Crystal 2] — [Conditional benefits: "might help you..." or "could provide..." or "may bring a sense of..."]
-
-## ✨ Practice to Explore
-[Suggest a simple practice using invitational language: "If you try..." or "You might enjoy exploring..." or "Consider experimenting with..." or "One possibility is...". Always frame as optional exploration, not requirement.]
-
-## 🧭 Monthly Possibilities
-✅ [Use "You might consider..." or "Perhaps this could be a time to..." or "You may naturally feel drawn to..."]  
-✅ [Second focus: "Another area worth exploring might be..." or "You could also find benefit in..."]  
-🚫 [Use "Gently reducing... might be helpful" or "You might want to consider stepping back from..." or "Perhaps this month asks for less..."]  
-🚫 [Second area: "Softening around... could also be wise" or "You might find peace in reducing..."]
-
-Language examples:
-- "It seems like...", "You might notice...", "Perhaps...", "Could be...", "If..."
-- "You may find...", "There's a possibility...", "Some people experience...", "You might discover..."
-- "This could be helpful...", "Consider whether...", "You might enjoy...", "There's an opportunity..."
-
-Language to avoid:
-- Never use: "You will", "You must", "You should", "You need to", "This means", "You definitely are"
-- Avoid absolute statements or commands
-- Don't make definitive predictions about what will happen
-
-FINAL REMINDER: Your response must be 100% in English. This is for US customers. No Chinese characters allowed.
-
-## ✍️ Response format
-
-Please output strictly in the following Markdown structure (no apologies, no language declarations):
-
-# 🔮 ${monthName} ${year} — Monthly Energy Insights
-
 ## 💰 Money Flow (Finance & Career)
-<Write 2-3 short paragraphs with gentle, open-ended observations about finances & career. Use conditional language (might, could, perhaps).>
+<Write 2-3 short paragraphs with gentle, open-ended observations about finances & career. Use conditional language (might, could, perhaps). Base tone and suggestions on the finance score of ${sectionScores.finance}/100.>
 
 ## 👥 Social Vibes (Relationships)
-<2-3 paragraphs about relationships, family, friendships in the same gentle style.>
+<2-3 paragraphs about relationships, family, friendships in the same gentle style. Base tone and suggestions on the social score of ${sectionScores.social}/100.>
 
 ## 🌙 Mood Balance (Emotional Well-being)
-<2-3 paragraphs about emotional peaks & valleys, plus a simple practice suggestion.>
+<2-3 paragraphs about emotional peaks & valleys, plus a simple practice suggestion. Base tone and suggestions on the mood score of ${sectionScores.mood}/100.>
 
 ## 🔥 Body Fuel (Health & Vitality)
-<2-3 paragraphs about physical vitality, sleep, nutrition, exercise.>
+<2-3 paragraphs about physical vitality, sleep, nutrition, exercise. Base tone and suggestions on the health score of ${sectionScores.health}/100.>
 
 ## 🚀 Growth Track (Personal Growth)
-<2-3 paragraphs about learning, goals, creativity, personal challenges.>
+<2-3 paragraphs about learning, goals, creativity, personal challenges. Base tone and suggestions on the growth score of ${sectionScores.growth}/100.>
 
-Each section MAY finish with a **Pro Exclusive** sub-heading followed by 1-3 bullet suggestions.
-
-IMPORTANT: Do NOT include any phrases like "I'm sorry" or "I can only respond in English". Begin directly with the section content in English only.
+IMPORTANT: DO NOT include any phrases like "I'm sorry" or "I can only respond in English". Begin directly with the section content in English only.
 `;
 
   return prompt;

@@ -84,6 +84,15 @@ function MayReportContent() {
     loading: true,
   });
   
+  // Add state for parsed report sections
+  const [reportSections, setReportSections] = useState<{[key: string]: string}>({
+    finance: '',
+    relationship: '',
+    mood: '',
+    health: '',
+    growth: ''
+  });
+  
   // State for real energy data
   const [dailyEnergyData, setDailyEnergyData] = useState<DailyEnergyData[]>([]);
   const [hourlyEnergyData, setHourlyEnergyData] = useState<HourlyEnergyData[]>([]);
@@ -180,11 +189,55 @@ function MayReportContent() {
         // Convert Markdown report to HTML
         if (reportText) {
           try {
-            // Use a simpler synchronous approach with marked
-            // marked.parse can return a Promise in some configurations, but we'll use it in sync mode
+            // Parse and divide the report into sections
+            const sectionHeaders = {
+              finance: '## 💰 Money Flow',
+              relationship: '## 👥 Social Vibes',
+              mood: '## 🌙 Mood Balance',
+              health: '## 🔥 Body Fuel',
+              growth: '## 🚀 Growth Track'
+            };
+            
+            const parsedSections: {[key: string]: string} = {
+              finance: '',
+              relationship: '',
+              mood: '',
+              health: '',
+              growth: ''
+            };
+            
+            // Function to extract section content between headers
+            const extractSection = (text: string, startHeader: string, endHeaders: string[]): string => {
+              const startIndex = text.indexOf(startHeader);
+              if (startIndex === -1) return '';
+              
+              let endIndex = text.length;
+              for (const header of endHeaders) {
+                const idx = text.indexOf(header, startIndex + startHeader.length);
+                if (idx !== -1 && idx < endIndex) {
+                  endIndex = idx;
+                }
+              }
+              
+              return text.substring(startIndex + startHeader.length, endIndex).trim();
+            };
+            
+            // Extract each section
+            const remainingHeaders = Object.values(sectionHeaders);
+            Object.entries(sectionHeaders).forEach(([key, header], index) => {
+              const endHeaders = remainingHeaders.slice(index + 1);
+              const sectionContent = extractSection(reportText, header, endHeaders);
+              parsedSections[key] = sectionContent;
+              console.log(`Extracted ${key} section, length: ${sectionContent.length}`);
+            });
+            
+            // Set the parsed sections
+            setReportSections(parsedSections);
+            
+            // Use a simpler synchronous approach with marked for full report HTML
             const html = marked.parse(reportText.toString()) as string;
             setReportHTML(html);
-            console.log('📄 Markdown report parsed to HTML');
+            console.log('📄 Markdown report parsed to HTML and sections extracted');
           } catch (error) {
             console.error('Markdown parsing failed:', error);
             setReportHTML('');
@@ -611,8 +664,8 @@ function MayReportContent() {
               
               {/* Render GPT-generated finance content */}
               <div className="text-sm text-purple-200 mb-4">
-                {reportHTML ? (
-                  <div dangerouslySetInnerHTML={{ __html: reportHTML }} />
+                {reportSections.finance ? (
+                  <div dangerouslySetInnerHTML={{ __html: marked.parse(reportSections.finance) as string }} />
                 ) : gptReport.insight ? (
                   <p>{gptReport.insight}</p>
                 ) : gptReport.loading ? (
@@ -696,16 +749,14 @@ function MayReportContent() {
               
               {/* Render GPT-generated social vibes content */}
               <div className="text-sm text-purple-200 mb-4">
-                {reportHTML ? (
-                  <div dangerouslySetInnerHTML={{ __html: reportHTML }} />
-                ) : gptReport.loading ? (
+                {reportSections.relationship ? (
+                  <div dangerouslySetInnerHTML={{ __html: marked.parse(reportSections.relationship) as string }} />
+                ) : (
                   <div className="text-center py-2">
                     <div className="animate-spin inline-block w-4 h-4 border-t-2 border-purple-500 border-r-2 rounded-full mb-1"></div>
-                    <p className="text-xs text-purple-300">Generating social insights...</p>
+                    <p className="text-xs text-purple-300">Loading relationship insights...</p>
                   </div>
-                ) : gptReport.error ? (
-                  <p className="text-xs text-red-400">Unable to load social insights</p>
-                ) : null}
+                )}
               </div>
               
               {/* Pro Exclusive Section */}
@@ -775,16 +826,14 @@ function MayReportContent() {
               
               {/* Render GPT-generated mood content */}
               <div className="text-sm text-purple-200 mb-4">
-                {reportHTML ? (
-                  <div dangerouslySetInnerHTML={{ __html: reportHTML }} />
-                ) : gptReport.loading ? (
+                {reportSections.mood ? (
+                  <div dangerouslySetInnerHTML={{ __html: marked.parse(reportSections.mood) as string }} />
+                ) : (
                   <div className="text-center py-2">
                     <div className="animate-spin inline-block w-4 h-4 border-t-2 border-purple-500 border-r-2 rounded-full mb-1"></div>
-                    <p className="text-xs text-purple-300">Generating mood analysis...</p>
+                    <p className="text-xs text-purple-300">Loading mood insights...</p>
                   </div>
-                ) : gptReport.error ? (
-                  <p className="text-xs text-red-400">Unable to load mood analysis</p>
-                ) : null}
+                )}
               </div>
               
               {/* Mood peak periods */}
@@ -964,16 +1013,14 @@ function MayReportContent() {
               
               {/* Render GPT-generated health content */}
               <div className="text-sm text-purple-200 mb-4">
-                {reportHTML ? (
-                  <div dangerouslySetInnerHTML={{ __html: reportHTML }} />
-                ) : gptReport.loading ? (
+                {reportSections.health ? (
+                  <div dangerouslySetInnerHTML={{ __html: marked.parse(reportSections.health) as string }} />
+                ) : (
                   <div className="text-center py-2">
                     <div className="animate-spin inline-block w-4 h-4 border-t-2 border-purple-500 border-r-2 rounded-full mb-1"></div>
-                    <p className="text-xs text-purple-300">Generating health recommendations...</p>
+                    <p className="text-xs text-purple-300">Loading health insights...</p>
                   </div>
-                ) : gptReport.error ? (
-                  <p className="text-xs text-red-400">Unable to load health recommendations</p>
-                ) : null}
+                )}
               </div>
               
               {/* Monthly recommendations section - only show if we have element data */}
@@ -1062,16 +1109,14 @@ function MayReportContent() {
               
               {/* Render GPT-generated growth content */}
               <div className="text-sm text-purple-200 mb-4">
-                {reportHTML ? (
-                  <div dangerouslySetInnerHTML={{ __html: reportHTML }} />
-                ) : gptReport.loading ? (
+                {reportSections.growth ? (
+                  <div dangerouslySetInnerHTML={{ __html: marked.parse(reportSections.growth) as string }} />
+                ) : (
                   <div className="text-center py-2">
                     <div className="animate-spin inline-block w-4 h-4 border-t-2 border-purple-500 border-r-2 rounded-full mb-1"></div>
-                    <p className="text-xs text-purple-300">Generating growth insights...</p>
+                    <p className="text-xs text-purple-300">Loading growth insights...</p>
                   </div>
-                ) : gptReport.error ? (
-                  <p className="text-xs text-red-400">Unable to load growth insights</p>
-                ) : null}
+                )}
               </div>
               
               {/* 7-Day Challenge - Dynamic based on GPT content or element analysis */}
