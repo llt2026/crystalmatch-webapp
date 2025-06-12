@@ -31,7 +31,7 @@ function buildMonthlyReportPrompt(
   // Build main prompt
   const prompt = `
 CRITICAL INSTRUCTIONS: You are an English-speaking energy consultant for US market. 
-ALWAYS respond in ENGLISH ONLY. Never use Chinese, Mandarin, or any non-English languages.
+Respond in warm ENGLISH. Do NOT add any apology sentences like "I'm sorry" or language declarations.
 
 You are a supportive energy consultant providing personalized insights and gentle guidance.
 Create a monthly energy report with a conversational, friendly tone that offers possibilities rather than directives.
@@ -120,6 +120,8 @@ FINAL REMINDER: Your response must be 100% in English. This is for US customers.
 [2-3 段，自我提升、学习、目标设定。]
 
 在每个主题下，可再附 **Pro Exclusive** 子标题，列出 1-3 条额外建议。
+
+IMPORTANT: Do not include any phrases like "I'm sorry" or "I can only respond in English". Begin directly with the content.
 `;
 
   return prompt;
