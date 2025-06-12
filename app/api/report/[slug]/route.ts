@@ -151,15 +151,37 @@ export async function GET(req: NextRequest, { params }: { params:{ slug:string }
     // Get daily energy data
     console.log('📈 Getting daily energy data...');
     const monthDays = new Date(startDate.getFullYear(), startDate.getMonth()+1, 0).getDate();
-    const daily = await getDailyEnergyForRange(formattedBirthDate, subscriptionDate, monthDays);
+    const dailyRaw = await getDailyEnergyForRange(formattedBirthDate, subscriptionDate, monthDays);
+
+    // Add score 0-100 for UI and GPT
+    const dailyWithScore = dailyRaw.map(d => ({
+      ...d,
+      score: Math.round((d.energyChange + 10) * 5) // map -10..10 → 0..100
+    }));
 
     // Get hourly energy data
     console.log('⏰ Getting hourly energy data...');
-    const hourly = await getHourlyEnergyHeatmap(formattedBirthDate, subscriptionDate); // Only first day, optional
+    const hourlyRaw = await getHourlyEnergyHeatmap(formattedBirthDate, subscriptionDate); // Only first day, optional
 
-    // Build prompt
+    const hourlyWithScore = hourlyRaw.map(h => ({
+      ...h,
+      score: Math.round((h.energyChange + 10) * 5)
+    }));
+
+    // Build prompt - only pass minimal, English-safe fields
     console.log('📝 Building GPT prompt...');
-    const promptText = buildMonthlyReportPrompt({ overview, daily, hourly });
+
+    const safeOverview = {
+      title: overview.title,
+      energyScore: overview.energyScore,
+      periodStart: overview.periodStart,
+      periodEnd: overview.periodEnd
+    };
+
+    const safeDaily = dailyWithScore.map(({ score, trend }) => ({ score, trend }));
+    const safeHourly = hourlyWithScore.map(({ hour, score, trend }) => ({ hour, score, trend }));
+
+    const promptText = buildMonthlyReportPrompt({ overview: safeOverview, daily: safeDaily, hourly: safeHourly });
     
     // Direct OpenAI API call instead of using gptService
     console.log('🤖 Calling OpenAI API directly...');
@@ -193,8 +215,8 @@ export async function GET(req: NextRequest, { params }: { params:{ slug:string }
 
       return NextResponse.json({ 
         overview, 
-        daily, 
-        hourly, 
+        daily: dailyWithScore, 
+        hourly: hourlyWithScore, 
         report: reportText,
         tokens: {
           prompt: completion.usage?.prompt_tokens || 0,
