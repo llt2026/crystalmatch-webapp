@@ -474,25 +474,24 @@ export default function AnnualPremiumReport() {
             Upgrade to <span className="text-yellow-300 font-semibold">Plus ($4.99)</span> for 12-month crystal guidance or <span className="text-orange-300 font-semibold">Pro ($9.99)</span> for full lucky color insights
           </p>
           
-          {/* Buttons row */}
-          <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4 mt-4">
+          {/* Buttons row - always horizontal on all screen sizes */}
+          <div className="flex flex-row justify-center gap-2 mt-4">
             <Link 
               href="/subscription" 
-              className="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400 text-black font-bold rounded-lg shadow-lg transform hover:scale-105 transition-all duration-200"
+              className="inline-flex items-center justify-center px-4 py-2 text-sm bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400 text-black font-bold rounded-md shadow transform hover:scale-105 transition-all duration-200"
             >
-              <span className="mr-2">🔮</span>
-              Upgrade Now
-              <span className="ml-2">→</span>
+              <span className="mr-1">✨</span>
+              Upgrade
             </Link>
             
             <Link 
               href="/profile" 
-              className="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-br from-purple-700 to-indigo-800 hover:from-purple-600 hover:to-indigo-700 text-white font-bold rounded-lg shadow-lg transform hover:scale-105 transition-all duration-200 border border-purple-500/30"
+              className="inline-flex items-center justify-center px-4 py-2 text-sm bg-gradient-to-br from-purple-700 to-indigo-800 hover:from-purple-600 hover:to-indigo-700 text-white font-bold rounded-md shadow transform hover:scale-105 transition-all duration-200 border border-purple-500/30"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M9.707 14.707a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 1.414L7.414 9H15a1 1 0 110 2H7.414l2.293 2.293a1 1 0 010 1.414z" clipRule="evenodd" />
               </svg>
-              Back to Profile
+              Back
             </Link>
           </div>
           
