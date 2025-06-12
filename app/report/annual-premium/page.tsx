@@ -465,86 +465,19 @@ export default function AnnualPremiumReport() {
       </div>
       
       {/* Pro member benefits */}
-      <div className="rounded-lg bg-gradient-to-br from-purple-900/80 to-indigo-900/80 p-8 mb-8 backdrop-blur-sm border border-purple-500/30 shadow-xl">
-        <div className="text-center mb-6">
-          <h2 className="text-2xl font-bold mb-2 bg-gradient-to-r from-yellow-300 to-orange-300 bg-clip-text text-transparent">
-            Unlock Your Full Crystal Journey
-          </h2>
-          <p className="text-purple-200 text-sm">
-            Discover personalized guidance for every month of the year
-          </p>
-        </div>
-
-        <div className="grid md:grid-cols-2 gap-6 mb-8">
-          {/* Plus Plan */}
-          <div className="bg-black/30 rounded-xl p-6 border border-purple-400/30">
-            <div className="flex items-center mb-4">
-              <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg flex items-center justify-center mr-3">
-                <span className="text-white font-bold text-sm">+</span>
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-white">Plus Monthly</h3>
-                <p className="text-purple-300 text-sm">$4.99/month</p>
-              </div>
-            </div>
-            <div className="space-y-3">
-              <div className="flex items-start">
-                <div className="w-2 h-2 bg-blue-400 rounded-full mt-2 mr-3 flex-shrink-0"></div>
-                <span className="text-gray-300 text-sm">Unlock 12-month crystal recommendations</span>
-              </div>
-              <div className="flex items-start">
-                <div className="w-2 h-2 bg-blue-400 rounded-full mt-2 mr-3 flex-shrink-0"></div>
-                <span className="text-gray-300 text-sm">Monthly personalized energy reports</span>
-              </div>
-              <div className="flex items-start">
-                <div className="w-2 h-2 bg-blue-400 rounded-full mt-2 mr-3 flex-shrink-0"></div>
-                <span className="text-gray-300 text-sm">Energy-boosting guidance</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Pro Plan */}
-          <div className="bg-gradient-to-br from-yellow-500/20 to-orange-500/20 rounded-xl p-6 border border-yellow-400/50 relative overflow-hidden">
-            <div className="absolute top-2 right-2 bg-yellow-500 text-black px-2 py-1 rounded-full text-xs font-bold">
-              BEST VALUE
-            </div>
-            <div className="flex items-center mb-4">
-              <div className="w-8 h-8 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-lg flex items-center justify-center mr-3">
-                <span className="text-black font-bold text-sm">⭐</span>
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-white">Pro Annual</h3>
-                <p className="text-yellow-300 text-sm">$49.99/year</p>
-              </div>
-            </div>
-            <div className="space-y-3">
-              <div className="flex items-start">
-                <div className="w-2 h-2 bg-yellow-400 rounded-full mt-2 mr-3 flex-shrink-0"></div>
-                <span className="text-gray-200 text-sm">Everything in Plus +</span>
-              </div>
-              <div className="flex items-start">
-                <div className="w-2 h-2 bg-yellow-400 rounded-full mt-2 mr-3 flex-shrink-0"></div>
-                <span className="text-gray-200 text-sm">Unlock 12-month lucky color guidance</span>
-              </div>
-              <div className="flex items-start">
-                <div className="w-2 h-2 bg-yellow-400 rounded-full mt-2 mr-3 flex-shrink-0"></div>
-                <span className="text-gray-200 text-sm">Advanced energy analysis</span>
-              </div>
-              <div className="flex items-start">
-                <div className="w-2 h-2 bg-yellow-400 rounded-full mt-2 mr-3 flex-shrink-0"></div>
-                <span className="text-gray-200 text-sm">Save 17% vs monthly billing</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Upgrade Button */}
+      <div className="rounded-lg bg-black/40 p-6 mb-8 backdrop-blur-sm border border-purple-500/30">
         <div className="text-center">
+          <h2 className="text-xl font-bold mb-3 bg-gradient-to-r from-yellow-300 to-orange-300 bg-clip-text text-transparent">
+            ✨ Unlock Premium Features ✨
+          </h2>
+          <p className="text-purple-200 text-sm mb-4">
+            Upgrade to <span className="text-yellow-300 font-semibold">Plus ($4.99)</span> for 12-month crystal guidance or <span className="text-orange-300 font-semibold">Pro ($9.99)</span> for full lucky color insights
+          </p>
           <Link 
             href="/subscription" 
-            className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400 text-black font-bold rounded-xl shadow-lg transform hover:scale-105 transition-all duration-200"
+            className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400 text-black font-bold rounded-lg shadow-lg transform hover:scale-105 transition-all duration-200"
           >
-            <span className="mr-2">✨</span>
+            <span className="mr-2">🔮</span>
             Upgrade Now
             <span className="ml-2">→</span>
           </Link>
