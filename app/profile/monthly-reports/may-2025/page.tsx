@@ -17,7 +17,7 @@ import { marked } from 'marked';
 import { parseISO, addDays, format as formatDate } from 'date-fns';
 
 // Only keep FiveElementVector type for compatibility
-import { FiveElementVector } from '@/app/lib/energyCalculation2025';
+import { FiveElementVector, getBaziFromDate, getGanZhiFiveElements } from '@/app/lib/energyCalculation2025';
 import { ENERGY_CONFIG, type ElementType } from '@/app/lib/energyCalculationConfig';
 import { getCrystalForElement, getElementIcon, getElementDescription, getElementColorClass } from '@/app/lib/elementHelpers';
 
@@ -391,25 +391,45 @@ function MayReportContent() {
   
   // 辅助函数 - 获取健康建议
   const getHealthRecommendations = () => {
-    const recommendations = [];
+    if (!dailyEnergyData || dailyEnergyData.length === 0) return [];
 
-    if (deficientElements.includes('earth')) {
-      recommendations.push({ element: 'Earth deficiency', suggestion: 'Add more root vegetables', type: 'Dietary' });
-    }
-    if (deficientElements.includes('fire')) {
-      recommendations.push({ element: 'Fire deficiency', suggestion: 'Add cardio exercise', type: 'Activity' });
-    }
-    if (deficientElements.includes('water')) {
-      recommendations.push({ element: 'Water deficiency', suggestion: 'Earlier bedtime', type: 'Sleep' });
-    }
-    if (deficientElements.includes('metal')) {
-      recommendations.push({ element: 'Metal deficiency', suggestion: 'Deep breathing exercises', type: 'Respiratory' });
-    }
-    if (deficientElements.includes('wood')) {
-      recommendations.push({ element: 'Wood deficiency', suggestion: 'Morning stretching routine', type: 'Flexibility' });
-    }
+    type KeyElem = 'earth' | 'fire' | 'water';
+    const keys: KeyElem[] = ['earth', 'fire', 'water'];
+    const lowest: Record<KeyElem, { val: number; date: Date | null }> = {
+      earth: { val: Number.POSITIVE_INFINITY, date: null },
+      fire: { val: Number.POSITIVE_INFINITY, date: null },
+      water: { val: Number.POSITIVE_INFINITY, date: null },
+    };
 
-    return recommendations.slice(0, 3); // 限制为3条建议
+    dailyEnergyData.forEach((day) => {
+      if (!day.date) return;
+      const { day: dayPillar } = getBaziFromDate(new Date(day.date));
+      const vec = getGanZhiFiveElements(dayPillar[0], dayPillar[1]);
+      keys.forEach((k) => {
+        // @ts-ignore
+        const v = vec[k];
+        if (v < lowest[k].val) {
+          lowest[k] = { val: v, date: new Date(day.date) };
+        }
+      });
+    });
+
+    const presets: Record<KeyElem, { type: string; suggestion: string }> = {
+      earth: { type: 'Dietary', suggestion: 'Add more root vegetables' },
+      fire: { type: 'Activity', suggestion: 'Add cardio exercise' },
+      water: { type: 'Sleep', suggestion: 'Earlier bedtime' },
+    };
+
+    return keys.map((k) => {
+      const rec = lowest[k];
+      if (!rec.date) return null;
+      const dateStr = rec.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      return {
+        element: `${k.charAt(0).toUpperCase() + k.slice(1)} lowest on ${dateStr}`,
+        type: presets[k].type,
+        suggestion: presets[k].suggestion,
+      };
+    }).filter(Boolean) as Array<{ element: string; type: string; suggestion: string }>;
   };
   
   // Function to open feedback modal with specified type
@@ -1082,7 +1102,7 @@ function MayReportContent() {
                 <div className="space-y-4">
                   <div>
                     <h5 className="text-sm mb-2">Weekly Exercise Plan</h5>
-                    <div className="bg-purple-900/20 rounded-lg p-3">
+                    <div className="hidden bg-purple-900/20 rounded-lg p-3">
                       {reportHTML ? (
                         <div className="text-xs" dangerouslySetInnerHTML={{ __html: reportHTML }} />
                       ) : userElements ? (
