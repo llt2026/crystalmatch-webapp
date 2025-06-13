@@ -1092,7 +1092,7 @@ function MayReportContent() {
               ) : null}
               
               {/* Pro Exclusive Section */}
-              <div className="mt-5 pt-4 border-t border-purple-900/30">
+              <div className="hidden mt-5 pt-4 border-t border-purple-900/30">
                 <div className="flex items-center mb-3">
                   <span className="inline-flex items-center justify-center mr-2 w-5 h-5 rounded-full bg-purple-900/50 text-xs">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
