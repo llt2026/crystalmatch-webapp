@@ -7,85 +7,91 @@ export type SubscriptionTier = 'free' | 'plus' | 'pro';
  * 订阅功能配置
  */
 export const SUBSCRIPTION_FEATURES = {
-  // 五行雷达图 - 所有级别都可用
-  fiveElementsRadar: {
+  // 五行能量密码 - 所有级别都可用
+  fiveElementsCode: {
     free: true,
     plus: true,
     pro: true,
-    description: "Five Elements Radar"
+    description: "Five Elements Energy Code"
   },
   
-  // 优势特质 x 4 - 所有级别都可用
-  strengthChips: {
+  // 人生优缺点分析 - 所有级别都可用
+  personalityAnalysis: {
     free: true,
     plus: true,
     pro: true,
-    count: 4,
-    description: "Strength Traits"
+    description: "Personality Strengths & Weaknesses"
   },
   
-  // 劣势特质 x 4 - 所有级别都可用
-  weaknessChips: {
-    free: true,
-    plus: true,
-    pro: true,
-    count: 4,
-    description: "Weakness Traits"
-  },
-  
-  // 补缺水晶 - 不同级别有不同限制
+  // 水晶推荐 - 不同级别有不同限制
   crystalRecommendation: {
-    free: "overall birth chart crystal only",
-    plus: "current month's weakest element",
-    pro: "all months' weakest elements",
-    description: "Crystal Recommendation"
-  },
-  
-  // 12个月能量表 - 免费仅显示当月
-  energyCalendar: {
-    free: "current month only",
+    free: "current year only",
     plus: "all 12 months",
     pro: "all 12 months",
-    description: "12-Month Energy Table"
+    description: "Crystal Recommendations"
   },
   
-  // 12个月水晶表 - 不同级别有不同限制
-  crystalCalendar: {
-    free: "overall birth chart crystal only",
-    plus: "current month visible, future months locked",
-    pro: "all months visible",
-    description: "12-Month Crystal Table"
+  // 12个月能量变化 - 免费用户也可以看到
+  monthlyEnergyChanges: {
+    free: true,
+    plus: true,
+    pro: true,
+    description: "12-Month Energy Changes"
   },
   
   // 月度深度报告 - 免费无此功能
   monthlyReport: {
     free: false,
-    plus: "current month only",
-    pro: "generated on 1st of each month",
-    description: "Monthly Detailed Report"
+    plus: true,
+    pro: true,
+    description: "Monthly Detailed Reports"
   },
   
-  // 月末注意事件 - 免费无此功能
-  monthEndAlerts: {
+  // 每日能量分数和水晶推荐 - Plus及以上
+  dailyEnergyScore: {
     free: false,
     plus: true,
     pro: true,
-    description: "Month-End Reminders"
+    description: "Daily Energy Scores & Crystal Tips"
   },
   
-  // 退款窗口
-  refundWindow: {
-    free: "N/A",
-    plus: "Within 14 days",
-    pro: "Within 14 days (not after monthly report generation)",
-    description: "Refund Window"
+  // 月能量分 - Plus及以上
+  monthlyEnergyScore: {
+    free: false,
+    plus: true,
+    pro: true,
+    description: "Monthly Energy Scores"
+  },
+  
+  // 5大板块能量报告 - Plus及以上
+  fiveAspectReports: {
+    free: false,
+    plus: true,
+    pro: true,
+    description: "5-Aspect Energy Reports (Money, Social, Mood, Body, Growth)"
+  },
+  
+  // 幸运色推荐 - 仅Pro用户
+  luckyColors: {
+    free: false,
+    plus: false,
+    pro: true,
+    description: "12-Month Lucky Colors"
+  },
+  
+  // 能量提醒频率
+  energyReminders: {
+    free: false,
+    plus: "daily reminders",
+    pro: "hourly notifications",
+    description: "Energy Reminders & Notifications"
   },
   
   // 价格
   price: {
     free: "$0",
     plus: "$4.99/month",
-    pro: "$49.99/year",
+    pro: "$9.99/month",
     description: "Pricing"
   }
 };
@@ -112,12 +118,11 @@ export function canAccessFeature(
 export function getVisibleEnergyMonths(tier: SubscriptionTier): number {
   switch (tier) {
     case 'free':
-      return 1; // 只显示当前月
     case 'plus':
     case 'pro':
-      return 12; // 显示所有12个月
+      return 12; // 所有用户都可以看到12个月能量变化
     default:
-      return 1;
+      return 12;
   }
 }
 
@@ -129,9 +134,8 @@ export function getVisibleEnergyMonths(tier: SubscriptionTier): number {
 export function getVisibleCrystalMonths(tier: SubscriptionTier): number | 'current' | 'none' {
   switch (tier) {
     case 'free':
-      return 'none'; // 只显示总体水晶推荐，不显示月度水晶
+      return 'current'; // 只显示当年水晶推荐
     case 'plus':
-      return 'current'; // 只显示当前月
     case 'pro':
       return 12; // 显示所有12个月
     default:
@@ -145,57 +149,61 @@ export function getVisibleCrystalMonths(tier: SubscriptionTier): number | 'curre
 export const SUBSCRIPTION_TIERS = [
   {
     id: 'free',
-    name: 'Free Snapshot',
+    name: 'Free Explorer',
     price: '$0',
+    period: 'forever',
     features: [
-      '5-Element Radar Chart',
-      '4 Strength & 4 Weakness Traits',
-      'Overall Birth Chart Crystal',
-      'Current Month Energy Score'
+      'Five Elements Energy Code',
+      'Personality Strengths & Weaknesses',
+      'Current Year Crystal Recommendation',
+      '12-Month Energy Changes Overview'
     ],
     limitations: [
-      'Only current month visible',
-      'No monthly crystal recommendations',
+      'No daily energy scores',
       'No monthly reports',
-      'No alerts or reminders'
+      'No personalized reminders',
+      'Limited crystal recommendations'
     ],
-    buttonText: 'Current Plan',
-    recommended: false
+    buttonText: 'Get Started Free',
+    recommended: false,
+    gradient: 'from-gray-600 to-gray-800'
   },
   {
     id: 'plus',
-    name: 'Plus Plan',
+    name: 'Plus Insider',
     price: '$4.99',
     period: 'per month',
     features: [
       'Everything in Free +',
-      'Full 12-Month Energy Calendar',
-      'Current Month Crystal Recommendation',
-      'Detailed Monthly Energy Report',
-      'Month-End Reminders & Alerts'
+      'All 12-Month Crystal Recommendations',
+      'Monthly Detailed Energy Reports',
+      'Daily Energy Scores & Crystal Tips',
+      '5-Aspect Reports (Money, Social, Mood, Body, Growth)',
+      'Daily Energy Reminders'
     ],
     limitations: [
-      'Future months crystal recommendations locked',
-      'Reports generated for current month only'
+      'No lucky color recommendations',
+      'No hourly notifications'
     ],
-    buttonText: 'Subscribe Plus',
-    recommended: false
+    buttonText: 'Start Plus Plan',
+    recommended: true,
+    gradient: 'from-purple-600 to-indigo-700'
   },
   {
     id: 'pro',
-    name: 'Pro Plan',
-    price: '$49.99',
-    period: 'per year',
+    name: 'Pro Master',
+    price: '$9.99',
+    period: 'per month',
     features: [
       'Everything in Plus +',
-      'All 12 Months Crystal Recommendations',
-      'Monthly Reports Generated on 1st',
-      'Save over 16% compared to monthly'
+      '12-Month Lucky Colors',
+      'Hourly Energy Notifications',
+      'Priority Customer Support',
+      'Advanced Energy Insights'
     ],
-    limitations: [
-      'Annual commitment'
-    ],
-    buttonText: 'Subscribe Pro',
-    recommended: true
+    limitations: [],
+    buttonText: 'Unlock Pro Features',
+    recommended: false,
+    gradient: 'from-yellow-500 to-orange-600'
   }
 ]; 
