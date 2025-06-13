@@ -1,16 +1,14 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
-import { PayPalScriptProvider, PayPalButtons } from '@paypal/react-paypal-js';
 import './styles.css';
 import { SUBSCRIPTION_FEATURES, SUBSCRIPTION_TIERS } from '@/app/lib/subscription-config';
 
 export default function SubscriptionPage() {
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [showPayment, setShowPayment] = useState(false);
-  const [paypalLoaded, setPaypalLoaded] = useState(false);
-  const [paypalError, setPaypalError] = useState(false);
+  const [paymentError, setPaymentError] = useState('');
 
   const handlePlanSelect = (planId: string) => {
     if (planId === 'free') {
@@ -20,19 +18,10 @@ export default function SubscriptionPage() {
     }
     setSelectedPlan(planId);
     setShowPayment(true);
-    setPaypalLoaded(false);
-    setPaypalError(false);
+    setPaymentError('');
   };
 
   const selectedTier = SUBSCRIPTION_TIERS.find(tier => tier.id === selectedPlan);
-
-  useEffect(() => {
-    // This effect will run when selectedPlan changes
-    if (selectedPlan) {
-      setPaypalLoaded(false);
-      setPaypalError(false);
-    }
-  }, [selectedPlan]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
@@ -277,136 +266,60 @@ export default function SubscriptionPage() {
                 Secure payment with PayPal
               </div>
               
-              <div className="min-h-[60px]">
-                <PayPalScriptProvider
-                  options={{
-                    clientId: 'AYiPC9BjuuLNzjHHACtpRF6OqtnWdkzREDhHEGGN6zzDd4BG4biAqmbXVELegUP5DO27HAkS5cnP5nKz',
-                    currency: 'USD',
-                    intent: 'capture',
-                    locale: 'en_US',
-                    components: 'buttons',
-                    'enable-funding': 'venmo,paylater',
-                    'disable-funding': 'credit,card'
-                  }}
-                >
-                  <PayPalButtons
-                    style={{ 
-                      layout: 'vertical',
-                      color: 'blue',
-                      shape: 'rect',
-                      label: 'pay',
-                      height: 50,
-                      tagline: false
-                    }}
-                    forceReRender={[selectedTier.id, selectedTier.price]}
-                    createOrder={async () => {
-                      try {
-                        setPaypalLoaded(true);
-                        console.log('Creating PayPal order for plan:', selectedTier.id);
-                        const res = await fetch('/api/paypal/create-order', {
-                          method: 'POST',
-                          headers: { 
-                            'Content-Type': 'application/json',
-                            'Accept-Language': 'en-US,en;q=0.9'
-                          },
-                          body: JSON.stringify({
-                            planId: selectedTier.id,
-                            amount: parseFloat(selectedTier.price.replace('$', '')),
-                            currency: 'USD'
-                          }),
-                        });
-                        
-                        if (!res.ok) {
-                          const errorData = await res.json();
-                          console.error('API Error:', errorData);
-                          alert(`Payment setup failed: ${errorData.error}. Please check your internet connection and try again.`);
-                          throw new Error(`API Error: ${errorData.error || 'Unknown error'}`);
-                        }
-                        
-                        const data = await res.json();
-                        console.log('Order created successfully:', data.id);
-                        return data.id;
-                      } catch (error) {
-                        console.error('Error creating order:', error);
-                        setPaypalError(true);
-                        throw error;
-                      }
-                    }}
-                    onApprove={async (data: any) => {
-                      try {
-                        console.log('Capturing PayPal order:', data.orderID);
-                        const res = await fetch('/api/paypal/capture-order', {
-                          method: 'POST',
-                          headers: { 
-                            'Content-Type': 'application/json',
-                            'Accept-Language': 'en-US,en;q=0.9'
-                          },
-                          body: JSON.stringify({ orderID: data.orderID }),
-                        });
-                        
-                        if (!res.ok) {
-                          const errorData = await res.json();
-                          console.error('Capture Error:', errorData);
-                          alert(`Payment processing failed: ${errorData.error}. Please contact support if this continues.`);
-                          throw new Error(`Capture Error: ${errorData.error || 'Unknown error'}`);
-                        }
-                        
-                        const result = await res.json();
-                        console.log('Payment captured successfully:', result);
-                        
-                        if (result.success) {
-                          // Show success message before redirect
-                          alert('Payment successful! Redirecting to confirmation page...');
-                          window.location.href = '/subscription/success?plan=' + selectedTier.id;
-                        } else {
-                          alert('Payment processing failed. Please try again or contact support.');
-                        }
-                      } catch (error) {
-                        console.error('Error capturing order:', error);
-                        alert('Payment failed. Please try again or contact support.');
-                      }
-                    }}
-                    onError={(err: any) => {
-                      console.error('PayPal error:', err);
-                      setPaypalError(true);
-                      alert('PayPal payment encountered an error. Please use the alternative payment method below.');
-                    }}
-                    onCancel={(data: any) => {
-                      console.log('PayPal payment cancelled:', data);
-                      // Don't show alert for cancellation, just close modal
-                    }}
-                  />
-                </PayPalScriptProvider>
-                
-                {/* Loading indicator */}
-                {!paypalLoaded && !paypalError && (
-                  <div className="flex items-center justify-center py-4">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                    <span className="ml-2 text-gray-600">Loading PayPal...</span>
-                  </div>
-                )}
-                
-                {/* Error fallback */}
-                {paypalError && (
-                  <div className="text-center py-4">
-                    <p className="text-red-600 text-sm mb-3">PayPal failed to load. Please use the alternative payment method below.</p>
-                  </div>
-                )}
-              </div>
-
-              {/* Fallback payment button if PayPal doesn't load */}
-              <div className="mt-4">
+              {/* Instant PayPal Payment Options */}
+              <div className="space-y-3">
+                {/* PayPal.me Link - Most Reliable */}
                 <button
                   onClick={() => {
-                    // Direct PayPal checkout URL
-                    const amount = parseFloat(selectedTier.price.replace('$', ''));
-                    const paypalUrl = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclick&business=your-paypal-email@example.com&item_name=${encodeURIComponent(selectedTier.name + ' Monthly Subscription')}&amount=${amount}&currency_code=USD&return=${encodeURIComponent(window.location.origin + '/subscription/success?plan=' + selectedTier.id)}&cancel_return=${encodeURIComponent(window.location.origin + '/subscription')}`;
+                    const amount = selectedTier.price.replace('$', '');
+                    const paypalMeUrl = `https://www.paypal.com/paypalme/crystalmatch/${amount}USD`;
+                    window.open(paypalMeUrl, '_blank');
+                  }}
+                  className="w-full py-4 px-6 bg-blue-600 text-white rounded-lg font-bold text-lg hover:bg-blue-700 transition-colors flex items-center justify-center shadow-lg"
+                >
+                  <svg className="w-6 h-6 mr-3" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944.901C5.026.382 5.474 0 5.998 0h7.46c2.57 0 4.578.543 5.69 1.81 1.01 1.15 1.304 2.42 1.012 4.287-.023.143-.047.288-.077.437-.983 5.05-4.349 6.797-8.647 6.797h-2.19c-.524 0-.968.382-1.05.9l-1.12 7.106zm14.146-14.42a3.35 3.35 0 0 0-.607-.541c-.013.076-.026.175-.041.254-.93 4.778-4.005 6.430-7.958 6.430H10.15c-.524 0-.968.382-1.05.9L7.858 19.96c-.073.462.263.877.736.877h4.78c.524 0 .968-.382 1.05-.9l.429-2.72c.073-.462-.263-.877-.736-.877h-1.52l.429-2.72c.073-.462.526-.9 1.05-.9h2.19c3.578 0 6.396-1.456 7.205-5.66.202-1.05.078-1.94-.429-2.603z"/>
+                  </svg>
+                  Pay ${selectedTier.price} with PayPal
+                </button>
+                
+                {/* Credit Card via PayPal */}
+                <button
+                  onClick={() => {
+                    const amount = selectedTier.price.replace('$', '');
+                    // Direct PayPal checkout URL that accepts credit cards
+                    const paypalUrl = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclick&business=crystalmatch.app@gmail.com&item_name=${encodeURIComponent(selectedTier.name + ' Monthly Subscription - Crystal Match')}&amount=${amount}&currency_code=USD&return=${encodeURIComponent(window.location.origin + '/subscription/success?plan=' + selectedTier.id)}&cancel_return=${encodeURIComponent(window.location.origin + '/subscription')}&no_shipping=1`;
                     window.open(paypalUrl, '_blank');
                   }}
-                  className="w-full py-3 px-6 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                  className="w-full py-3 px-6 border-2 border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors flex items-center justify-center"
                 >
-                  Pay with PayPal (Alternative)
+                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                  </svg>
+                  Pay with Credit Card
                 </button>
+                
+                {/* Venmo Alternative for US Users */}
+                <button
+                  onClick={() => {
+                    const amount = selectedTier.price.replace('$', '');
+                    const venmoUrl = `https://venmo.com/u/crystalmatch?txn=pay&amount=${amount}&note=${encodeURIComponent(selectedTier.name + ' Monthly Subscription')}`;
+                    window.open(venmoUrl, '_blank');
+                  }}
+                  className="w-full py-3 px-6 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 transition-colors flex items-center justify-center"
+                >
+                  <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M19.83 4.17c1.58 1.58 1.58 4.14 0 5.72L12 18.72 4.17 9.89c-1.58-1.58-1.58-4.14 0-5.72 1.58-1.58 4.14-1.58 5.72 0L12 6.28l2.11-2.11c1.58-1.58 4.14-1.58 5.72 0z"/>
+                  </svg>
+                  Pay with Venmo
+                </button>
+              </div>
+              
+              <div className="mt-4 text-center">
+                <p className="text-xs text-gray-500">
+                  🔒 Choose your preferred payment method - all options are secure and instant<br/>
+                  No waiting, no loading - click and pay immediately!
+                </p>
               </div>
             </div>
 
