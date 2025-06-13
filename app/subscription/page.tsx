@@ -265,7 +265,10 @@ export default function SubscriptionPage() {
                 options={{
                   clientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || 'test',
                   currency: 'USD',
-                  intent: 'capture'
+                  intent: 'capture',
+                  locale: 'en_US',
+                  components: 'buttons,funding-eligibility',
+                  'disable-funding': 'credit,card'
                 }}
               >
                 <PayPalButtons
@@ -274,13 +277,18 @@ export default function SubscriptionPage() {
                     color: 'blue',
                     shape: 'rect',
                     label: 'pay',
-                    height: 50
+                    height: 50,
+                    tagline: false
                   }}
+                  fundingSource={undefined}
                   createOrder={async () => {
                     try {
                       const res = await fetch('/api/paypal/create-order', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 
+                          'Content-Type': 'application/json',
+                          'Accept-Language': 'en-US,en;q=0.9'
+                        },
                         body: JSON.stringify({
                           planId: selectedTier.id,
                           amount: parseFloat(selectedTier.price.replace('$', '')),
@@ -298,7 +306,10 @@ export default function SubscriptionPage() {
                     try {
                       const res = await fetch('/api/paypal/capture-order', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 
+                          'Content-Type': 'application/json',
+                          'Accept-Language': 'en-US,en;q=0.9'
+                        },
                         body: JSON.stringify({ orderID: data.orderID }),
                       });
                       const result = await res.json();
