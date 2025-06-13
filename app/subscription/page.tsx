@@ -259,48 +259,84 @@ export default function SubscriptionPage() {
               </div>
             </div>
 
-            <PayPalScriptProvider
-              options={{
-                clientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || '',
-                currency: 'USD',
-                intent: 'subscription'
-              }}
-            >
-              <PayPalButtons
-                style={{ 
-                  layout: 'vertical',
-                  color: 'blue',
-                  shape: 'rect',
-                  label: 'subscribe'
+            {/* PayPal Payment Section */}
+            <div className="mb-6">
+              <PayPalScriptProvider
+                options={{
+                  clientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || 'test',
+                  currency: 'USD',
+                  intent: 'capture'
                 }}
-                createSubscription={async () => {
-                  const res = await fetch('/api/paypal/create-subscription', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      planId: selectedTier.id,
-                      amount: parseFloat(selectedTier.price.replace('$', '')),
-                    }),
-                  });
-                  const data = await res.json();
-                  return data.id;
-                }}
-                onApprove={async (data: any) => {
-                  await fetch('/api/paypal/activate-subscription', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ subscriptionID: data.subscriptionID }),
-                  });
-                  window.location.href = '/subscription/success?plan=' + selectedTier.id;
-                }}
-                onError={(err: any) => {
-                  console.error('PayPal error:', err);
-                  alert('Payment failed. Please try again.');
-                }}
-              />
-            </PayPalScriptProvider>
+              >
+                <PayPalButtons
+                  style={{ 
+                    layout: 'vertical',
+                    color: 'blue',
+                    shape: 'rect',
+                    label: 'pay',
+                    height: 50
+                  }}
+                  createOrder={async () => {
+                    try {
+                      const res = await fetch('/api/paypal/create-order', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          planId: selectedTier.id,
+                          amount: parseFloat(selectedTier.price.replace('$', '')),
+                          currency: 'USD'
+                        }),
+                      });
+                      const data = await res.json();
+                      return data.id;
+                    } catch (error) {
+                      console.error('Error creating order:', error);
+                      throw error;
+                    }
+                  }}
+                  onApprove={async (data: any) => {
+                    try {
+                      const res = await fetch('/api/paypal/capture-order', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ orderID: data.orderID }),
+                      });
+                      const result = await res.json();
+                      if (result.success) {
+                        window.location.href = '/subscription/success?plan=' + selectedTier.id;
+                      } else {
+                        alert('Payment processing failed. Please try again.');
+                      }
+                    } catch (error) {
+                      console.error('Error capturing order:', error);
+                      alert('Payment failed. Please try again.');
+                    }
+                  }}
+                  onError={(err: any) => {
+                    console.error('PayPal error:', err);
+                    alert('Payment failed. Please try again or contact support.');
+                  }}
+                />
+              </PayPalScriptProvider>
+            </div>
 
-            <div className="flex gap-4 mt-6">
+            {/* Alternative Payment Button */}
+            <div className="mb-6">
+              <div className="text-center text-sm text-gray-500 mb-4">
+                Or pay with alternative method
+              </div>
+              <button
+                onClick={() => {
+                  // Redirect to payment page with plan info
+                  window.location.href = `/payment?plan=${selectedTier.id}&amount=${selectedTier.price.replace('$', '')}`;
+                }}
+                className="w-full py-4 px-6 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-2xl font-bold text-lg hover:from-purple-700 hover:to-indigo-700 transition-all duration-300 shadow-lg hover:shadow-xl"
+              >
+                Continue to Payment
+              </button>
+            </div>
+
+            <div className="flex gap-4">
               <button
                 onClick={() => setShowPayment(false)}
                 className="flex-1 py-3 px-6 border border-gray-300 rounded-2xl text-gray-700 font-medium hover:bg-gray-50 transition-colors"
