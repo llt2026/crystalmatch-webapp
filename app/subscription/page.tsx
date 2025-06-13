@@ -263,7 +263,7 @@ export default function SubscriptionPage() {
             <div className="mb-6">
               <PayPalScriptProvider
                 options={{
-                  clientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || 'test',
+                  clientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || 'AYiPC9BjuuLNzjHHACtpRF6OqtnWdkzREDhHEGGN6zzDd4BG4biAqmbXVELegUP5DO27HAkS5cnP5nKz',
                   currency: 'USD',
                   intent: 'capture',
                   locale: 'en_US',
@@ -283,6 +283,7 @@ export default function SubscriptionPage() {
                   fundingSource={undefined}
                   createOrder={async () => {
                     try {
+                      console.log('Creating PayPal order for plan:', selectedTier.id);
                       const res = await fetch('/api/paypal/create-order', {
                         method: 'POST',
                         headers: { 
@@ -295,15 +296,25 @@ export default function SubscriptionPage() {
                           currency: 'USD'
                         }),
                       });
+                      
+                      if (!res.ok) {
+                        const errorData = await res.json();
+                        console.error('API Error:', errorData);
+                        throw new Error(`API Error: ${errorData.error || 'Unknown error'}`);
+                      }
+                      
                       const data = await res.json();
+                      console.log('Order created successfully:', data.id);
                       return data.id;
                     } catch (error) {
                       console.error('Error creating order:', error);
+                      alert('Failed to create payment order. Please try the alternative payment method below.');
                       throw error;
                     }
                   }}
                   onApprove={async (data: any) => {
                     try {
+                      console.log('Capturing PayPal order:', data.orderID);
                       const res = await fetch('/api/paypal/capture-order', {
                         method: 'POST',
                         headers: { 
@@ -312,7 +323,16 @@ export default function SubscriptionPage() {
                         },
                         body: JSON.stringify({ orderID: data.orderID }),
                       });
+                      
+                      if (!res.ok) {
+                        const errorData = await res.json();
+                        console.error('Capture Error:', errorData);
+                        throw new Error(`Capture Error: ${errorData.error || 'Unknown error'}`);
+                      }
+                      
                       const result = await res.json();
+                      console.log('Payment captured successfully:', result);
+                      
                       if (result.success) {
                         window.location.href = '/subscription/success?plan=' + selectedTier.id;
                       } else {
@@ -325,7 +345,7 @@ export default function SubscriptionPage() {
                   }}
                   onError={(err: any) => {
                     console.error('PayPal error:', err);
-                    alert('Payment failed. Please try again or contact support.');
+                    alert('PayPal payment failed. Please try the alternative payment method below.');
                   }}
                 />
               </PayPalScriptProvider>
