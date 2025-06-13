@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { PayPalScriptProvider, PayPalButtons } from '@paypal/react-paypal-js';
 import './styles.css';
@@ -9,6 +9,8 @@ import { SUBSCRIPTION_FEATURES, SUBSCRIPTION_TIERS } from '@/app/lib/subscriptio
 export default function SubscriptionPage() {
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [showPayment, setShowPayment] = useState(false);
+  const [paypalLoaded, setPaypalLoaded] = useState(false);
+  const [paypalError, setPaypalError] = useState(false);
 
   const handlePlanSelect = (planId: string) => {
     if (planId === 'free') {
@@ -18,9 +20,19 @@ export default function SubscriptionPage() {
     }
     setSelectedPlan(planId);
     setShowPayment(true);
+    setPaypalLoaded(false);
+    setPaypalError(false);
   };
 
   const selectedTier = SUBSCRIPTION_TIERS.find(tier => tier.id === selectedPlan);
+
+  useEffect(() => {
+    // This effect will run when selectedPlan changes
+    if (selectedPlan) {
+      setPaypalLoaded(false);
+      setPaypalError(false);
+    }
+  }, [selectedPlan]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
@@ -264,99 +276,138 @@ export default function SubscriptionPage() {
               <div className="text-center text-sm text-gray-600 mb-4">
                 Secure payment with PayPal
               </div>
-              <PayPalScriptProvider
-                options={{
-                  clientId: 'AYiPC9BjuuLNzjHHACtpRF6OqtnWdkzREDhHEGGN6zzDd4BG4biAqmbXVELegUP5DO27HAkS5cnP5nKz',
-                  currency: 'USD',
-                  intent: 'capture',
-                  locale: 'en_US',
-                  components: 'buttons'
-                }}
-              >
-                <PayPalButtons
-                  style={{ 
-                    layout: 'vertical',
-                    color: 'blue',
-                    shape: 'rect',
-                    label: 'pay',
-                    height: 50,
-                    tagline: false
+              
+              <div className="min-h-[60px]">
+                <PayPalScriptProvider
+                  options={{
+                    clientId: 'AYiPC9BjuuLNzjHHACtpRF6OqtnWdkzREDhHEGGN6zzDd4BG4biAqmbXVELegUP5DO27HAkS5cnP5nKz',
+                    currency: 'USD',
+                    intent: 'capture',
+                    locale: 'en_US',
+                    components: 'buttons',
+                    'enable-funding': 'venmo,paylater',
+                    'disable-funding': 'credit,card'
                   }}
-                  createOrder={async () => {
-                    try {
-                      console.log('Creating PayPal order for plan:', selectedTier.id);
-                      const res = await fetch('/api/paypal/create-order', {
-                        method: 'POST',
-                        headers: { 
-                          'Content-Type': 'application/json',
-                          'Accept-Language': 'en-US,en;q=0.9'
-                        },
-                        body: JSON.stringify({
-                          planId: selectedTier.id,
-                          amount: parseFloat(selectedTier.price.replace('$', '')),
-                          currency: 'USD'
-                        }),
-                      });
-                      
-                      if (!res.ok) {
-                        const errorData = await res.json();
-                        console.error('API Error:', errorData);
-                        alert(`Payment setup failed: ${errorData.error}. Please check your internet connection and try again.`);
-                        throw new Error(`API Error: ${errorData.error || 'Unknown error'}`);
+                >
+                  <PayPalButtons
+                    style={{ 
+                      layout: 'vertical',
+                      color: 'blue',
+                      shape: 'rect',
+                      label: 'pay',
+                      height: 50,
+                      tagline: false
+                    }}
+                    forceReRender={[selectedTier.id, selectedTier.price]}
+                    createOrder={async () => {
+                      try {
+                        setPaypalLoaded(true);
+                        console.log('Creating PayPal order for plan:', selectedTier.id);
+                        const res = await fetch('/api/paypal/create-order', {
+                          method: 'POST',
+                          headers: { 
+                            'Content-Type': 'application/json',
+                            'Accept-Language': 'en-US,en;q=0.9'
+                          },
+                          body: JSON.stringify({
+                            planId: selectedTier.id,
+                            amount: parseFloat(selectedTier.price.replace('$', '')),
+                            currency: 'USD'
+                          }),
+                        });
+                        
+                        if (!res.ok) {
+                          const errorData = await res.json();
+                          console.error('API Error:', errorData);
+                          alert(`Payment setup failed: ${errorData.error}. Please check your internet connection and try again.`);
+                          throw new Error(`API Error: ${errorData.error || 'Unknown error'}`);
+                        }
+                        
+                        const data = await res.json();
+                        console.log('Order created successfully:', data.id);
+                        return data.id;
+                      } catch (error) {
+                        console.error('Error creating order:', error);
+                        setPaypalError(true);
+                        throw error;
                       }
-                      
-                      const data = await res.json();
-                      console.log('Order created successfully:', data.id);
-                      return data.id;
-                    } catch (error) {
-                      console.error('Error creating order:', error);
-                      throw error;
-                    }
-                  }}
-                  onApprove={async (data: any) => {
-                    try {
-                      console.log('Capturing PayPal order:', data.orderID);
-                      const res = await fetch('/api/paypal/capture-order', {
-                        method: 'POST',
-                        headers: { 
-                          'Content-Type': 'application/json',
-                          'Accept-Language': 'en-US,en;q=0.9'
-                        },
-                        body: JSON.stringify({ orderID: data.orderID }),
-                      });
-                      
-                      if (!res.ok) {
-                        const errorData = await res.json();
-                        console.error('Capture Error:', errorData);
-                        alert(`Payment processing failed: ${errorData.error}. Please contact support if this continues.`);
-                        throw new Error(`Capture Error: ${errorData.error || 'Unknown error'}`);
+                    }}
+                    onApprove={async (data: any) => {
+                      try {
+                        console.log('Capturing PayPal order:', data.orderID);
+                        const res = await fetch('/api/paypal/capture-order', {
+                          method: 'POST',
+                          headers: { 
+                            'Content-Type': 'application/json',
+                            'Accept-Language': 'en-US,en;q=0.9'
+                          },
+                          body: JSON.stringify({ orderID: data.orderID }),
+                        });
+                        
+                        if (!res.ok) {
+                          const errorData = await res.json();
+                          console.error('Capture Error:', errorData);
+                          alert(`Payment processing failed: ${errorData.error}. Please contact support if this continues.`);
+                          throw new Error(`Capture Error: ${errorData.error || 'Unknown error'}`);
+                        }
+                        
+                        const result = await res.json();
+                        console.log('Payment captured successfully:', result);
+                        
+                        if (result.success) {
+                          // Show success message before redirect
+                          alert('Payment successful! Redirecting to confirmation page...');
+                          window.location.href = '/subscription/success?plan=' + selectedTier.id;
+                        } else {
+                          alert('Payment processing failed. Please try again or contact support.');
+                        }
+                      } catch (error) {
+                        console.error('Error capturing order:', error);
+                        alert('Payment failed. Please try again or contact support.');
                       }
-                      
-                      const result = await res.json();
-                      console.log('Payment captured successfully:', result);
-                      
-                      if (result.success) {
-                        // Show success message before redirect
-                        alert('Payment successful! Redirecting to confirmation page...');
-                        window.location.href = '/subscription/success?plan=' + selectedTier.id;
-                      } else {
-                        alert('Payment processing failed. Please try again or contact support.');
-                      }
-                    } catch (error) {
-                      console.error('Error capturing order:', error);
-                      alert('Payment failed. Please try again or contact support.');
-                    }
+                    }}
+                    onError={(err: any) => {
+                      console.error('PayPal error:', err);
+                      setPaypalError(true);
+                      alert('PayPal payment encountered an error. Please use the alternative payment method below.');
+                    }}
+                    onCancel={(data: any) => {
+                      console.log('PayPal payment cancelled:', data);
+                      // Don't show alert for cancellation, just close modal
+                    }}
+                  />
+                </PayPalScriptProvider>
+                
+                {/* Loading indicator */}
+                {!paypalLoaded && !paypalError && (
+                  <div className="flex items-center justify-center py-4">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    <span className="ml-2 text-gray-600">Loading PayPal...</span>
+                  </div>
+                )}
+                
+                {/* Error fallback */}
+                {paypalError && (
+                  <div className="text-center py-4">
+                    <p className="text-red-600 text-sm mb-3">PayPal failed to load. Please use the alternative payment method below.</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Fallback payment button if PayPal doesn't load */}
+              <div className="mt-4">
+                <button
+                  onClick={() => {
+                    // Direct PayPal checkout URL
+                    const amount = parseFloat(selectedTier.price.replace('$', ''));
+                    const paypalUrl = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclick&business=your-paypal-email@example.com&item_name=${encodeURIComponent(selectedTier.name + ' Monthly Subscription')}&amount=${amount}&currency_code=USD&return=${encodeURIComponent(window.location.origin + '/subscription/success?plan=' + selectedTier.id)}&cancel_return=${encodeURIComponent(window.location.origin + '/subscription')}`;
+                    window.open(paypalUrl, '_blank');
                   }}
-                  onError={(err: any) => {
-                    console.error('PayPal error:', err);
-                    alert('PayPal payment encountered an error. Please refresh the page and try again.');
-                  }}
-                  onCancel={(data: any) => {
-                    console.log('PayPal payment cancelled:', data);
-                    // Don't show alert for cancellation, just close modal
-                  }}
-                />
-              </PayPalScriptProvider>
+                  className="w-full py-3 px-6 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                >
+                  Pay with PayPal (Alternative)
+                </button>
+              </div>
             </div>
 
             <div className="flex gap-4">
