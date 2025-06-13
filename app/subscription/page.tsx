@@ -261,14 +261,16 @@ export default function SubscriptionPage() {
 
             {/* PayPal Payment Section */}
             <div className="mb-6">
+              <div className="text-center text-sm text-gray-600 mb-4">
+                Secure payment with PayPal
+              </div>
               <PayPalScriptProvider
                 options={{
-                  clientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || 'AYiPC9BjuuLNzjHHACtpRF6OqtnWdkzREDhHEGGN6zzDd4BG4biAqmbXVELegUP5DO27HAkS5cnP5nKz',
+                  clientId: 'AYiPC9BjuuLNzjHHACtpRF6OqtnWdkzREDhHEGGN6zzDd4BG4biAqmbXVELegUP5DO27HAkS5cnP5nKz',
                   currency: 'USD',
                   intent: 'capture',
                   locale: 'en_US',
-                  components: 'buttons,funding-eligibility',
-                  'disable-funding': 'credit,card'
+                  components: 'buttons'
                 }}
               >
                 <PayPalButtons
@@ -280,7 +282,6 @@ export default function SubscriptionPage() {
                     height: 50,
                     tagline: false
                   }}
-                  fundingSource={undefined}
                   createOrder={async () => {
                     try {
                       console.log('Creating PayPal order for plan:', selectedTier.id);
@@ -300,6 +301,7 @@ export default function SubscriptionPage() {
                       if (!res.ok) {
                         const errorData = await res.json();
                         console.error('API Error:', errorData);
+                        alert(`Payment setup failed: ${errorData.error}. Please check your internet connection and try again.`);
                         throw new Error(`API Error: ${errorData.error || 'Unknown error'}`);
                       }
                       
@@ -308,7 +310,6 @@ export default function SubscriptionPage() {
                       return data.id;
                     } catch (error) {
                       console.error('Error creating order:', error);
-                      alert('Failed to create payment order. Please try the alternative payment method below.');
                       throw error;
                     }
                   }}
@@ -327,6 +328,7 @@ export default function SubscriptionPage() {
                       if (!res.ok) {
                         const errorData = await res.json();
                         console.error('Capture Error:', errorData);
+                        alert(`Payment processing failed: ${errorData.error}. Please contact support if this continues.`);
                         throw new Error(`Capture Error: ${errorData.error || 'Unknown error'}`);
                       }
                       
@@ -334,37 +336,27 @@ export default function SubscriptionPage() {
                       console.log('Payment captured successfully:', result);
                       
                       if (result.success) {
+                        // Show success message before redirect
+                        alert('Payment successful! Redirecting to confirmation page...');
                         window.location.href = '/subscription/success?plan=' + selectedTier.id;
                       } else {
-                        alert('Payment processing failed. Please try again.');
+                        alert('Payment processing failed. Please try again or contact support.');
                       }
                     } catch (error) {
                       console.error('Error capturing order:', error);
-                      alert('Payment failed. Please try again.');
+                      alert('Payment failed. Please try again or contact support.');
                     }
                   }}
                   onError={(err: any) => {
                     console.error('PayPal error:', err);
-                    alert('PayPal payment failed. Please try the alternative payment method below.');
+                    alert('PayPal payment encountered an error. Please refresh the page and try again.');
+                  }}
+                  onCancel={(data: any) => {
+                    console.log('PayPal payment cancelled:', data);
+                    // Don't show alert for cancellation, just close modal
                   }}
                 />
               </PayPalScriptProvider>
-            </div>
-
-            {/* Alternative Payment Button */}
-            <div className="mb-6">
-              <div className="text-center text-sm text-gray-500 mb-4">
-                Or pay with alternative method
-              </div>
-              <button
-                onClick={() => {
-                  // Redirect to payment page with plan info
-                  window.location.href = `/payment?plan=${selectedTier.id}&amount=${selectedTier.price.replace('$', '')}`;
-                }}
-                className="w-full py-4 px-6 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-2xl font-bold text-lg hover:from-purple-700 hover:to-indigo-700 transition-all duration-300 shadow-lg hover:shadow-xl"
-              >
-                Continue to Payment
-              </button>
             </div>
 
             <div className="flex gap-4">
@@ -377,7 +369,7 @@ export default function SubscriptionPage() {
             </div>
 
             <p className="text-xs text-gray-500 text-center mt-4">
-              Secure payment powered by PayPal. Cancel anytime.
+              Secure payment powered by PayPal. Cancel anytime from your account settings.
             </p>
           </div>
         </div>

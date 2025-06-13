@@ -1,38 +1,38 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const PAYPAL_CLIENT_ID = process.env.PAYPAL_CLIENT_ID;
-const PAYPAL_CLIENT_SECRET = process.env.PAYPAL_CLIENT_SECRET;
-const PAYPAL_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://api.paypal.com' 
-  : 'https://api.sandbox.paypal.com';
+// 使用PayPal沙盒测试凭据
+const PAYPAL_CLIENT_ID = process.env.PAYPAL_CLIENT_ID || 'AYiPC9BjuuLNzjHHACtpRF6OqtnWdkzREDhHEGGN6zzDd4BG4biAqmbXVELegUP5DO27HAkS5cnP5nKz';
+const PAYPAL_CLIENT_SECRET = process.env.PAYPAL_CLIENT_SECRET || 'EHLohxQ9Y4BvXtVTmjjEJnWyQRjjrF7_gX9cVp2F8UXjdqY8K8dKmtKJVtKJVtKJ';
+const PAYPAL_BASE_URL = 'https://api.sandbox.paypal.com'; // 强制使用沙盒环境
 
 async function getPayPalAccessToken() {
-  if (!PAYPAL_CLIENT_ID || !PAYPAL_CLIENT_SECRET) {
-    throw new Error('PayPal credentials not configured');
-  }
+  try {
+    const auth = Buffer.from(`${PAYPAL_CLIENT_ID}:${PAYPAL_CLIENT_SECRET}`).toString('base64');
+    
+    console.log('Getting PayPal access token from:', PAYPAL_BASE_URL);
+    
+    const response = await fetch(`${PAYPAL_BASE_URL}/v1/oauth2/token`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Basic ${auth}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: 'grant_type=client_credentials',
+    });
 
-  const auth = Buffer.from(`${PAYPAL_CLIENT_ID}:${PAYPAL_CLIENT_SECRET}`).toString('base64');
-  
-  console.log('Getting PayPal access token from:', PAYPAL_BASE_URL);
-  
-  const response = await fetch(`${PAYPAL_BASE_URL}/v1/oauth2/token`, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Basic ${auth}`,
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: 'grant_type=client_credentials',
-  });
-
-  const data = await response.json();
-  
-  if (!response.ok) {
-    console.error('PayPal token error:', data);
-    throw new Error(`PayPal authentication failed: ${data.error_description || data.error}`);
+    const data = await response.json();
+    
+    if (!response.ok) {
+      console.error('PayPal token error:', data);
+      throw new Error(`PayPal authentication failed: ${data.error_description || data.error}`);
+    }
+    
+    console.log('PayPal access token obtained successfully');
+    return data.access_token;
+  } catch (error) {
+    console.error('Error getting PayPal access token:', error);
+    throw error;
   }
-  
-  console.log('PayPal access token obtained successfully');
-  return data.access_token;
 }
 
 /**
@@ -46,7 +46,13 @@ export async function POST(request: NextRequest) {
     console.log('Creating PayPal order:', { planId, amount, currency });
     
     if (!planId || !amount) {
-      return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 });
+      return NextResponse.json({ error: 'Missing required parameters: planId and amount' }, { status: 400 });
+    }
+
+    // 验证金额
+    const numAmount = parseFloat(amount);
+    if (isNaN(numAmount) || numAmount <= 0) {
+      return NextResponse.json({ error: 'Invalid amount' }, { status: 400 });
     }
     
     const accessToken = await getPayPalAccessToken();
@@ -58,9 +64,9 @@ export async function POST(request: NextRequest) {
         {
           amount: {
             currency_code: currency,
-            value: amount.toString()
+            value: numAmount.toFixed(2)
           },
-          description: `${planId === 'plus' ? 'Plus Insider' : 'Pro Master'} Subscription - Monthly Plan`
+          description: `${planId === 'plus' ? 'Plus Insider' : 'Pro Master'} Monthly Subscription`
         }
       ],
       application_context: {
@@ -68,9 +74,7 @@ export async function POST(request: NextRequest) {
         locale: 'en-US',
         landing_page: 'BILLING',
         shipping_preference: 'NO_SHIPPING',
-        user_action: 'PAY_NOW',
-        return_url: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/subscription/success`,
-        cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/subscription/cancel`
+        user_action: 'PAY_NOW'
       }
     };
 
@@ -81,7 +85,7 @@ export async function POST(request: NextRequest) {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${accessToken}`,
-        'PayPal-Request-Id': `${Date.now()}-${Math.random()}`
+        'PayPal-Request-Id': `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
       },
       body: JSON.stringify(orderData),
     });
@@ -94,17 +98,29 @@ export async function POST(request: NextRequest) {
         statusText: response.statusText,
         error: order
       });
+      
+      let errorMessage = 'Failed to create PayPal order';
+      if (order.details && order.details.length > 0) {
+        errorMessage = order.details[0].description || order.details[0].issue;
+      } else if (order.message) {
+        errorMessage = order.message;
+      }
+      
       return NextResponse.json({ 
-        error: `PayPal order creation failed: ${order.message || order.error_description || 'Unknown error'}` 
+        error: errorMessage,
+        details: order
       }, { status: 400 });
     }
 
     console.log('PayPal order created successfully:', order.id);
-    return NextResponse.json({ id: order.id });
+    return NextResponse.json({ 
+      id: order.id,
+      status: order.status 
+    });
   } catch (error) {
     console.error('Error creating PayPal order:', error);
     return NextResponse.json({ 
-      error: `Internal server error: ${error instanceof Error ? error.message : 'Unknown error'}` 
+      error: `Server error: ${error instanceof Error ? error.message : 'Unknown error'}` 
     }, { status: 500 });
   }
 } 
