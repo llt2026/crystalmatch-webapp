@@ -465,7 +465,7 @@ export default function AnnualPremiumReport() {
       </div>
       
       {/* Pro member benefits with integrated Back button */}
-      <div className="rounded-lg bg-black/40 p-6 mb-8 backdrop-blur-sm border border-purple-500/30">
+      <div className="rounded-lg bg-purple-900/40 p-6 mb-8 backdrop-blur-sm border border-purple-400/40">
         <div className="text-center">
           <h2 className="text-xl font-bold mb-3 bg-gradient-to-r from-yellow-300 to-orange-300 bg-clip-text text-transparent">
             ✨ Unlock Premium Features ✨

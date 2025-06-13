@@ -19,11 +19,11 @@ const ElementTraits: React.FC<ElementTraitsProps> = ({ strength, weakness }) => 
         <p className="text-lg md:text-xl mb-3 text-white">
           <span className="font-bold text-green-400">{strength.element}</span> Energy
         </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-2">
           {strength.traits.map((trait, index) => (
             <div 
               key={index} 
-              className="bg-purple-800/80 rounded-full px-3 py-1 mb-2 flex items-center justify-center text-white text-sm md:text-base"
+              className="bg-purple-800/80 rounded-full px-2 py-2 flex items-center justify-center text-white text-xs sm:text-sm text-center leading-tight"
             >
               {trait}
             </div>
@@ -37,11 +37,11 @@ const ElementTraits: React.FC<ElementTraitsProps> = ({ strength, weakness }) => 
         <p className="text-lg md:text-xl mb-3 text-white">
           <span className="font-bold text-red-400">{weakness.element}</span> Energy
         </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-2">
           {weakness.traits.map((trait, index) => (
             <div 
               key={index} 
-              className="bg-purple-800/80 rounded-full px-3 py-1 mb-2 flex items-center justify-center text-white text-sm md:text-base"
+              className="bg-purple-800/80 rounded-full px-2 py-2 flex items-center justify-center text-white text-xs sm:text-sm text-center leading-tight"
             >
               {trait}
             </div>

@@ -283,7 +283,7 @@ export default function SubscriptionPage() {
                   Pay ${selectedTier.price} with PayPal
                 </button>
                 
-                {/* Credit Card via PayPal */}
+                                 {/* Credit Card via PayPal */}
                 <button
                   onClick={() => {
                     const amount = selectedTier.price.replace('$', '');
@@ -297,21 +297,6 @@ export default function SubscriptionPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
                   </svg>
                   Pay with Credit Card
-                </button>
-                
-                {/* Venmo Alternative for US Users */}
-                <button
-                  onClick={() => {
-                    const amount = selectedTier.price.replace('$', '');
-                    const venmoUrl = `https://venmo.com/u/crystalmatch?txn=pay&amount=${amount}&note=${encodeURIComponent(selectedTier.name + ' Monthly Subscription')}`;
-                    window.open(venmoUrl, '_blank');
-                  }}
-                  className="w-full py-3 px-6 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 transition-colors flex items-center justify-center"
-                >
-                  <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M19.83 4.17c1.58 1.58 1.58 4.14 0 5.72L12 18.72 4.17 9.89c-1.58-1.58-1.58-4.14 0-5.72 1.58-1.58 4.14-1.58 5.72 0L12 6.28l2.11-2.11c1.58-1.58 4.14-1.58 5.72 0z"/>
-                  </svg>
-                  Pay with Venmo
                 </button>
               </div>
               

@@ -4,6 +4,17 @@ import React, { useEffect, useState } from 'react';
 import { calculateEnergyCalendar, EnergyCalendarItem, Elem } from '../lib/energyCalculation2025';
 import LoadingSpinner from './LoadingSpinner';
 
+// Add custom CSS for hiding scrollbar
+const scrollbarHideStyle = `
+  .scrollbar-hide {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none; /* Safari and Chrome */
+  }
+`;
+
 interface EnergyCalendarProps {
   birthDate: string;
   subscriptionTier?: 'free' | 'plus' | 'pro';
@@ -210,52 +221,59 @@ const EnergyCalendar: React.FC<EnergyCalendarProps> = ({ birthDate, subscription
   }
 
   return (
-    <div className="mt-8">
-      <h2 className="text-2xl font-bold mb-4 text-white">Energy Calendar</h2>
-      <div className="overflow-x-auto">
-        <table className="w-full border-collapse">
-          <thead className="bg-purple-800">
-            <tr>
-              <th className="py-3 px-4 text-left text-white font-semibold">Month</th>
-              <th className="py-3 px-4 text-left text-white font-semibold">Energy Change</th>
-              <th className="py-3 px-4 text-left text-white font-semibold">Crystal</th>
-              <th className="py-3 px-4 text-left text-white font-semibold">Lucky Colors</th>
-            </tr>
-          </thead>
+    <>
+      <style dangerouslySetInnerHTML={{ __html: scrollbarHideStyle }} />
+      <div className="mt-8">
+        <h2 className="text-xl sm:text-2xl font-bold mb-4 text-white">Energy Calendar</h2>
+      
+      {/* Mobile horizontal scroll container */}
+      <div className="overflow-x-auto scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+        <div className="min-w-max">
+                  <table className="w-full border-collapse bg-purple-900/60 rounded-lg overflow-hidden">
+            <thead className="bg-purple-800">
+              <tr>
+                <th className="py-2 px-2 sm:py-3 sm:px-4 text-left text-white font-semibold text-xs sm:text-sm">Month</th>
+                <th className="py-2 px-2 sm:py-3 sm:px-4 text-left text-white font-semibold text-xs sm:text-sm">Energy</th>
+                <th className="py-2 px-2 sm:py-3 sm:px-4 text-left text-white font-semibold text-xs sm:text-sm">Crystal</th>
+                <th className="py-2 px-2 sm:py-3 sm:px-4 text-left text-white font-semibold text-xs sm:text-sm">Colors</th>
+              </tr>
+            </thead>
           <tbody>
             {calendarData.map((item, index) => (
               <tr 
                 key={index} 
-                className={index % 2 === 0 ? 'bg-purple-900' : 'bg-purple-800/70'}
+                className={index % 2 === 0 ? 'bg-purple-900/80' : 'bg-purple-800/60'}
               >
-                <td className="py-3 px-4 text-white font-medium">{item.month}</td>
-                <td className="py-3 px-4">
-                  <span className={`font-medium ${getEnergyColor(item.energyChange)}`}>
+                <td className="py-2 px-2 sm:py-3 sm:px-4 text-white font-medium text-xs sm:text-sm min-w-[120px]">
+                  {item.month}
+                </td>
+                <td className="py-2 px-2 sm:py-3 sm:px-4 min-w-[80px]">
+                  <span className={`font-medium text-xs sm:text-sm ${getEnergyColor(item.energyChange)}`}>
                     {item.energyChange > 0 ? `+${item.energyChange}` : item.energyChange === 0 ? '—' : item.energyChange}
                     {' '}{getTrendIcon(item.trend)}
                   </span>
                 </td>
-                <td className="py-3 px-4">
+                <td className="py-2 px-2 sm:py-3 sm:px-4 min-w-[100px]">
                   {canViewCrystal ? (
-                    <span className="text-yellow-300">{item.crystal}</span>
+                    <span className="text-yellow-300 text-xs sm:text-sm">{item.crystal}</span>
                   ) : (
                     <div className="flex items-center">
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1 text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
                         <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
                       </svg>
-                      <span className="text-yellow-500">PLUS</span>
+                      <span className="text-yellow-500 text-xs">PLUS</span>
                     </div>
                   )}
                 </td>
-                <td className="py-3 px-4">
+                <td className="py-2 px-2 sm:py-3 sm:px-4 min-w-[100px]">
                   {canViewLuckyColors ? (
-                    <span className="text-yellow-300">{item.luckyColor}</span>
+                    <span className="text-yellow-300 text-xs sm:text-sm">{item.luckyColor}</span>
                   ) : (
                     <div className="flex items-center">
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1 text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
                         <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
                       </svg>
-                      <span className="text-yellow-500">PRO</span>
+                      <span className="text-yellow-500 text-xs">PRO</span>
                     </div>
                   )}
                 </td>
@@ -263,8 +281,15 @@ const EnergyCalendar: React.FC<EnergyCalendarProps> = ({ birthDate, subscription
             ))}
           </tbody>
         </table>
+        </div>
+      </div>
+      
+      {/* Scroll hint for mobile */}
+      <div className="mt-2 text-center sm:hidden">
+        <span className="text-purple-300 text-xs">← Swipe to see more →</span>
       </div>
     </div>
+    </>
   );
 };
 
