@@ -3,7 +3,7 @@
  * 初始化必要的数据，如订阅计划
  */
 
-import { PrismaClient } from '../generated/prisma';
+import { PrismaClient } from '@prisma/client';
 import { SUBSCRIPTION_PLANS } from '../app/types/subscription';
 
 const prisma = new PrismaClient();
@@ -26,26 +26,28 @@ async function seedSubscriptionPlans() {
     }
   });
   
-  // 月度订阅
+  // Plus计划（月度订阅）
   await prisma.subscriptionPlan.create({
     data: {
-      name: SUBSCRIPTION_PLANS.monthly.name,
-      description: SUBSCRIPTION_PLANS.monthly.description,
-      price: SUBSCRIPTION_PLANS.monthly.price,
-      period: SUBSCRIPTION_PLANS.monthly.interval,
-      features: SUBSCRIPTION_PLANS.monthly.features,
+      name: SUBSCRIPTION_PLANS.plus.name,
+      description: SUBSCRIPTION_PLANS.plus.description,
+      price: SUBSCRIPTION_PLANS.plus.price,
+      period: SUBSCRIPTION_PLANS.plus.interval,
+      features: SUBSCRIPTION_PLANS.plus.features,
+      paypalPlanId: 'P-1234PLUS5678', // PayPal Plus Plan ID
       isActive: true
     }
   });
   
-  // 年度订阅
+  // Pro计划（年度订阅）
   await prisma.subscriptionPlan.create({
     data: {
-      name: SUBSCRIPTION_PLANS.yearly.name,
-      description: SUBSCRIPTION_PLANS.yearly.description,
-      price: SUBSCRIPTION_PLANS.yearly.price,
-      period: SUBSCRIPTION_PLANS.yearly.interval,
-      features: SUBSCRIPTION_PLANS.yearly.features,
+      name: SUBSCRIPTION_PLANS.pro.name,
+      description: SUBSCRIPTION_PLANS.pro.description,
+      price: SUBSCRIPTION_PLANS.pro.price,
+      period: SUBSCRIPTION_PLANS.pro.interval,
+      features: SUBSCRIPTION_PLANS.pro.features,
+      paypalPlanId: 'P-9999PRO8888', // PayPal Pro Plan ID
       isActive: true
     }
   });
