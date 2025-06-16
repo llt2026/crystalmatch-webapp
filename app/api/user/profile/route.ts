@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-export const dynamic = 'force-dynamic'; // 确保 API 路由始终动态执行，避免构建期缓存
+export const dynamic = 'force-dynamic'; // always dynamic execution to avoid build-time cache
 import { jwtVerify } from 'jose';
 import { prisma } from '@/app/lib/prisma';
 
@@ -8,12 +8,12 @@ type JwtPayload = Record<string, any>;
 async function getJwtPayload(request: NextRequest): Promise<JwtPayload | null> {
   try {
     let token = request.cookies.get('token')?.value;
-    console.log('从cookie获取token:', token ? '存在' : '不存在');
+    console.log('Token in cookies:', token ? 'yes' : 'no');
     
     // 允许使用 Authorization: Bearer <token>
     if (!token) {
       const auth = request.headers.get('authorization');
-      console.log('Authorization头:', auth);
+      console.log('Authorization header:', auth);
       if (auth?.startsWith('Bearer ')) {
         token = auth.slice(7);
       }
@@ -34,7 +34,7 @@ async function getJwtPayload(request: NextRequest): Promise<JwtPayload | null> {
   }
 }
 
-// 移除模拟数据 - 应用不应该包含任何模拟数据
+// no mock data allowed
 
 /**
  * Get user profile - mock implementation for build
@@ -43,7 +43,7 @@ async function getJwtPayload(request: NextRequest): Promise<JwtPayload | null> {
 export async function GET(request: NextRequest) {
   try {
     // 记录请求信息
-    console.log('收到profile请求:', {
+    console.log('Profile request:', {
       cookies: request.cookies.getAll().map(c => c.name),
       hasAuthHeader: !!request.headers.get('authorization'),
       url: request.url
@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
     const jwtPayload = await getJwtPayload(request);
 
     if (!jwtPayload) {
-      console.log('未登录或token无效，返回访客用户数据');
+      console.log('Unauthorized or invalid token');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -91,7 +91,7 @@ export async function GET(request: NextRequest) {
       }
 
       // 完整显示birthInfo内容
-      console.log('用户birthInfo原始数据:', JSON.stringify(user.birthInfo));
+      console.log('Raw birthInfo:', JSON.stringify(user.birthInfo));
       let birthInfo;
       try {
         birthInfo = (typeof user.birthInfo === 'string') 

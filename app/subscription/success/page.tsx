@@ -59,7 +59,7 @@ function SuccessContent() {
           {/* Action Buttons */}
           <div className="space-y-3">
             <Link 
-              href="/"
+              href="/profile"
               className="w-full py-3 px-6 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-2xl font-semibold hover:from-purple-700 hover:to-blue-700 transition-all duration-300 inline-block"
             >
               Start Exploring Your Energy

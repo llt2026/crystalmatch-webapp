@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
     const token = jwt.sign(
       { 
         email: normalizedEmail,
-        id: user?.id || 'temp-id', 
+        userId: user?.id || 'temp-id',
         timestamp: Date.now() 
       },
       JWT_SECRET,

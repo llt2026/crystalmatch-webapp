@@ -506,7 +506,7 @@ export default function AnnualPremiumReport() {
             </Link>
             
             <Link 
-              href="/" 
+              href="/profile" 
               className="inline-flex items-center justify-center px-4 py-2 text-sm bg-gradient-to-br from-purple-700 to-indigo-800 hover:from-purple-600 hover:to-indigo-700 text-white font-bold rounded-md shadow transform hover:scale-105 transition-all duration-200 border border-purple-500/30"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">

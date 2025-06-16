@@ -31,10 +31,10 @@ export default function SubscriptionCancel() {
             </Link>
             
             <Link 
-              href="/"
+              href="/profile"
               className="w-full px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-lg inline-block transition-colors"
             >
-              Go to Home
+              Back to Profile
             </Link>
           </div>
         </div>

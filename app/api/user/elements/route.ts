@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-// 确保 API 路由始终动态执行，避免构建期缓存
+// ensure dynamic execution, avoid build-time cache
 export const dynamic = 'force-dynamic';
 import { jwtVerify } from 'jose';
 
@@ -8,7 +8,7 @@ async function validateUserToken(request: NextRequest) {
   try {
     let token = request.cookies.get('token')?.value;
     
-    // 允许使用 Authorization: Bearer <token>
+    // allow Authorization: Bearer <token>
     if (!token) {
       const auth = request.headers.get('authorization');
       if (auth?.startsWith('Bearer ')) {
@@ -38,8 +38,8 @@ async function validateUserToken(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   try {
-    // 记录请求信息
-    console.log('收到elements请求:', {
+    // log request
+    console.log('Elements request:', {
       cookies: request.cookies.getAll().map(c => c.name),
       hasAuthHeader: !!request.headers.get('authorization'),
       url: request.url
@@ -52,14 +52,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // 根据用户ID生成基于用户生日的稳定五行数值
-    // 这里应该基于用户的真实生日数据来计算五行，而不是随机生成
+    // Generate stable elements values based on userId (placeholder algorithm)
     const getUserSpecificValue = (userId: string, base: number, variance: number) => {
-      // 简单的哈希函数，根据用户ID生成稳定的随机数
+      // simple hash
       let hash = 0;
       for (let i = 0; i < userId.toString().length; i++) {
         hash = ((hash << 5) - hash) + userId.toString().charCodeAt(i);
-        hash |= 0; // 转换为32位整数
+        hash |= 0;
       }
       
       // 生成-variance到+variance之间的偏差
