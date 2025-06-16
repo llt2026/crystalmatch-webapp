@@ -34,27 +34,7 @@ async function getJwtPayload(request: NextRequest): Promise<JwtPayload | null> {
   }
 }
 
-// Mock user data for development/build
-const getMockUser = (userId: string) => ({
-  id: userId,
-  email: 'user@example.com',
-  name: 'Test User',
-  location: {
-    country: 'United States',
-    timezone: 'America/New_York'
-  },
-  birthInfo: {
-    date: '1990-01-01T00:00:00.000Z',
-    time: '12:00:00'
-  },
-  preferences: {
-    notifications: true,
-    language: 'en',
-    theme: 'dark'
-  },
-  createdAt: '2024-01-01T00:00:00.000Z',
-  updatedAt: '2024-01-01T00:00:00.000Z'
-});
+// 移除模拟数据 - 应用不应该包含任何模拟数据
 
 /**
  * Get user profile - mock implementation for build
@@ -190,7 +170,7 @@ export async function GET(request: NextRequest) {
 }
 
 /**
- * Update user profile - mock implementation for build
+ * Update user profile - real database implementation
  * PUT /api/user/profile
  */
 export async function PUT(request: NextRequest) {
@@ -200,7 +180,11 @@ export async function PUT(request: NextRequest) {
     if (!jwtPayload) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    const userId = jwtPayload.sub || jwtPayload.userId || jwtPayload.email || 'unknown';
+    const userId = (jwtPayload.userId || jwtPayload.sub || '') as string;
+
+    if (!userId) {
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+    }
 
     // Get request data
     const updates = await request.json();
@@ -215,19 +199,22 @@ export async function PUT(request: NextRequest) {
       }
     }
 
-    // Get mock user and merge updates
-    const mockUser = getMockUser(userId);
-    const updatedUser = {
-      ...mockUser,
-      ...filteredUpdates,
-      updatedAt: new Date().toISOString()
-    };
+    // Update user in database
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        name: filteredUpdates.name,
+        birthInfo: filteredUpdates.birthInfo,
+        // location and preferences can be stored as JSON if needed
+        ...(filteredUpdates.location && { location: filteredUpdates.location }),
+        ...(filteredUpdates.preferences && { preferences: filteredUpdates.preferences }),
+      },
+    });
 
-    // Return updated profile
-    const { id, ...updatedProfile } = updatedUser;
+    // Return success response
     return NextResponse.json({ 
       success: true, 
-      profile: updatedProfile
+      message: 'Profile updated successfully'
     });
   } catch (error) {
     console.error('Error updating user profile:', error);

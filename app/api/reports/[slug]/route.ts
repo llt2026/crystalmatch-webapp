@@ -16,7 +16,11 @@ export async function GET(request: NextRequest, { params }: { params: { slug: st
     if (slug.startsWith('annual-basic-')) {
       // 免费年度简化版，调用年度生成 API，订阅层 free
       const year = parseInt(slug.split('-').pop() || '0');
-      const birthDate = request.nextUrl.searchParams.get('birthDate') || '1990-01-01';
+      const birthDate = request.nextUrl.searchParams.get('birthDate');
+      
+      if (!birthDate) {
+        return NextResponse.json({ error: 'birthDate parameter is required' }, { status: 400 });
+      }
       // 强制使用内部绝对路径调用API
       const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || request.nextUrl.origin;
       const res = await fetch(`${baseUrl}/api/generate-annual-report`, {
@@ -49,7 +53,11 @@ export async function GET(request: NextRequest, { params }: { params: { slug: st
       const [yearStr, monthStr] = slug.split('-');
       const year = parseInt(yearStr);
       const month = parseInt(monthStr);
-      const birthDate = request.nextUrl.searchParams.get('birthDate') || '1990-01-01';
+      const birthDate = request.nextUrl.searchParams.get('birthDate');
+      
+      if (!birthDate) {
+        return NextResponse.json({ error: 'birthDate parameter is required' }, { status: 400 });
+      }
       
       // 获取并验证订阅类型
       const requestedTier = request.headers.get('x-tier') || 'free';

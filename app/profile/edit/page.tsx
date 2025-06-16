@@ -54,6 +54,15 @@ export default function EditProfilePage() {
   const [language, setLanguage] = useState('en');
 
   useEffect(() => {
+    // 检查URL参数中的消息
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const message = urlParams.get('message');
+      if (message) {
+        setError(message);
+      }
+    }
+    
     const fetchProfile = async () => {
       try {
         setIsLoading(true);

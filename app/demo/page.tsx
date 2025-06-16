@@ -35,7 +35,7 @@ export default function DemoPage() {
       {/* Feature Comparison CTA */}
       <div className="text-center mb-12">
         <Link 
-          href="/report/annual-premium" 
+                        href="/profile" // 重定向到个人资料页面，确保有正确的生日参数 
           className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors"
         >
           View Annual Energy Report

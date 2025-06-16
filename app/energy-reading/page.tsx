@@ -8,8 +8,8 @@ export default function EnergyReading() {
   const router = useRouter();
 
   useEffect(() => {
-    // 重定向到正确的年度报告页面
-    router.push('/report/annual-premium');
+    // 重定向到个人资料页面，让用户从那里访问带有正确生日参数的年度报告
+    router.push('/profile');
   }, [router]);
 
   // 重定向前显示加载中

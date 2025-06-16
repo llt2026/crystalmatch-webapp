@@ -188,19 +188,11 @@ export default function AnnualPremiumReport() {
           };
         }
         
-        // Ensure we have user data - use default if API fails
+        // 如果无法获取用户数据，不应该创建假数据，而应该重定向到登录页面
         if (!userData || !userData.id) {
-          console.warn('API could not retrieve user data, using emergency default data');
-          const tempId = `temp-${new Date().getTime()}-${Math.floor(Math.random() * 1000)}`;
-          userData = {
-            id: tempId,
-            name: "Guest User",
-            email: "guest@crystalmatch.com",
-            birthDate: "1990-01-01T00:00:00.000Z",
-            subscription: {
-              status: "free" // Default to free tier
-            }
-          };
+          console.warn('无法获取用户数据，重定向到登录页面');
+          router.push('/login?message=请先登录');
+          return;
         }
         
         // 优先使用 subscription.status，其次才回退到旧字段 subscriptionTier，避免历史字段干扰
@@ -237,17 +229,27 @@ export default function AnnualPremiumReport() {
         // Get user's recommended crystal
         const userCrystal = getUserCrystal(userData.id, elementDistribution, 2025);
         
+        // 检查生日信息
+        const finalBirthDate = urlBirthDate || userDataForState.birthDate || (userDataForState as any).birthInfo?.date || (userDataForState as any).birthInfo?.birthdate || '';
+        
+        // 如果没有生日信息，重定向到个人资料编辑页面
+        if (!finalBirthDate) {
+          console.warn('No birth date found, redirecting to profile edit');
+          router.push('/profile/edit?message=请先完善您的生日信息');
+          return;
+        }
+        
         // Set combined user data
         setUserData({
           id: userDataForState.id,
-          name: userDataForState.name || 'Guest User',
-          email: userDataForState.email || 'guest@crystalmatch.com',
+          name: userDataForState.name,
+          email: userDataForState.email,
           avatar: userDataForState.avatar,
           elementValues,
           strength: userTraits.strength,
           weakness: userTraits.weakness,
           yearCrystal: userCrystal,
-          birthDate: urlBirthDate || userDataForState.birthDate || (userDataForState as any).birthInfo?.date || (userDataForState as any).birthInfo?.birthdate || '1990-01-01T00:00:00.000Z',
+          birthDate: finalBirthDate,
           subscriptionTier: userDataForState.subscriptionTier
         });
         
@@ -411,20 +413,24 @@ export default function AnnualPremiumReport() {
             </div>
           ) : (
             <div className="w-24 h-24 rounded-full mr-6 bg-purple-800 border-2 border-purple-600 flex items-center justify-center flex-shrink-0">
-              <span className="text-white text-3xl font-bold">
-                {userData.name?.charAt(0) || '?'}
-              </span>
+              <img 
+                src="/default-avatar.png"
+                alt={`${userData.name}'s avatar`}
+                className="w-full h-full object-cover"
+              />
             </div>
           )}
           
           <div className="flex flex-col">
             <h1 className="text-5xl font-bold text-white leading-none">{userData.name}</h1>
             {/* Birthday below name */}
-            <p className="text-purple-300 text-sm mt-1">
-              {new Date(userData.birthDate).toLocaleDateString('en-US', {
-                month: 'short', day: 'numeric', year: 'numeric'
-              })}
-            </p>
+            {userData.birthDate && (
+              <p className="text-purple-300 text-sm mt-1">
+                {new Date(userData.birthDate).toLocaleDateString('en-US', {
+                  month: 'short', day: 'numeric', year: 'numeric'
+                })}
+              </p>
+            )}
           </div>
         </div>
         
@@ -461,7 +467,22 @@ export default function AnnualPremiumReport() {
       
       {/* Energy Calendar - Full table with all four columns */}
       <div className="mb-8">
-        <EnergyCalendar birthDate={userData.birthDate} subscriptionTier={userData.subscriptionTier} />
+        {userData.birthDate ? (
+          <EnergyCalendar birthDate={userData.birthDate} subscriptionTier={userData.subscriptionTier} />
+        ) : (
+          <div className="rounded-lg bg-yellow-600/20 p-6 backdrop-blur-sm border border-yellow-500/30 text-center">
+            <h3 className="text-xl font-bold text-yellow-300 mb-2">生日信息缺失</h3>
+            <p className="text-yellow-200 mb-4">
+              我们需要您的生日信息来生成准确的能量日历和个性化报告。
+            </p>
+            <Link 
+              href="/profile/edit" 
+              className="inline-block bg-yellow-600 hover:bg-yellow-700 text-white px-6 py-2 rounded-lg transition-colors"
+            >
+              添加生日信息
+            </Link>
+          </div>
+        )}
       </div>
       
       {/* Pro member benefits with integrated Back button */}
@@ -485,13 +506,13 @@ export default function AnnualPremiumReport() {
             </Link>
             
             <Link 
-              href="/profile" 
+              href="/" 
               className="inline-flex items-center justify-center px-4 py-2 text-sm bg-gradient-to-br from-purple-700 to-indigo-800 hover:from-purple-600 hover:to-indigo-700 text-white font-bold rounded-md shadow transform hover:scale-105 transition-all duration-200 border border-purple-500/30"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M9.707 14.707a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 1.414L7.414 9H15a1 1 0 110 2H7.414l2.293 2.293a1 1 0 010 1.414z" clipRule="evenodd" />
               </svg>
-              Back
+              Home
             </Link>
           </div>
           

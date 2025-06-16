@@ -146,7 +146,7 @@ export default function AuthDebugPage() {
             </button>
             
             <Link 
-              href="/report/annual-premium" 
+              href="/profile" // 重定向到个人资料页面，确保有正确的生日参数 
               className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-md text-sm transition-colors"
             >
               View Annual Energy Report

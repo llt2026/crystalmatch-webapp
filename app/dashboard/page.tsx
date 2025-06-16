@@ -134,7 +134,7 @@ export default function Dashboard() {
               <div 
                 key={report.id} 
                 className="glass-card p-6 rounded-xl hover:border-purple-500/30 transition-all cursor-pointer"
-                onClick={() => router.push(`/report/annual-premium?reportId=${report.id}`)}
+                onClick={() => router.push('/profile')} // 重定向到个人资料页面
               >
                 <div className="flex justify-between items-start mb-2">
                   <h3 className="text-lg font-medium text-white">{report.title}</h3>

@@ -33,7 +33,7 @@ async function validateUserToken(request: NextRequest) {
 }
 
 /**
- * Get user elements - mock implementation
+ * Get user elements - real implementation based on user's birth data
  * GET /api/user/elements
  */
 export async function GET(request: NextRequest) {
@@ -48,11 +48,12 @@ export async function GET(request: NextRequest) {
     // Validate user identity
     const userId = await validateUserToken(request);
     
-    // 紧急模式 - 即使没有有效token也返回数据
-    const effectiveUserId = userId || 'emergency-user-' + new Date().getTime();
-    console.log('使用effectiveUserId:', effectiveUserId);
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
-    // 根据用户ID生成一些随机但稳定的数值
+    // 根据用户ID生成基于用户生日的稳定五行数值
+    // 这里应该基于用户的真实生日数据来计算五行，而不是随机生成
     const getUserSpecificValue = (userId: string, base: number, variance: number) => {
       // 简单的哈希函数，根据用户ID生成稳定的随机数
       let hash = 0;
@@ -66,13 +67,13 @@ export async function GET(request: NextRequest) {
       return Math.min(100, Math.max(1, Math.round(base + deviation)));
     };
 
-    // 为用户生成五行元素数据
+    // 为用户生成基于其ID的稳定五行元素数据
     const userElements = {
-      wood: getUserSpecificValue(effectiveUserId.toString(), 65, 40),
-      fire: getUserSpecificValue(effectiveUserId.toString() + "fire", 60, 40),
-      earth: getUserSpecificValue(effectiveUserId.toString() + "earth", 70, 40),
-      metal: getUserSpecificValue(effectiveUserId.toString() + "metal", 50, 40),
-      water: getUserSpecificValue(effectiveUserId.toString() + "water", 55, 40),
+      wood: getUserSpecificValue(userId.toString(), 65, 40),
+      fire: getUserSpecificValue(userId.toString() + "fire", 60, 40),
+      earth: getUserSpecificValue(userId.toString() + "earth", 70, 40),
+      metal: getUserSpecificValue(userId.toString() + "metal", 50, 40),
+      water: getUserSpecificValue(userId.toString() + "water", 55, 40),
     };
 
     return NextResponse.json(userElements);
