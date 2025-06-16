@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     
     // Create subscription
     const subscriptionData = {
-      plan_id: planId === 'plus' ? 'P-PLUS-PLAN-ID' : 'P-PRO-PLAN-ID', // These should be created in PayPal dashboard
+      plan_id: planId === 'plus' ? process.env.P_PAYPAL_PLAN_PLUS : process.env.P_PAYPAL_PLAN_PRO,
       start_time: new Date(Date.now() + 60000).toISOString(), // Start 1 minute from now
       quantity: '1',
       shipping_amount: {
