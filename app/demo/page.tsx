@@ -35,10 +35,10 @@ export default function DemoPage() {
       {/* Feature Comparison CTA */}
       <div className="text-center mb-12">
         <Link 
-          href="/energy-report"
-          className="inline-block px-6 py-3 bg-indigo-600 text-white rounded-md text-md font-medium hover:bg-indigo-700"
+          href="/report/annual-premium" 
+          className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors"
         >
-          查看完整能量报告
+          View Annual Energy Report
         </Link>
       </div>
     </div>

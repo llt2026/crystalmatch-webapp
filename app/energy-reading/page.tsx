@@ -8,8 +8,8 @@ export default function EnergyReading() {
   const router = useRouter();
 
   useEffect(() => {
-    // 直接重定向到新的报告页面
-    router.push('/energy-report');
+    // 重定向到正确的年度报告页面
+    router.push('/report/annual-premium');
   }, [router]);
 
   // 重定向前显示加载中

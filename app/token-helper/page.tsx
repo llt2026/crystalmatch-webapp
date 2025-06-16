@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 
 export default function TokenHelperPage() {
   const [tokenData, setTokenData] = useState<{
@@ -139,12 +140,12 @@ export default function TokenHelperPage() {
       </div>
       
       <div className="text-center">
-        <a 
-          href="/energy-report"
-          className="inline-block px-6 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700"
+        <Link 
+          className="w-full py-2 px-4 bg-purple-600 hover:bg-purple-700 rounded-lg text-white font-medium transition-colors text-center"
+          href="/report/annual-premium"
         >
-          前往能量报告页面
-        </a>
+          View Annual Energy Report
+        </Link>
       </div>
     </div>
   );

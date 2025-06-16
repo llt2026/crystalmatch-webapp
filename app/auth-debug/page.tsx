@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 
 export default function AuthDebugPage() {
   const [token, setToken] = useState('');
@@ -144,13 +145,12 @@ export default function AuthDebugPage() {
               测试 /api/user/elements
             </button>
             
-            <a
-              href="/energy-report"
-              target="_blank"
-              className="px-4 py-2 bg-amber-600 text-white rounded hover:bg-amber-700 inline-block"
+            <Link 
+              href="/report/annual-premium" 
+              className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-md text-sm transition-colors"
             >
-              打开能量报告页面
-            </a>
+              View Annual Energy Report
+            </Link>
           </div>
           
           {error && (

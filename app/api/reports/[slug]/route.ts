@@ -19,7 +19,7 @@ export async function GET(request: NextRequest, { params }: { params: { slug: st
       const birthDate = request.nextUrl.searchParams.get('birthDate') || '1990-01-01';
       // 强制使用内部绝对路径调用API
       const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || request.nextUrl.origin;
-      const res = await fetch(`${baseUrl}/api/generate-energy-report`, {
+      const res = await fetch(`${baseUrl}/api/generate-annual-report`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
