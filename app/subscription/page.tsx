@@ -272,39 +272,16 @@ export default function SubscriptionPage() {
                 <button
                   onClick={() => {
                     const amount = selectedTier.price.replace('$', '');
-                    const paypalMeUrl = `https://www.paypal.com/paypalme/crystalmatch/${amount}USD`;
-                    window.open(paypalMeUrl, '_blank');
+                    const paypalUrl = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclick&business=crystalmatch.app@gmail.com&item_name=${encodeURIComponent(selectedTier.name + ' Subscription - Crystal Match')}&amount=${amount}&currency_code=USD&return=${encodeURIComponent(window.location.origin + '/profile')}&cancel_return=${encodeURIComponent(window.location.origin + '/profile')}&no_shipping=1`;
+                    window.open(paypalUrl, '_blank');
                   }}
                   className="w-full py-4 px-6 bg-blue-600 text-white rounded-lg font-bold text-lg hover:bg-blue-700 transition-colors flex items-center justify-center shadow-lg"
                 >
                   <svg className="w-6 h-6 mr-3" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944.901C5.026.382 5.474 0 5.998 0h7.46c2.57 0 4.578.543 5.69 1.81 1.01 1.15 1.304 2.42 1.012 4.287-.023.143-.047.288-.077.437-.983 5.05-4.349 6.797-8.647 6.797h-2.19c-.524 0-.968.382-1.05.9l-1.12 7.106zm14.146-14.42a3.35 3.35 0 0 0-.607-.541c-.013.076-.026.175-.041.254-.93 4.778-4.005 6.430-7.958 6.430H10.15c-.524 0-.968.382-1.05.9L7.858 19.96c-.073.462.263.877.736.877h4.78c.524 0 .968-.382 1.05-.9l.429-2.72c.073-.462-.263-.877-.736-.877h-1.52l.429-2.72c.073-.462.526-.9 1.05-.9h2.19c3.578 0 6.396-1.456 7.205-5.66.202-1.05.078-1.94-.429-2.603z"/>
                   </svg>
-                  Pay ${selectedTier.price} with PayPal
+                  Pay {selectedTier.price} with PayPal
                 </button>
-                
-                                 {/* Credit Card via PayPal */}
-                <button
-                  onClick={() => {
-                    const amount = selectedTier.price.replace('$', '');
-                    // Direct PayPal checkout URL that accepts credit cards
-                    const paypalUrl = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclick&business=crystalmatch.app@gmail.com&item_name=${encodeURIComponent(selectedTier.name + ' Monthly Subscription - Crystal Match')}&amount=${amount}&currency_code=USD&return=${encodeURIComponent(window.location.origin + '/subscription/success?plan=' + selectedTier.id)}&cancel_return=${encodeURIComponent(window.location.origin + '/subscription')}&no_shipping=1`;
-                    window.open(paypalUrl, '_blank');
-                  }}
-                  className="w-full py-3 px-6 border-2 border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors flex items-center justify-center"
-                >
-                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                  </svg>
-                  Pay with Credit Card
-                </button>
-              </div>
-              
-              <div className="mt-4 text-center">
-                <p className="text-xs text-gray-500">
-                  🔒 Choose your preferred payment method - all options are secure and instant<br/>
-                  No waiting, no loading - click and pay immediately!
-                </p>
               </div>
             </div>
 
@@ -327,7 +304,7 @@ export default function SubscriptionPage() {
       {/* Back to Dashboard */}
       <div className="text-center pb-8">
         <Link 
-          href="/" 
+          href="/profile" 
           className="inline-flex items-center text-purple-300 hover:text-white transition-colors"
         >
           <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

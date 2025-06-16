@@ -191,7 +191,7 @@ export default function AnnualPremiumReport() {
         // 如果无法获取用户数据，不应该创建假数据，而应该重定向到登录页面
         if (!userData || !userData.id) {
           console.warn('无法获取用户数据，重定向到登录页面');
-          router.push('/login?message=请先登录');
+          router.push('/login?message=please-login');
           return;
         }
         
@@ -389,8 +389,8 @@ export default function AnnualPremiumReport() {
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-4">Error!</h1>
           <p className="mb-6">{error || "Unable to load your energy report"}</p>
-          <Link href="/" className="bg-white text-purple-900 px-6 py-2 rounded-lg font-semibold hover:bg-gray-100">
-            Return to Home
+          <Link href="/profile" className="bg-white text-purple-900 px-6 py-2 rounded-lg font-semibold hover:bg-gray-100">
+            Back to Profile
           </Link>
         </div>
       </main>
@@ -471,15 +471,15 @@ export default function AnnualPremiumReport() {
           <EnergyCalendar birthDate={userData.birthDate} subscriptionTier={userData.subscriptionTier} />
         ) : (
           <div className="rounded-lg bg-yellow-600/20 p-6 backdrop-blur-sm border border-yellow-500/30 text-center">
-            <h3 className="text-xl font-bold text-yellow-300 mb-2">生日信息缺失</h3>
+            <h3 className="text-xl font-bold text-yellow-300 mb-2">Birth date required</h3>
             <p className="text-yellow-200 mb-4">
-              我们需要您的生日信息来生成准确的能量日历和个性化报告。
+              We need your birth date to generate accurate energy insights.
             </p>
             <Link 
               href="/profile/edit" 
               className="inline-block bg-yellow-600 hover:bg-yellow-700 text-white px-6 py-2 rounded-lg transition-colors"
             >
-              添加生日信息
+              Add birth date
             </Link>
           </div>
         )}

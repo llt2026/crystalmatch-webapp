@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
     const { email, code, verificationToken } = await request.json();
     
     // 记录请求信息用于调试
-    console.log(`验证请求: email=${email}, code=${code}, time=${new Date().toISOString()}`);
+    console.log(`Verification request: email=${email}, code=${code}, time=${new Date().toISOString()}`);
     
     if (!email || !code) {
       return NextResponse.json(
@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
 
     // 规范化邮箱
     const normalizedEmail = email.toLowerCase().trim();
-    console.log(`验证码验证请求: ${normalizedEmail}, code=${code}`);
+    console.log(`Verify code for: ${normalizedEmail}, code=${code}`);
 
     // 使用Upstash验证验证码
     let isValid = await checkCode(normalizedEmail, code);
@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
     
     // 如果验证失败，返回错误
     if (!isValid) {
-      console.log(`验证失败: email=${normalizedEmail}, reason=invalid_code`);
+      console.log(`Verification failed: email=${normalizedEmail}, reason=invalid_code`);
       
       return NextResponse.json(
         { 
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    console.log(`验证成功: email=${normalizedEmail}`);
+    console.log(`Verification success: email=${normalizedEmail}`);
     
     // 验证成功，查找或创建用户
     let user;
@@ -73,17 +73,17 @@ export async function POST(request: NextRequest) {
             emailVerified: new Date(),
           },
         });
-        console.log(`新用户创建: ${normalizedEmail}`);
+        console.log(`New user created: ${normalizedEmail}`);
       } else {
         // 更新现有用户的emailVerified字段
         user = await prisma.user.update({
           where: { email: normalizedEmail },
           data: { emailVerified: new Date() },
         });
-        console.log(`现有用户更新: ${normalizedEmail}`);
+        console.log(`Existing user updated: ${normalizedEmail}`);
       }
     } catch (error) {
-      console.error('访问数据库错误:', error);
+      console.error('Database access error:', error);
       // 即使数据库操作失败也继续 - 允许登录即使Prisma/数据库不可用
     }
     
@@ -95,11 +95,11 @@ export async function POST(request: NextRequest) {
         timestamp: Date.now() 
       },
       JWT_SECRET,
-      { expiresIn: '30d' }
+      { expiresIn: '180d' }
     );
     
     // 返回成功响应
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       token,
       user: user ? {
@@ -112,6 +112,10 @@ export async function POST(request: NextRequest) {
         emailVerified: new Date()
       }
     });
+
+    // set token cookie for 180 days (~6 months)
+    response.headers.set('Set-Cookie', `token=${token}; Path=/; Max-Age=${60*60*24*180}; HttpOnly; SameSite=Lax${process.env.NODE_ENV==='production' ? '; Secure' : ''}`);
+    return response;
   } catch (error: any) {
     console.error('验证过程错误:', error);
     return NextResponse.json(
