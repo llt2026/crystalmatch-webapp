@@ -134,7 +134,7 @@ export default function Dashboard() {
               <div 
                 key={report.id} 
                 className="glass-card p-6 rounded-xl hover:border-purple-500/30 transition-all cursor-pointer"
-                onClick={() => router.push(`/energy-reading/${report.id}`)}
+                onClick={() => router.push(`/report/annual-premium?reportId=${report.id}`)}
               >
                 <div className="flex justify-between items-start mb-2">
                   <h3 className="text-lg font-medium text-white">{report.title}</h3>

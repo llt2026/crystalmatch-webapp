@@ -163,7 +163,8 @@ export default function BirthInfo() {
         }
       }
       
-      router.push('/energy-reading');
+      // 直接重定向到正确的年度报告页面
+      router.push(`/report/annual-premium?birthDate=${encodeURIComponent(birthDateTime.toISOString())}`);
     } catch (error) {
       console.error('Submission error:', error);
       if (error instanceof Error && error.message.includes('verification code')) {

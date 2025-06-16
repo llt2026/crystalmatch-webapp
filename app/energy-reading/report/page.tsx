@@ -46,7 +46,7 @@ function EnergyScoreTable({ currentMonth, userTier }: { currentMonth: string, us
     
     if (canView) {
       // 导航到月度报告页面
-      router.push(`/energy-reading/report/month?m=${monthId}`);
+      router.push(`/profile/monthly-reports/${monthId.substring(5, 7)}-${monthId.substring(0, 4)}`);
     } else {
       // 显示订阅引导弹窗
       showSubscriptionModal();
