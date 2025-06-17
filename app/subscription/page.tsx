@@ -1,19 +1,35 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import './styles.css';
 import { SUBSCRIPTION_FEATURES, SUBSCRIPTION_TIERS } from '@/app/lib/subscription-config';
+import Script from 'next/script';
+
+// 为PayPal添加全局声明
+declare global {
+  interface Window {
+    paypal: any;
+  }
+}
 
 export default function SubscriptionPage() {
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [showPayment, setShowPayment] = useState(false);
   const [paymentError, setPaymentError] = useState('');
+  const [paypalLoaded, setPaypalLoaded] = useState(false);
+  const [clientId, setClientId] = useState('');
+
+  useEffect(() => {
+    // 获取PayPal客户端ID
+    const paypalClientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || '';
+    setClientId(paypalClientId);
+  }, []);
 
   const handlePlanSelect = (planId: string) => {
     if (planId === 'free') {
       // Free plan - redirect to dashboard
-      window.location.href = '/';
+      window.location.href = '/profile';
       return;
     }
     setSelectedPlan(planId);
@@ -23,8 +39,98 @@ export default function SubscriptionPage() {
 
   const selectedTier = SUBSCRIPTION_TIERS.find(tier => tier.id === selectedPlan);
 
+  // 处理PayPal脚本加载完成事件
+  const handlePayPalLoad = () => {
+    setPaypalLoaded(true);
+    console.log('PayPal script loaded');
+    
+    // 脚本加载完成后尝试渲染按钮
+    setTimeout(() => {
+      renderPayPalButtons();
+    }, 1000);
+  };
+
+  // 渲染PayPal按钮
+  const renderPayPalButtons = () => {
+    if (!selectedPlan || !paypalLoaded || typeof window === 'undefined') {
+      return null;
+    }
+    
+    // 获取计划ID
+    const planId = selectedPlan === 'plus' 
+      ? process.env.NEXT_PUBLIC_P_PAYPAL_PLAN_PLUS 
+      : process.env.NEXT_PUBLIC_P_PAYPAL_PLAN_PRO;
+      
+    // 返回按钮容器
+    return (
+      <div id="paypal-button-container" className="min-h-[150px]"></div>
+    );
+  };
+
+  // 当组件挂载或paypalLoaded改变时，尝试初始化PayPal按钮
+  useEffect(() => {
+    if (paypalLoaded && selectedPlan && typeof window !== 'undefined') {
+      const paypalButtonsContainer = document.getElementById('paypal-button-container');
+      if (paypalButtonsContainer && window.paypal) {
+        // 清空容器
+        paypalButtonsContainer.innerHTML = '';
+        
+        // 获取计划ID
+        const planId = selectedPlan === 'plus' 
+          ? process.env.NEXT_PUBLIC_P_PAYPAL_PLAN_PLUS 
+          : process.env.NEXT_PUBLIC_P_PAYPAL_PLAN_PRO;
+          
+        try {
+          // @ts-ignore - 忽略TypeScript错误
+          window.paypal.Buttons({
+            style: {
+              shape: 'rect',
+              color: 'blue',
+              layout: 'vertical',
+              label: 'subscribe'
+            },
+            // @ts-ignore - 忽略TypeScript错误
+            createSubscription: function(data, actions) {
+              return actions.subscription.create({
+                'plan_id': planId || ''
+              });
+            },
+            // @ts-ignore - 忽略TypeScript错误
+            onApprove: function(data) {
+              console.log('Subscription approved:', data);
+              // 订阅成功，重定向到成功页面
+              window.location.href = `/subscription/success?plan=${selectedPlan}&subscription_id=${data.subscriptionID}`;
+            },
+            // @ts-ignore - 忽略TypeScript错误
+            onCancel: function() {
+              // 用户取消订阅，重定向到取消页面
+              window.location.href = '/subscription/cancel';
+            },
+            // @ts-ignore - 忽略TypeScript错误
+            onError: function(err) {
+              console.error('PayPal error:', err);
+              setPaymentError('There was an error processing your payment. Please try again.');
+            }
+          }).render('#paypal-button-container');
+        } catch (error) {
+          console.error('Error rendering PayPal buttons:', error);
+          setPaymentError('Failed to load payment options. Please try again later.');
+        }
+      }
+    }
+  }, [paypalLoaded, selectedPlan]);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
+      {/* PayPal Script */}
+      {clientId && (
+        <Script
+          src={`https://www.paypal.com/sdk/js?client-id=${clientId}&vault=true&intent=subscription`}
+          onLoad={handlePayPalLoad}
+          strategy="lazyOnload"
+        />
+      )}
+
       {/* Header */}
       <div className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-purple-800/20 to-blue-800/20"></div>
@@ -58,7 +164,7 @@ export default function SubscriptionPage() {
                 {tier.recommended && (
                   <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10">
                     <div className="bg-gradient-to-r from-yellow-400 to-orange-500 text-black px-6 py-2 rounded-full text-sm font-bold shadow-lg">
-                      ⭐ MOST POPULAR
+                      POPULAR
                     </div>
                   </div>
                 )}
@@ -266,22 +372,19 @@ export default function SubscriptionPage() {
                 Secure payment with PayPal
               </div>
               
-              {/* Instant PayPal Payment Options */}
+              {/* PayPal Smart Buttons */}
               <div className="space-y-3">
-                {/* PayPal.me Link - Most Reliable */}
-                <button
-                  onClick={() => {
-                    const amount = selectedTier.price.replace('$', '');
-                    const paypalUrl = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclick&business=crystalmatch.app@gmail.com&item_name=${encodeURIComponent(selectedTier.name + ' Subscription - Crystal Match')}&amount=${amount}&currency_code=USD&return=${encodeURIComponent(window.location.origin + '/profile')}&cancel_return=${encodeURIComponent(window.location.origin + '/profile')}&no_shipping=1`;
-                    window.open(paypalUrl, '_blank');
-                  }}
-                  className="w-full py-4 px-6 bg-blue-600 text-white rounded-lg font-bold text-lg hover:bg-blue-700 transition-colors flex items-center justify-center shadow-lg"
-                >
-                  <svg className="w-6 h-6 mr-3" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944.901C5.026.382 5.474 0 5.998 0h7.46c2.57 0 4.578.543 5.69 1.81 1.01 1.15 1.304 2.42 1.012 4.287-.023.143-.047.288-.077.437-.983 5.05-4.349 6.797-8.647 6.797h-2.19c-.524 0-.968.382-1.05.9l-1.12 7.106zm14.146-14.42a3.35 3.35 0 0 0-.607-.541c-.013.076-.026.175-.041.254-.93 4.778-4.005 6.430-7.958 6.430H10.15c-.524 0-.968.382-1.05.9L7.858 19.96c-.073.462.263.877.736.877h4.78c.524 0 .968-.382 1.05-.9l.429-2.72c.073-.462-.263-.877-.736-.877h-1.52l.429-2.72c.073-.462.526-.9 1.05-.9h2.19c3.578 0 6.396-1.456 7.205-5.66.202-1.05.078-1.94-.429-2.603z"/>
-                  </svg>
-                  Pay {selectedTier.price} with PayPal
-                </button>
+                {paypalLoaded ? renderPayPalButtons() : (
+                  <div className="flex justify-center items-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                  </div>
+                )}
+                
+                {paymentError && (
+                  <div className="text-red-500 text-sm text-center mt-2">
+                    {paymentError}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -315,4 +418,4 @@ export default function SubscriptionPage() {
       </div>
     </div>
   );
-} 
+}
