@@ -74,29 +74,43 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       expiresAt.setMonth(expiresAt.getMonth() + 1);
     }
     
-    // 取消该用户所有处于 active 状态的订阅（不再限制 endDate），避免旧订阅残留导致等级判断错误
-    await prisma.subscription.updateMany({
+    // 更新或创建订阅记录
+    const existingSub = await prisma.subscription.findFirst({
       where: {
         userId: id,
-        status: 'active'
-      },
-      data: {
-        status: 'cancelled',
-        cancelledAt: new Date()
+        status: { in: ['active','trial'] }
       }
     });
-    
-    // 如果不是免费会员，创建新的订阅
-    if (subscriptionStatus !== 'free') {
-      await prisma.subscription.create({
-        data: {
-          userId: id,
-          planId: planId,
-          status: 'active',
-          startDate: new Date(),
-          endDate: expiresAt
-        }
-      });
+
+    let newSubscription;
+    if (subscriptionStatus === 'free') {
+      // 将现有订阅设为取消
+      if (existingSub) {
+        await prisma.subscription.update({
+          where: { id: existingSub.id },
+          data: {
+            status: 'cancelled',
+            cancelledAt: new Date()
+          }
+        });
+      }
+      newSubscription = null;
+    } else {
+      const subData = {
+        userId: id,
+        planId,
+        status: 'active',
+        startDate: new Date(),
+        endDate: expiresAt
+      };
+      if (existingSub) {
+        newSubscription = await prisma.subscription.update({
+          where: { id: existingSub.id },
+          data: subData
+        });
+      } else {
+        newSubscription = await prisma.subscription.create({ data: subData });
+      }
     }
     
     // 记录操作日志
@@ -111,18 +125,6 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
         }
       }
     }).catch((err: unknown) => console.error('Failed to create log:', err));
-    
-    // 更新用户订阅状态
-    const updatedUser = await prisma.user.update({
-      where: { id },
-      data: {
-        subscription: {
-          status: subscriptionStatus,
-          planId: planId || null,
-          expiresAt: expiresAt
-        }
-      }
-    });
     
     // 如果用户升级为付费会员，自动生成报告
     if (subscriptionStatus === 'plus' || subscriptionStatus === 'pro') {
