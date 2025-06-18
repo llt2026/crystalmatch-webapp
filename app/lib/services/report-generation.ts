@@ -1,12 +1,57 @@
 import { prisma } from '../prisma';
-import { getFullEnergyContext } from '../energy-calc';
-import { generateMockReport } from '../report-generator';
 import { saveReportToDatabase } from '../report-cache-service';
+import { generateMonthlyReportData } from '../mockReportData';
 
 export interface UserSubscriptionInfo {
   userId: string;
   tier: 'plus' | 'pro';
   planId: string;
+}
+
+/**
+ * 简化的报告生成函数
+ */
+function generateSimpleReport(tier: 'plus' | 'pro', birthDate: string) {
+  const now = new Date();
+  const birth = new Date(birthDate);
+  
+  // 生成基础报告数据
+  const reportData = generateMonthlyReportData(now.getFullYear(), now.getMonth() + 1, new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate());
+  
+  return {
+    basicInfo: {
+      birthDate: birth.toLocaleDateString('en-US'),
+      energySignature: `${tier.toUpperCase()} Energy Profile`,
+      tier
+    },
+    sections: [
+      {
+        title: 'Monthly Energy Overview',
+        content: reportData.monthlyOverview.overview
+      },
+      {
+        title: 'Energy Phases',
+        content: reportData.monthlyOverview.phases.map(phase => `${phase.title}: ${phase.description}`).join('\n\n')
+      }
+    ],
+    crystals: [
+      {
+        name: 'Amethyst',
+        purpose: 'Enhances spiritual awareness and intuition'
+      },
+      {
+        name: 'Rose Quartz',
+        purpose: 'Promotes love and emotional healing'
+      },
+      {
+        name: 'Clear Quartz',
+        purpose: 'Amplifies energy and clarity'
+      }
+    ],
+    dailyEnergy: reportData.dailyEnergy,
+    notifications: reportData.notifications,
+    weeklyForecast: reportData.weeklyForecast
+  };
 }
 
 /**
@@ -69,18 +114,11 @@ export async function generateMonthlyReportForUser(
       return { success: true, reportId: existingReport.id };
     }
 
-    // 5. 生成能量上下文
-    const birthDateTime = new Date(birthDate);
-    const energyContext = getFullEnergyContext(birthDateTime, now);
+    // 5. 生成报告内容
+    const report = generateSimpleReport(tier, birthDate);
+    const energyContext = { tier, birthDate, generatedAt: now.toISOString() };
 
-    if (!energyContext) {
-      return { success: false, error: 'Failed to calculate energy context' };
-    }
-
-    // 6. 生成报告内容
-    const report = generateMockReport(energyContext, tier);
-
-    // 7. 保存到数据库
+    // 6. 保存到数据库
     const cacheKey = {
       userId,
       birthDate,
@@ -94,7 +132,7 @@ export async function generateMonthlyReportForUser(
       return { success: false, error: 'Failed to save report to database' };
     }
 
-    // 8. 获取刚保存的报告ID
+    // 7. 获取刚保存的报告ID
     const savedReport = await prisma.energyReportCache.findFirst({
       where: {
         userId,
