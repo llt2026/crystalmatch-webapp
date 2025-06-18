@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { jwtVerify } from 'jose';
-import prisma from '../../../../../lib/prisma';
+import prisma from '../../../../lib/prisma';
 
 /**
  * 获取用户的特定报告内容
