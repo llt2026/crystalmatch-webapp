@@ -6,7 +6,7 @@ import './styles.css';
 import { SUBSCRIPTION_FEATURES, SUBSCRIPTION_TIERS } from '@/app/lib/subscription-config';
 import Script from 'next/script';
 // 引入PayPal类型声明
-import '@/app/types/paypal';
+import '../types/paypal';
 
 export default function SubscriptionPage() {
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);

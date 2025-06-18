@@ -61,5 +61,11 @@ test-*.mjs
 test-*.ts
 temp-test.ts
 
+**/test-*.js
+**/test-*.ts
+**/test-*.mjs
+**/*test*.js
+**/*test*.ts
+
 # 自动生成的类型声明
 *.d.ts.map
