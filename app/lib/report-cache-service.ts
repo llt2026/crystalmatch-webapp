@@ -100,7 +100,7 @@ export async function saveReportToDatabase(
     // 保存到数据库
     await prisma.energyReportCache.upsert({
       where: {
-        report_unique_constraint: {
+        userId_birthDate_reportMonth_tier: {
           userId: key.userId,
           birthDate: key.birthDate,
           reportMonth: key.reportMonth,

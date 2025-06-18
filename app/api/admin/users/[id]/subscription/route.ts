@@ -130,7 +130,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     if (subscriptionStatus === 'plus' || subscriptionStatus === 'pro') {
       try {
         // 动态导入报告生成服务
-        const { handleSubscriptionChange } = await import('../../../../../lib/services/report-generation');
+        const { handleSubscriptionChange } = await import('@/app/lib/services/report-generation');
         
         // 生成报告
         const reportResult = await handleSubscriptionChange(
