@@ -377,38 +377,113 @@ function ReportContent() {
 
         {/* Daily Energy Calendar */}
         <div className="bg-black/30 backdrop-blur-sm rounded-xl p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-medium">Daily Energy Calendar</h3>
-            <button 
-              onClick={() => setShowFullCalendar(!showFullCalendar)}
-              className="text-purple-300 hover:text-white text-sm"
-            >
-              {showFullCalendar ? 'Show Less' : 'Show All'}
-            </button>
-          </div>
+          <h2 className="text-lg font-semibold mb-3">Daily Energy Calendar</h2>
           
-          <div className="grid grid-cols-7 gap-1 text-xs">
-            {/* Show first 7 days or all days based on state */}
-            {dailyEnergyData.slice(0, showFullCalendar ? dailyEnergyData.length : 7).map((day, index) => {
-              const dayNumber = index + 1;
-              const score = day.score || 0;
-              const dateLabel = dayNumberToDate(dayNumber);
-              
-              return (
-                <div key={index} className="text-center p-2 rounded bg-purple-900/20 hover:bg-purple-800/30 transition-colors">
-                  <div className="font-medium text-xs">{dayNumber}</div>
-                  <div className="text-xs text-purple-400 mb-1">{dateLabel}</div>
-                  <div className={`text-xs font-medium ${
-                    score >= 70 ? 'text-green-400' : 
-                    score <= 40 ? 'text-red-400' : 
-                    'text-yellow-400'
-                  }`}>
-                    {score.toFixed(0) || '--'}
-                  </div>
+          {/* Initial 5-day view */}
+          {!showFullCalendar && (
+            <div className="space-y-4">
+              {energyDataLoading ? (
+                <div className="text-center py-4">
+                  <div className="animate-spin inline-block w-6 h-6 border-t-2 border-purple-500 border-r-2 rounded-full mb-2"></div>
+                  <p className="text-sm text-purple-300">Loading real energy data...</p>
                 </div>
-              );
-            })}
-          </div>
+              ) : (
+                dailyEnergyData.slice(0, 5).map((day, index) => {
+                  const dayNumber = index + 1;
+                  const energyScore = day.score ?? '--';
+                  const trendColor = day.trend === 'up' ? 'text-green-400' : day.trend === 'down' ? 'text-red-400' : 'text-yellow-400';
+                  const trendIcon = day.trend === 'up' ? '🟢 Rising' : day.trend === 'down' ? '🔴 Declining' : '🟡 Stable';
+                  
+                  return (
+                    <div key={dayNumber}>
+                      <div className="flex justify-between items-center mb-1">
+                        <div className="font-medium">{day.date ? new Date(day.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '--'}</div>
+                        <div className="text-sm">{typeof energyScore === 'number' ? `${energyScore}/100` : energyScore}</div>
+                        <div className={`text-sm ${trendColor}`}>{trendIcon}</div>
+                      </div>
+                      <p className="text-xs text-purple-200">
+                        {day.trend === 'up' ? `Energy rising day, suitable for new plans and creative work (energy value: ${day.energyChange > 0 ? '+' : ''}${day.energyChange})` :
+                         day.trend === 'down' ? `Energy declining day, suitable for rest and reflection (energy value: ${day.energyChange > 0 ? '+' : ''}${day.energyChange})` :
+                         `Energy stable day, suitable for steady progress (energy value: ${day.energyChange > 0 ? '+' : ''}${day.energyChange})`}
+                      </p>
+                      <div className="mt-1 flex items-center">
+                        <span className="text-xs text-purple-300 mr-2">Crystal:</span>
+                        {(() => {
+                          const crystal = getCrystalForElement(day.element || 'water');
+                          return (
+                            <span className={`text-xs px-2 py-0.5 ${crystal.bgColor} rounded-full text-white ${crystal.color}`}>
+                              {day.crystal || crystal.name}
+                            </span>
+                          );
+                        })()}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+              
+              <button 
+                onClick={() => setShowFullCalendar(true)}
+                className="w-full mt-3 py-1.5 bg-purple-900/50 hover:bg-purple-800/50 rounded-md text-sm font-medium text-purple-200"
+              >
+                View Full Month Calendar ↓
+              </button>
+            </div>
+          )}
+          
+          {/* Full 30-day view */}
+          {showFullCalendar && (
+            <div>
+              <div className="grid grid-cols-1 gap-3 max-h-80 overflow-y-auto pr-1">
+                {energyDataLoading ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin inline-block w-6 h-6 border-t-2 border-purple-500 border-r-2 rounded-full mb-2"></div>
+                    <p className="text-sm text-purple-300">Loading full month energy data...</p>
+                  </div>
+                ) : (
+                  dailyEnergyData.map((day, index) => {
+                    const dayNumber = index + 1;
+                    const energyScore = day.score ?? '--';
+                    const trendColor = day.trend === 'up' ? 'text-green-400' : day.trend === 'down' ? 'text-red-400' : 'text-yellow-400';
+                    const trendIcon = day.trend === 'up' ? '🟢 Rising' : day.trend === 'down' ? '🔴 Declining' : '🟡 Stable';
+                    
+                    return (
+                      <div key={dayNumber} className="border-b border-purple-900/30 pb-2">
+                        <div className="flex justify-between items-center">
+                          <div className="font-medium">{day.date ? new Date(day.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '--'}</div>
+                          <div className="text-sm">{typeof energyScore === 'number' ? `${energyScore}/100` : energyScore}</div>
+                          <div className={`text-sm ${trendColor}`}>{trendIcon}</div>
+                        </div>
+                        <p className="text-xs text-purple-200 mt-1">
+                          {day.trend === 'up' ? `Energy rising day, suitable for new plans and creative work (energy value: ${day.energyChange > 0 ? '+' : ''}${day.energyChange})` :
+                           day.trend === 'down' ? `Energy declining day, suitable for rest and reflection (energy value: ${day.energyChange > 0 ? '+' : ''}${day.energyChange})` :
+                           `Energy stable day, suitable for steady progress (energy value: ${day.energyChange > 0 ? '+' : ''}${day.energyChange})`}
+                        </p>
+                        <div className="mt-1 flex items-center">
+                          <span className="text-xs text-purple-300 mr-2">Crystal:</span>
+                          {(() => {
+                            const crystal = getCrystalForElement(day.element || 'water');
+                            return (
+                              <span className={`text-xs px-2 py-0.5 ${crystal.bgColor} rounded-full text-white ${crystal.color}`}>
+                                {day.crystal || crystal.name}
+                              </span>
+                            );
+                          })()}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+              
+              <button 
+                onClick={() => setShowFullCalendar(false)}
+                className="w-full mt-3 py-1.5 bg-purple-900/50 hover:bg-purple-800/50 rounded-md text-sm font-medium text-purple-200"
+              >
+                Show Less ↑
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Five Life Aspects Section - Navigation Tabs */}
