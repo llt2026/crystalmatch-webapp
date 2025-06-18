@@ -70,6 +70,29 @@ temp-test.ts
 # 自动生成的类型声明
 *.d.ts.map
 
+# 忽略所有文档和配置示例文件
+*.md
+*.MD
+*.txt
+*.TXT
+*.doc
+*.docx
+*.pdf
+*.example
+*.sample
+*-example.*
+*-sample.*
+*-config-example.*
+*-setup.*
+*-guide.*
+*-checklist.*
+*-summary.*
+*-alert.*
+*-comparison.*
+
+# 保留必要的README文件
+!README.md
+
 # 忽略所有测试/调试类文档和脚本
 COMPLETE-TEST-GUIDE.md
 PAYPAL-TESTING-COMPARISON.md

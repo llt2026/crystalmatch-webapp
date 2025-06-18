@@ -1,15 +1,11 @@
 import { SubscriptionTier } from "../types/subscription";
-import { PrismaClient } from '@prisma/client';
-
-// 初始化Prisma客户端（实际项目中应使用全局单例实例）
-// 注意：此处创建的新实例仅用于演示，实际项目应使用共享实例
-const prisma = new PrismaClient();
+import { prisma } from './prisma'; // 使用全局单例
 
 // 报告缓存键的结构定义
-interface ReportCacheKey {
+export interface ReportCacheKey {
   userId: string;
   birthDate: string;  // ISO格式的日期字符串 YYYY-MM-DD
-  reportMonth: string; // 格式为 YYYY-MM
+  reportMonth: string; // 格式为美式日期，如 "June 2025"
   tier: SubscriptionTier;
 }
 
@@ -23,8 +19,8 @@ export function generateCacheKey(userId: string, birthDate: Date, currentDate: D
   // 格式化日期为ISO字符串并截取日期部分 YYYY-MM-DD
   const birthDateStr = birthDate.toISOString().split('T')[0];
   
-  // 获取年月作为报告月份 YYYY-MM
-  const reportMonth = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
+  // 使用美式日期格式，如 "June 2025"
+  const reportMonth = currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
   
   return {
     userId,

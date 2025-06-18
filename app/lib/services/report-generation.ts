@@ -1,5 +1,5 @@
 import { prisma } from '../prisma';
-import { saveReportToDatabase } from '../report-cache-service';
+import { saveReportToDatabase, type ReportCacheKey } from '../report-cache-service';
 import { generateMonthlyReportData } from '../mockReportData';
 
 export interface UserSubscriptionInfo {
@@ -97,7 +97,8 @@ export async function generateMonthlyReportForUser(
 
     // 3. 计算当前月份（报告月份）
     const now = new Date();
-    const reportMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    // 使用美式日期格式，如 "June 2025"
+    const reportMonth = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
     // 4. 检查是否已存在该月份和等级的报告
     const existingReport = await prisma.energyReportCache.findFirst({
@@ -126,7 +127,7 @@ export async function generateMonthlyReportForUser(
       birthDate,
       reportMonth,
       tier
-    };
+    } as ReportCacheKey;
 
     const saveSuccess = await saveReportToDatabase(cacheKey, report, energyContext);
     

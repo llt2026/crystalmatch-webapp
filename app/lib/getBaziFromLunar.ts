@@ -46,24 +46,21 @@ export function getBaziFromLunar(date: Date, hour: number = 12): {
       '丑': '土', '辰': '土', '未': '土', '戌': '土'
     };
     
-    // 创建Solar对象，默认为北京时间中午12点
-    // 使用中午时间可避免因时区问题导致的天干地支计算误差
+    // 创建Solar对象，使用正确的API
     const year = date.getFullYear();
     const month = date.getMonth() + 1; // JavaScript月份从0开始
     const day = date.getDate();
     
-    console.log(`转换为阳历: ${year}年${month}月${day}日`);
+    console.log(`转换为阳历: ${year}年${month}月${day}日${hour}时`);
     
     try {
-      // 创建Solar对象，包含具体小时
+      // 使用Solar.fromYmd创建Solar对象，然后通过Lunar.fromDate处理时间
       const solar = Solar.fromYmd(year, month, day);
-      // 设置时分秒
-      solar.setHour(hour);
-      solar.setMinute(0);
-      solar.setSecond(0);
       console.log(`成功创建Solar对象: ${solar.toString()}`);
       
-      const lunar = Lunar.fromSolar(solar);
+      // 创建包含完整时间信息的Date对象
+      const fullDate = new Date(year, month - 1, day, hour, 0, 0);
+      const lunar = Lunar.fromDate(fullDate);
       console.log(`成功创建Lunar对象: ${lunar.toString()}`);
       
       // 从lunar对象获取八字信息
