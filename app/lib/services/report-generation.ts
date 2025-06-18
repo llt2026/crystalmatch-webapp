@@ -69,7 +69,6 @@ export async function generateMonthlyReportForUser(
         id: true,
         name: true,
         email: true,
-        birthDate: true,
         birthInfo: true
       }
     });
@@ -78,19 +77,22 @@ export async function generateMonthlyReportForUser(
       return { success: false, error: 'User not found' };
     }
 
-    // 2. 获取生日信息
-    let birthDate: string;
-    if (user.birthDate) {
-      birthDate = user.birthDate;
-    } else if (user.birthInfo && typeof user.birthInfo === 'object') {
-      const birthInfo = user.birthInfo as any;
-      birthDate = birthInfo.date || birthInfo.birthdate;
-    } else {
-      return { success: false, error: 'User birth date not found' };
+    // 2. 提取生日信息（统一从 birthInfo 中解析）
+    let birthDate: string | undefined;
+    if (user.birthInfo) {
+      try {
+        const birthInfo = typeof user.birthInfo === 'string'
+          ? JSON.parse(user.birthInfo as unknown as string)
+          : (user.birthInfo as any);
+
+        birthDate = birthInfo.birthdate || birthInfo.date || birthInfo.birthDate;
+      } catch (e) {
+        console.error('Failed to parse birthInfo JSON:', e);
+      }
     }
 
     if (!birthDate) {
-      return { success: false, error: 'Birth date is required for report generation' };
+      return { success: false, error: 'User birth date not found' };
     }
 
     // 3. 计算当前月份（报告月份）
