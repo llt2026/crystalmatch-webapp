@@ -126,14 +126,17 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       }
     }).catch((err: unknown) => console.error('Failed to create log:', err));
     
-    // 如果用户升级为付费会员，自动生成报告
+    // 为付费会员生成报告（Plus升级Pro、续订等都应该生成新报告）
+    let reportResult = null;
     if (subscriptionStatus === 'plus' || subscriptionStatus === 'pro') {
       try {
+        console.log(`Generating report for user ${id} with subscription status: ${subscriptionStatus}`);
+        
         // 动态导入报告生成服务
         const { handleSubscriptionChange } = await import('@/app/lib/services/report-generation');
         
         // 生成报告
-        const reportResult = await handleSubscriptionChange(
+        reportResult = await handleSubscriptionChange(
           id,
           subscriptionStatus as 'plus' | 'pro'
         );
@@ -155,7 +158,9 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       success: true, 
       userId: id, 
       status: subscriptionStatus,
-      expiresAt
+      expiresAt,
+      reportGenerated: !!reportResult?.success,
+      reportId: reportResult?.reportId
     });
     
   } catch (error) {

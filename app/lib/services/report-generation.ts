@@ -101,9 +101,11 @@ export async function generateMonthlyReportForUser(
     const reportMonth = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
     // 4. 检查是否已存在该月份和等级的报告
+    const formattedBirthDate = new Date(birthDate).toISOString().split('T')[0]; // 确保格式一致
     const existingReport = await prisma.energyReportCache.findFirst({
       where: {
         userId,
+        birthDate: formattedBirthDate,
         reportMonth,
         tier,
         expiresAt: {
@@ -124,7 +126,7 @@ export async function generateMonthlyReportForUser(
     // 6. 保存到数据库
     const cacheKey = {
       userId,
-      birthDate,
+      birthDate: formattedBirthDate, // 使用相同的格式化生日
       reportMonth,
       tier
     } as ReportCacheKey;
@@ -139,6 +141,7 @@ export async function generateMonthlyReportForUser(
     const savedReport = await prisma.energyReportCache.findFirst({
       where: {
         userId,
+        birthDate: formattedBirthDate,
         reportMonth,
         tier,
         expiresAt: {
