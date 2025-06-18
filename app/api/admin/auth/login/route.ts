@@ -3,8 +3,8 @@ import jwt from 'jsonwebtoken';
 
 // In a production environment, admin credentials should be stored in a database
 // with properly hashed passwords
-const ADMIN_USERNAME = 'admin';
-const ADMIN_PASSWORD = 'CrystalMatch@2025'; // More secure password
+const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'default-password-change-me';
 const JWT_SECRET = process.env.JWT_SECRET || 'crystalmatch-secure-jwt-secret-key';
 
 export async function POST(request: Request) {

@@ -69,3 +69,10 @@ temp-test.ts
 
 # 自动生成的类型声明
 *.d.ts.map
+
+# 忽略所有测试/调试类文档和脚本
+COMPLETE-TEST-GUIDE.md
+PAYPAL-TESTING-COMPARISON.md
+TEST-SUMMARY.md
+VERCEL-ENV-CONFIG.md
+enable-real-mail.bat
