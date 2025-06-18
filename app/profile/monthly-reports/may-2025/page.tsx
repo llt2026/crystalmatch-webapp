@@ -1,5 +1,6 @@
 /**
- * May 2025 Monthly Deep Report Page - Pro Version
+ * May 2025 Monthly Deep Report Page - Pro Version Template
+ * 此报告作为Pro会员模板，包含所有完整功能
  */
 'use client';
 
@@ -568,7 +569,7 @@ function MayReportContent() {
       <div className="max-w-md mx-auto space-y-6">
         {/* Header */}
         <header className="text-center mb-8">
-          <h1 className="text-2xl font-bold">CrystalMatch Monthly Energy Report (Pro)</h1>
+          <h1 className="text-2xl font-bold">CrystalMatch Monthly Energy Report</h1>
           <p className="text-purple-300 mt-1">{
             gptReport.periodStart && gptReport.periodEnd ?
               `${formatDate(parseISO(gptReport.periodStart),'MMM d, yyyy')} - ${formatDate(parseISO(gptReport.periodEnd),'MMM d, yyyy')}` : 'Loading...'

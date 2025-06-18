@@ -5,13 +5,8 @@ import Link from 'next/link';
 import './styles.css';
 import { SUBSCRIPTION_FEATURES, SUBSCRIPTION_TIERS } from '@/app/lib/subscription-config';
 import Script from 'next/script';
-
-// 为PayPal添加全局声明
-declare global {
-  interface Window {
-    paypal: any;
-  }
-}
+// 引入PayPal类型声明
+import '@/app/types/paypal';
 
 export default function SubscriptionPage() {
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);

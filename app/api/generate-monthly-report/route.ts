@@ -1,8 +1,12 @@
+/**
+ * 月度报告生成API - 统一调用点
+ * 所有月度报告都使用此API生成，包括May 2025(Pro模板)和Apr 2025(Plus模板)
+ */
 import { NextRequest, NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
-import OpenAI from 'openai';
+// import OpenAI from 'openai';
 import { getOpenAiApiKey } from '@/app/lib/db.config';
 import { getFullEnergyContext } from '@/app/lib/getFullEnergyContext';
 import { buildMonthlyReportPrompt } from '@/app/lib/buildMonthlyReportPrompt';
@@ -27,12 +31,12 @@ if (!apiKey || !apiKey.startsWith('sk-') || apiKey.length < 50) {
   console.error('OpenAI API key format is incorrect or missing');
 }
 
-// Create OpenAI client
-const openai = new OpenAI({ 
-  apiKey: apiKey,
-  timeout: 90000,  // Longer timeout
-  maxRetries: 3    // Automatic retry count
-});
+// Create OpenAI client - 已禁用
+// const openai = new OpenAI({ 
+//   apiKey: apiKey,
+//   timeout: 90000,  // Longer timeout
+//   maxRetries: 3    // Automatic retry count
+// });
 
 interface PostBody {
   birthDate: string; // ISO
@@ -44,7 +48,7 @@ interface PostBody {
 }
 
 export async function POST(request: NextRequest) {
-  console.log('Received monthly report generation request');
+  console.log('Received monthly report generation request - DISABLED, USING MOCK DATA');
   
   try {
     const { birthDate, year, month, tier = 'free', forceRefresh = false, userId = 'anonymous' } = (await request.json()) as PostBody;
@@ -106,6 +110,7 @@ export async function POST(request: NextRequest) {
     const userElements = calculateUserElements(energyContext.bazi);
     console.log('User five elements calculation complete:', userElements);
 
+    // 构建提示词 - 仅用于记录，不会实际调用API
     const prompt = buildMonthlyReportPrompt({ 
       ...(energyContext as any), 
       userElements,
@@ -113,95 +118,95 @@ export async function POST(request: NextRequest) {
     });
     console.log('Prompt build successful, length:', prompt.length);
 
-    try {
-      const model = getModelForTier(safeTier);
-      const maxTokens = getMaxTokensForTier(safeTier);
-      console.log(`Using OpenAI to generate monthly report ${year}-${month}, membership tier: ${safeTier}, model: ${model}, max tokens: ${maxTokens}`);
-      
-      // Strictly check if API key is valid
-      if (!apiKey || apiKey.trim() === '') {
-        console.error('OpenAI API key not configured');
-        throw new Error('OpenAI API key not configured');
+    // 返回模拟数据
+    console.log('⚠️ OpenAI API调用已禁用，返回模拟数据');
+    
+    // 根据不同订阅等级返回不同复杂度的模拟数据
+    const mockContent = generateMockMonthlyReport(safeTier, month, year);
+    
+    return NextResponse.json({ 
+      report: mockContent,
+      debug: {
+        api_success: true,
+        content_length: mockContent.length,
+        model_used: getModelForTier(safeTier),
+        isMockData: true
       }
-      
-      if (!apiKey.startsWith('sk-')) {
-        console.error('OpenAI API key format is incorrect, should start with sk-');
-        throw new Error('OpenAI API key has invalid format, should start with sk-');
-      }
-      
-      if (apiKey.length < 40) {
-        console.error('OpenAI API key length is insufficient');
-        throw new Error('OpenAI API key length is too short');
-      }
-      
-      console.log('Starting OpenAI API call...');
-      const completion = await openai.chat.completions.create({
-        model: model,
-        max_tokens: maxTokens,
-        temperature: 0.8,
-        messages: [{ role: 'user', content: prompt }],
-      });
-      
-      const content = completion.choices[0].message?.content || '';
-      console.log(`✅ OpenAI API call successful! Generated report content length: ${content.length} characters`);
-      console.log('First 100 characters of report:', content.substring(0, 100));
-      
-      // Validate that generated content is valid
-      if (!content || content.length < 100) {
-        throw new Error('Generated content is too short or empty');
-      }
-      
-      return NextResponse.json({ 
-        report: content,
-        debug: {
-          api_success: true,
-          content_length: content.length,
-          model_used: model
-        }
-      });
-    } catch (err: any) {
-      console.error('❌ OpenAI API call failed:', err);
-      console.error('Error details:', {
-        message: err.message,
-        name: err.name,
-        code: err.code,
-        status: err.status,
-        type: err.type
-      });
-      
-      // In production, return error information directly without using mock data
-      console.error('API call error, returning error information');
-      
-      // Record detailed error information for debugging
-      const errorDetails = {
-        message: err.message,
-        code: err.code || 'unknown',
-        type: err.type || 'connection_error',
-        cause: err.cause?.code || 'unknown'
-      };
-      
-      console.log('Error details:', JSON.stringify(errorDetails));
-      
-      // Return standardized error response
-      return NextResponse.json({ 
-        error: 'api_error',
-        message: 'Report generation service is temporarily unavailable. Please try again later.',
-        details: {
-          error_type: err.name || 'unknown',
-          error_code: err.code || 'unknown',
-          request_id: Math.random().toString(36).substring(2, 15),
-          timestamp: new Date().toISOString()
-        }
-      }, { 
-        status: 503, // Service Unavailable is more appropriate for temporary issues
-        headers: {
-          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-          'Retry-After': '300' // Suggest retry after 5 minutes
-        }
-      });
-    }
+    });
   } catch (reqError: any) {
     console.error('Request processing error:', reqError);
     return NextResponse.json({ error: reqError.message, stack: reqError.stack?.substring(0, 500) }, { status: 500 });
   }
+}
+
+/**
+ * 生成模拟的月度报告内容
+ */
+function generateMockMonthlyReport(tier: SubscriptionTier, month: number, year: number): string {
+  const monthNames = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+  
+  const monthName = monthNames[month - 1];
+  
+  // 基础模拟内容
+  const baseContent = `# 🔮 ${monthName} ${year} — Monthly Energy Insights [模拟数据]
+
+## 💰 Money Flow (Finance & Career)
+This is mock data for finance and career insights. The actual OpenAI API call has been disabled to save costs. Your financial energy this month seems balanced with opportunities for growth. Consider focusing on long-term investments and career development.
+
+## 👥 Social Vibes (Relationships)
+This is mock data for relationship insights. The actual OpenAI API call has been disabled to save costs. Your social connections may strengthen this month. Take time to nurture important relationships and be open to new connections.
+
+## 🌙 Mood Balance (Emotional Well-being)
+This is mock data for emotional well-being insights. The actual OpenAI API call has been disabled to save costs. Your emotional energy shows potential for stability. Practice mindfulness and self-care to maintain balance.
+
+## 🔥 Body Fuel (Health & Vitality)
+This is mock data for health insights. The actual OpenAI API call has been disabled to save costs. Your physical energy may fluctuate this month. Focus on consistent exercise and proper nutrition to maintain vitality.
+
+## 🚀 Growth Track (Personal Growth)
+This is mock data for personal growth insights. The actual OpenAI API call has been disabled to save costs. Your growth potential is strong this month. Consider learning a new skill or starting a creative project.`;
+
+  // Pro版本添加更多详细内容
+  if (tier === 'pro') {
+    return baseContent + `
+
+## 🌟 Pro Exclusive: Weekly Energy Forecast
+### Week 1: Exploration
+This is a good time for trying new approaches and exploring possibilities.
+
+### Week 2: Consolidation
+Focus on strengthening what you've already started.
+
+### Week 3: Reflection
+Take time to evaluate progress and adjust plans as needed.
+
+### Week 4: Implementation
+Put insights into action with concrete steps forward.
+
+## 💎 Crystal Recommendations
+- **Green Aventurine**: For prosperity and opportunity
+- **Clear Quartz**: For clarity and focus
+- **Amethyst**: For spiritual growth and intuition
+
+## 🎨 Color Influences
+Primary colors for ${monthName}: Purple, Silver, and Deep Blue
+Avoid: Bright red and neon colors this month`;
+  }
+  
+  // Plus版本添加中等详细内容
+  if (tier === 'plus') {
+    return baseContent + `
+
+## 💎 Crystal Recommendation
+**Rose Quartz**: Carry this crystal to enhance emotional balance and relationship harmony this month.
+
+## 🌟 Key Dates
+- ${month}/10: Potential for unexpected opportunity
+- ${month}/22: Good day for important decisions`;
+  }
+  
+  // 免费版本仅返回基础内容
+  return baseContent;
 } 

@@ -1,4 +1,8 @@
-/** Monthly APR-2025 report (Pro, UI-only) */
+/** 
+ * Monthly APR-2025 report - Plus Version
+ * 注意：此报告使用与May 2025相同的API调用，作为Plus会员模板
+ * 原有的Apr 2025特定API调用已废弃
+ */
 'use client';
 
 export const dynamic = 'force-dynamic';
@@ -218,7 +222,7 @@ function ReportContent() {
     <main className="min-h-screen bg-gradient-to-br from-purple-900 to-black py-8 px-4 text-white">
       <div className="max-w-md mx-auto space-y-6">
         <header className="text-center mb-8">
-          <h1 className="text-2xl font-bold">CrystalMatch Monthly Energy Report (Pro)</h1>
+          <h1 className="text-2xl font-bold">CrystalMatch Monthly Energy Report</h1>
           <p className="text-purple-300 mt-1">
             {gpt.periodStart && gpt.periodEnd 
               ? `${gpt.periodStart} - ${gpt.periodEnd}` 

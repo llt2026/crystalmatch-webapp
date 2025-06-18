@@ -25,7 +25,7 @@ if (process.env.NODE_ENV === 'production' && process.env.NEXT_PHASE === 'phase-p
 export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
-import OpenAI from 'openai';
+// import OpenAI from 'openai';
 import { getOpenAiApiKey } from '@/app/lib/db.config';
 import { getFullEnergyContext } from '@/app/lib/getFullEnergyContext';
 import { SubscriptionTier } from '@/app/types/subscription';
@@ -126,10 +126,10 @@ function generateCacheKey(userId: string, birthDateTime: Date, currentDate: Date
   return `${userId}_${birthDateTime.toISOString()}_${currentDate.toISOString()}_${tier}`;
 }
 
-// 初始化OpenAI客户端
-const openai = new OpenAI({
-  apiKey: getOpenAiApiKey(),
-});
+// 初始化OpenAI客户端 - 已禁用
+// const openai = new OpenAI({
+//   apiKey: getOpenAiApiKey(),
+// });
 
 /**
  * 从请求或会话中获取用户的订阅级别
@@ -176,8 +176,11 @@ async function updateUserRequestCount(userId: string): Promise<void> {
 /**
  * 生成能量报告的API端点
  * 接收出生日期，使用八字计算和当前能量数据生成综合分析
+ * 注意：此API已禁用实际OpenAI调用，改为返回模拟数据
  */
 export async function POST(request: NextRequest) {
+  console.log('⚠️ OpenAI API调用已禁用，使用模拟数据');
+  
   // 如果正处于 Vercel 的 production build 阶段，直接跳过
   if (process.env.VERCEL && process.env.NEXT_PHASE === 'phase-production-build') {
     return NextResponse.json({ status: 'skipped during build' });
@@ -248,81 +251,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Failed to calculate energy context" }, { status: 500 });
     }
     
-    // 开始生成能量报告
-    try {
-      // 检查API密钥
-      if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === 'sk-your-openai-api-key') {
-        console.error('未配置有效的OpenAI API密钥，无法生成报告');
-        return NextResponse.json({ 
-          error: "OpenAI API key not configured or invalid", 
-          tier: subscriptionTier,
-          fromCache: false
-        }, { status: 500 });
-      }
-      
-      console.log('正在生成新报告，调用OpenAI API...');
-      
-      // 根据订阅级别获取适合的提示词
-      const prompt = generatePromptTemplate(subscriptionTier, energyContext);
-      
-      // 获取适合订阅级别的模型和token限制
-      const model = getModelForTier(subscriptionTier);
-      const maxTokens = getMaxTokensForTier(subscriptionTier);
-      
-      // 调用OpenAI API
-      const completion = await openai.chat.completions.create({
-        model: model,
-        messages: [
-          {
-            role: "system", 
-            content: normalizeSubscriptionTier(subscriptionTier) === 'pro' ? 
-              "你是一位精通八字和能量分析的高级咨询师，专长于提供深度年度能量预测和个性化指导。你的分析极其全面，包含季度能量变化、关键日期和高级能量平衡方法。请提供详尽的年度能量报告，重点关注用户的能量周期、关键转折点和个性化的平衡策略。" : 
-              "你是一位专业的能量咨询师，擅长分析八字和当前能量，给予用户实用的能量平衡建议。"
-          },
-          { 
-            role: "user", 
-            content: prompt 
-          }
-        ],
-        temperature: 0.7,
-        max_tokens: maxTokens,
-      });
-      
-      // 处理回复
-      const content = completion.choices[0].message.content || '';
-      
-      // 解析回复内容
-      const report = parseGptResponse(content, energyContext, subscriptionTier);
-      
-      // 保存报告到数据库/缓存
-      console.log('保存报告到数据库/缓存...');
-      await saveReportToDatabase(cacheKey, report, energyContext);
-      
-      // 更新用户的请求次数（实际项目中需要更新数据库）
-      await updateUserRequestCount(userId);
-      
-      return NextResponse.json({ 
-        report,
-        energyContext,
-        tier: normalizeSubscriptionTier(subscriptionTier),
-        fromCache: false,
-        usage: {
-          total: userRequestCount + 1,
-          remaining: normalizeSubscriptionTier(subscriptionTier) === 'free' ? 3 - (userRequestCount + 1) : null
-        }
-      });
-      
-    } catch (apiError) {
-      console.error('OpenAI API调用错误:', apiError);
-      
-      // 返回错误信息，不再生成模拟数据
-      return NextResponse.json({ 
-        error: "Error calling OpenAI API. Please try again later.", 
-        message: apiError instanceof Error ? apiError.message : "Unknown error",
-        tier: subscriptionTier,
-        fromCache: false
-      }, { status: 500 });
-    }
+    // 生成模拟报告
+    const report = generateMockReport(energyContext, normalizeSubscriptionTier(subscriptionTier));
+    
+    // 保存报告到数据库/缓存
+    console.log('保存报告到数据库/缓存...');
+    await saveReportToDatabase(cacheKey, report, energyContext);
+    
+    // 更新用户的请求次数（实际项目中需要更新数据库）
+    await updateUserRequestCount(userId);
+    
+    return NextResponse.json({ 
+      report,
+      energyContext,
+      tier: normalizeSubscriptionTier(subscriptionTier),
+      fromCache: false,
+      usage: {
+        total: userRequestCount + 1,
+        remaining: normalizeSubscriptionTier(subscriptionTier) === 'free' ? 3 - (userRequestCount + 1) : null
+      },
+      isMockData: true
+    });
     
   } catch (error) {
     console.error('处理请求出错:', error);
@@ -331,464 +280,35 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * 解析GPT响应，提取结构化信息
+ * 生成模拟报告
  */
-function parseGptResponse(content: string, context: any, tier: SubscriptionTier): any {
-  // 标准化会员类型
-  const normalizedTier = normalizeSubscriptionTier(tier);
-  
-  // 分割段落
-  const paragraphs = content.split('\n\n').filter(p => p.trim() !== '');
-  
-  // 基本结构化数据
-  const result: any = {
-    analysis: '',
-    monthlyTips: [],
-    crystalRecommendations: [],
-    rawContent: content
-  };
-  
-  // 添加订阅特有字段
-  if (normalizedTier === 'plus' || normalizedTier === 'pro') {
-    result.energyCycle = '';
-    result.energyMethods = [];
-    result.rituals = [];
-  }
-  
-  // 添加年度订阅特有的字段
-  if (normalizedTier === 'pro') {
-    result.keyDates = [];
-    result.strengths = [];
-    result.challenges = [];
-    result.quarterlyForecast = '';
-    result.balancingPlan = [];
-    result.advancedRituals = [];
-    result.crystalPlan = {};
-  }
-  
-  // 解析逻辑 - 免费版
-  if (normalizedTier === 'free') {
-    // 为新的英文格式提示词添加解析逻辑
-    // 尝试提取能量分析段落（第一部分）
-    const paragraphs = content.split('\n\n').filter(p => p.trim() !== '');
-    if (paragraphs.length > 0) {
-      // 第一个非表格的段落通常是能量分析
-      for (const para of paragraphs) {
-        if (!para.includes('|') && !para.includes('Month') && para.length > 20) {
-          result.analysis = para.trim();
-          break;
-        }
-      }
-    }
-    
-    // 尝试提取水晶推荐
-    const crystalMatch = content.match(/([A-Za-z\s]+crystal[^\.]+\.)/i) || 
-                         content.match(/([A-Za-z\s]+ crystal[^\.]+\.)/i) ||
-                         content.match(/([A-Za-z\s]+\w+ite[^\.]+\.)/i) ||
-                         content.match(/([A-Za-z\s]+\w+yst[^\.]+\.)/i);
-    if (crystalMatch) {
-      result.crystalRecommendations = [crystalMatch[0].trim()];
-    }
-    
-    // 尝试提取月度能量表格
-    const tableMatch = content.match(/Month\s*\|\s*Energy Type\s*\|\s*Score[\s\S]*?(?=\n\n|$)/i);
-    if (tableMatch) {
-      const tableLines = tableMatch[0].split('\n').filter(line => line.includes('|'));
-      // 从表格中提取月度提示
-      result.monthlyTips = tableLines.slice(1).map(line => {
-        const parts = line.split('|').map(p => p.trim());
-        if (parts.length >= 3) {
-          return `${parts[0]}: ${parts[1]} (${parts[2]})`;
-        }
-        return line.trim();
-      });
-    }
-  }
-  
-  // 解析逻辑 - 月度订阅 (新版本 - 英文格式)
-  else if (normalizedTier === 'plus') {
-    // 尝试提取12个月能量表格
-    const tableMatch = content.match(/Month\s*\|\s*Energy Type\s*\|\s*Score[\s\S]*?(?=\n\n|$)/i);
-    if (tableMatch) {
-      const tableLines = tableMatch[0].split('\n').filter(line => line.includes('|'));
-      // 从表格中提取月度提示
-      result.monthlyTips = tableLines.slice(1).map(line => {
-        const parts = line.split('|').map(p => p.trim());
-        if (parts.length >= 3) {
-          return `${parts[0]}: ${parts[1]} (${parts[2]})`;
-        }
-        return line.trim();
-      });
-    }
-    
-    // 尝试提取当前月份深入洞察
-    const insightMatch = content.match(/Current-Month Deep Insight[\s\S]*?(?=\n\n---|\n---|\n\n\n|$)/i);
-    if (insightMatch) {
-      const insightText = insightMatch[0].trim();
-      
-      // 提取情绪和焦点段落
-      const emotionMatch = insightText.match(/(?:emotions|focus|describing)[\s\S]*?(?=\d+\.|[A-Za-z]+\s*crystal|recommended crystals|energy-boost|lucky color|$)/i);
-      if (emotionMatch) {
-        result.analysis = emotionMatch[0].replace(/^[a-z]\.\s*/i, '').trim();
-      }
-      
-      // 提取水晶推荐
-      const crystalMatch = insightText.match(/(?:crystal|crystals)[^\.]+\.[^\.]+\./gi);
-      if (crystalMatch) {
-        result.crystalRecommendations = crystalMatch.map(c => c.trim());
-      } else {
-        // 尝试其他格式的水晶推荐
-        const altCrystalMatch = insightText.match(/([A-Za-z\s]+crystal[^\.]+\.)/i) || 
-                               insightText.match(/([A-Za-z\s]+ crystal[^\.]+\.)/i);
-        if (altCrystalMatch) {
-          result.crystalRecommendations = [altCrystalMatch[0].trim()];
-        }
-      }
-      
-      // 提取能量提升行动
-      const actionsMatch = insightText.match(/(?:energy-boost actions|simple energy-boost)[\s\S]*?(?=lucky color|daily energy|$)/i);
-      if (actionsMatch) {
-        const actionsText = actionsMatch[0].replace(/^[a-z]\.\s*(?:energy-boost actions|simple energy-boost)[^:]*:\s*/i, '').trim();
-        result.energyMethods = actionsText.split(/\d+\.|\n/).filter(s => s.trim()).map(a => a.trim());
-      }
-      
-      // 提取幸运色彩/穿着氛围
-      const colorMatch = insightText.match(/lucky color[\s\S]*?(?=daily energy|sample daily|$)/i);
-      if (colorMatch) {
-        const colorText = colorMatch[0].replace(/^[a-z]\.\s*lucky color[^:]*:\s*/i, '').trim();
-        // 添加到能量方法中
-        result.energyMethods.push(`Lucky color/outfit: ${colorText}`);
-      }
-      
-      // 提取每日能量提醒
-      const remindersMatch = insightText.match(/(?:daily energy reminders|sample daily)[\s\S]*?$/i);
-      if (remindersMatch) {
-        const remindersText = remindersMatch[0].replace(/^[a-z]\.\s*(?:daily energy reminders|sample daily)[^:]*:\s*/i, '').trim();
-        result.rituals = remindersText.split(/\d+\.|\n/).filter(s => s.trim()).map(r => r.trim());
-      }
-    }
-    
-    // 如果没有找到当前月份深入洞察，尝试从整个内容中提取
-    if (!result.analysis) {
-      // 尝试提取第一个非表格的段落作为分析
-      for (const para of paragraphs) {
-        if (!para.includes('|') && !para.includes('Month') && para.length > 20) {
-          result.analysis = para.trim();
-          break;
-        }
-      }
-    }
-  }
-  
-  // 解析逻辑 - 年度订阅
-  else if (normalizedTier === 'pro') {
-    // 尝试提取年度总结
-    const yearSummaryMatch = content.match(/Year Summary[\s\S]*?(?=Quarter Snapshots|$)/i);
-    if (yearSummaryMatch) {
-      result.yearSummary = yearSummaryMatch[0].replace(/^[A-Z]\.\s*\*\*Year Summary\*\*\s*/i, '').trim();
-      // 主要分析部分作为analysis字段
-      result.analysis = result.yearSummary;
-    }
-    
-    // 尝试提取季度快照
-    const quarterMatch = content.match(/Quarter Snapshots[\s\S]*?(?=12-Month Summary|$)/i);
-    if (quarterMatch) {
-      const quarterText = quarterMatch[0].replace(/^[A-Z]\.\s*\*\*Quarter Snapshots\*\*\s*\(Q1-Q4\)\s*/i, '').trim();
-      
-      // 提取每个季度的快照
-      const q1Match = quarterText.match(/Q1[^:]*:([^Q]*)/i);
-      const q2Match = quarterText.match(/Q2[^:]*:([^Q]*)/i);
-      const q3Match = quarterText.match(/Q3[^:]*:([^Q]*)/i);
-      const q4Match = quarterText.match(/Q4[^:]*:([^Q]*)/i);
-      
-      result.quarterSnapshots = [
-        q1Match ? `Q1: ${q1Match[1].trim()}` : '',
-        q2Match ? `Q2: ${q2Match[1].trim()}` : '',
-        q3Match ? `Q3: ${q3Match[1].trim()}` : '',
-        q4Match ? `Q4: ${q4Match[1].trim()}` : ''
-      ].filter(q => q);
-      
-      // 季度预测作为quarterlyForecast字段
-      result.quarterlyForecast = result.quarterSnapshots.join('\n\n');
-    }
-    
-    // 尝试提取月度总结表格
-    const tableMatch = content.match(/Month\s*\|\s*Energy Type\s*\|\s*Score\s*\|\s*Primary Focus\s*\|\s*.*?Crystals\s*\|\s*Simple Ritual[\s\S]*?(?=Key Energy Days|$)/i);
-    if (tableMatch) {
-      const tableText = tableMatch[0];
-      const tableLines = tableText.split('\n').filter(line => line.includes('|'));
-      
-      // 解析表格内容
-      let currentMonth = '';
-      let bridgeTip = '';
-      
-      for (let i = 1; i < tableLines.length; i++) {
-        const line = tableLines[i];
-        
-        // 检查是否是月份行或桥接提示行
-        if (line.match(/^\s*\|\s*[A-Za-z]+\s*\|/i)) {
-          // 月份行
-          const parts = line.split('|').map(p => p.trim()).filter(p => p);
-          if (parts.length >= 5) {
-            currentMonth = parts[0];
-            
-            // 添加到月度提示
-            result.monthlyTips.push(`${parts[0]}: ${parts[1]} (${parts[2]})`);
-            
-            // 添加到月度总结表格
-            result.monthSummaryTable.push({
-              month: parts[0],
-              energyType: parts[1],
-              score: parts[2],
-              focus: parts[3],
-              crystals: parts[4],
-              ritual: parts.length > 5 ? parts[5] : ''
-            });
-            
-            // 从水晶列中提取水晶推荐
-            const crystalText = parts[4];
-            if (crystalText && !result.crystalRecommendations.includes(crystalText)) {
-              result.crystalRecommendations.push(crystalText);
-            }
-          }
-        } else if (line.match(/^\s*\|\s*Bridge\s*➜/i)) {
-          // 桥接提示行
-          bridgeTip = line.replace(/^\s*\|\s*Bridge\s*➜\s*/i, '').replace(/\|\s*$/i, '').trim();
-          
-          // 将桥接提示添加到上一个月的记录中
-          if (result.monthSummaryTable.length > 0) {
-            result.monthSummaryTable[result.monthSummaryTable.length - 1].bridgeTip = bridgeTip;
-          }
-        }
-      }
-    }
-    
-    // 尝试提取关键能量日期
-    const keyDaysMatch = content.match(/Key Energy Days[\s\S]*?(?=Navigation Note|$)/i);
-    if (keyDaysMatch) {
-      const keyDaysText = keyDaysMatch[0].replace(/^[A-Z]\.\s*\*\*Key Energy Days\*\*\s*/i, '').trim();
-      
-      // 提取高能量日和低能量日
-      const highDaysMatch = keyDaysText.match(/High-Power Days?[^:]*:([^Low]*)/i);
-      const lowDaysMatch = keyDaysText.match(/Low-Energy[^:]*:([^$]*)/i);
-      
-      if (highDaysMatch) {
-        const highDays = highDaysMatch[1].trim().split(/\d+\.|\n/).filter(s => s.trim()).map(d => `High: ${d.trim()}`);
-        result.keyDates = [...result.keyDates, ...highDays];
-      }
-      
-      if (lowDaysMatch) {
-        const lowDays = lowDaysMatch[1].trim().split(/\d+\.|\n/).filter(s => s.trim()).map(d => `Low: ${d.trim()}`);
-        result.keyDates = [...result.keyDates, ...lowDays];
-      }
-      
-      // 保存完整的关键能量日文本
-      result.keyEnergyDays = keyDaysText;
-    }
-    
-    // 尝试提取导航说明
-    const navMatch = content.match(/Navigation Note[\s\S]*?$/i);
-    if (navMatch) {
-      result.navigationNote = navMatch[0].replace(/^[A-Z]\.\s*\*\*Navigation Note\*\*\s*/i, '').trim();
-    }
-    
-    // 从年度总结中提取优势和挑战
-    if (result.yearSummary) {
-      // 尝试提取优势
-      const strengthsMatch = result.yearSummary.match(/opportunities?[^\.]+\./i);
-      if (strengthsMatch) {
-        result.strengths = [strengthsMatch[0].trim()];
-      }
-      
-      // 尝试提取挑战
-      const challengesMatch = result.yearSummary.match(/challenges?[^\.]+\./i);
-      if (challengesMatch) {
-        result.challenges = [challengesMatch[0].trim()];
-      }
-      
-      // 尝试提取平衡建议
-      const balanceMatch = result.yearSummary.match(/balancing[^\.]+\./i);
-      if (balanceMatch) {
-        result.balancingPlan = [balanceMatch[0].trim()];
-      }
-    }
-  }
-  
-  // 如果未能正确解析，提取第一段作为分析
-  if (!result.analysis && paragraphs.length > 0) {
-    result.analysis = paragraphs[0];
-  }
-  
-  // 为确保各订阅级别有默认值
-  const defaultValues = {
-    free: {
-      analysis: 'Your dominant element creates a strong foundation for growth in 2025, while your missing element presents an opportunity for balance through intentional practices.',
-      monthlyTips: [
-        'January: Growth Energy (75)',
-        'February: Passion Energy (60)',
-        'March: Stability Energy (80)'
-      ],
-      crystalRecommendations: ['Clear Quartz: Amplifies your natural energy while helping to balance areas where you may feel depleted.']
-    },
-    plus: {
-      analysis: 'This month brings a blend of creative inspiration and practical focus. Your natural Wood energy resonates well with May\'s growth patterns, making this an excellent time for new projects and personal development.',
-      energyCycle: 'May shows strong energy peaks around the 15th and 22nd, perfect for important decisions or starting new initiatives.',
-      energyMethods: [
-        'Morning sun meditation: Spend 5 minutes facing the sunrise with eyes closed, breathing deeply to activate your personal energy field',
-        'Green tea ritual: Replace one coffee with green tea daily, sipping slowly while visualizing your goals',
-        'Lucky color/outfit: Wear emerald green or turquoise accessories for enhanced communication and creativity'
-      ],
-      rituals: [
-        'Remember that your sensitivity is actually your superpower today',
-        'Trust your intuition when making decisions - your inner compass is calibrated correctly',
-        'Your energy affects others more than you realize - set positive intentions before meetings'
-      ],
-      crystalRecommendations: [
-        'Green Aventurine: Amplifies growth energy and attracts new opportunities in both career and relationships',
-        'Clear Quartz: Clarifies thinking and amplifies your intentions during this high-potential month'
-      ]
-    },
-    pro: {
-      yearSummary: '2025 brings a powerful blend of Wood and Water energies that align well with your dominant Wood element, creating opportunities for growth and expansion in both personal and professional realms. The first half of the year emphasizes creative projects and relationship building, while the second half shifts toward implementation and consolidation of gains. To balance your missing Water element, establish a consistent meditation practice with blue crystals nearby, ideally near a small water feature in your home or office.',
-      quarterSnapshots: [
-        'Q1: Strong creative energy with peaks in February. Focus on brainstorming and laying foundations for major projects.',
-        'Q2: Communication and networking phase. Excellent for presentations, negotiations, and forming new partnerships.',
-        'Q3: Implementation period with steady energy. Convert plans into concrete actions and establish routines.',
-        'Q4: Reflection and consolidation. Evaluate progress, celebrate achievements, and prepare for next year\'s energy shifts.'
-      ],
-      analysis: '2025 brings a powerful blend of Wood and Water energies that align well with your dominant Wood element, creating opportunities for growth and expansion in both personal and professional realms. The first half of the year emphasizes creative projects and relationship building, while the second half shifts toward implementation and consolidation of gains. To balance your missing Water element, establish a consistent meditation practice with blue crystals nearby, ideally near a small water feature in your home or office.',
-      monthlyTips: [
-        'January: Growth Energy (75)',
-        'February: Passion Energy (82)',
-        'March: Stability Energy (68)'
-      ],
-      keyDates: [
-        'High: February 15 - Peak creative energy, ideal for launching important projects',
-        'High: May 8 - Strong communication energy, perfect for presentations or negotiations',
-        'Low: August 22 - Energy dip, schedule lighter workload and prioritize rest'
-      ],
-      strengths: ['Opportunities for growth and expansion in both personal and professional realms.'],
-      challenges: ['Balancing your missing Water element requires consistent attention.'],
-      quarterlyForecast: 'Q1: Strong creative energy with peaks in February. Focus on brainstorming and laying foundations for major projects.\n\nQ2: Communication and networking phase. Excellent for presentations, negotiations, and forming new partnerships.\n\nQ3: Implementation period with steady energy. Convert plans into concrete actions and establish routines.\n\nQ4: Reflection and consolidation. Evaluate progress, celebrate achievements, and prepare for next year\'s energy shifts.',
-      balancingPlan: ['To balance your missing Water element, establish a consistent meditation practice with blue crystals nearby, ideally near a small water feature in your home or office.'],
-      crystalRecommendations: [
-        'Blue Lace Agate: Enhances communication and brings calming water energy',
-        'Green Aventurine: Amplifies growth and opportunity in career matters',
-        'Citrine: Boosts confidence and manifestation power during key decision points'
-      ],
-      monthSummaryTable: [
-        {
-          month: 'January',
-          energyType: 'Growth',
-          score: '75',
-          focus: 'Planning & Vision',
-          crystals: 'Clear Quartz',
-          ritual: 'Morning intention setting',
-          bridgeTip: 'Bridge ➜ Prepare for February\'s creative surge by clearing your schedule for deep work.'
-        },
-        {
-          month: 'February',
-          energyType: 'Passion',
-          score: '82',
-          focus: 'Creative Projects',
-          crystals: 'Carnelian',
-          ritual: 'Candle meditation',
-          bridgeTip: 'Bridge ➜ Document February\'s creative insights to implement during March\'s stable energy.'
-        }
-      ],
-      navigationNote: 'Tap any month to open its full in-depth report.',
-      energyCycle: '',
-      energyMethods: [],
-      rituals: [],
-      advancedRituals: [],
-      crystalPlan: {
-        crystals: [],
-        usage: '',
-        cleansing: '',
-        placement: ''
-      },
-      growthPath: ''
-    }
-  };
-  
-  // 根据订阅级别补充默认值
-  if (normalizedTier === 'free') {
-    if (!result.analysis) result.analysis = defaultValues.free.analysis;
-    if (result.monthlyTips.length === 0) result.monthlyTips = defaultValues.free.monthlyTips;
-    if (result.crystalRecommendations.length === 0) result.crystalRecommendations = defaultValues.free.crystalRecommendations;
-  } else if (normalizedTier === 'plus') {
-    if (!result.analysis) result.analysis = defaultValues.plus.analysis;
-    if (!result.energyCycle) result.energyCycle = defaultValues.plus.energyCycle;
-    if (result.monthlyTips.length === 0) result.monthlyTips = defaultValues.free.monthlyTips;
-    if (result.energyMethods.length === 0) result.energyMethods = defaultValues.plus.energyMethods;
-    if (result.rituals.length === 0) result.rituals = defaultValues.plus.rituals;
-    if (result.crystalRecommendations.length === 0) result.crystalRecommendations = defaultValues.plus.crystalRecommendations;
-  } else if (normalizedTier === 'pro') {
-    if (!result.analysis) result.analysis = defaultValues.pro.analysis;
-    if (!result.yearSummary) result.yearSummary = defaultValues.pro.yearSummary;
-    if (result.quarterSnapshots.length === 0) result.quarterSnapshots = defaultValues.pro.quarterSnapshots;
-    if (result.monthlyTips.length === 0) result.monthlyTips = defaultValues.pro.monthlyTips;
-    if (result.keyDates.length === 0) result.keyDates = defaultValues.pro.keyDates;
-    if (result.strengths.length === 0) result.strengths = defaultValues.pro.strengths;
-    if (result.challenges.length === 0) result.challenges = defaultValues.pro.challenges;
-    if (!result.quarterlyForecast) result.quarterlyForecast = defaultValues.pro.quarterlyForecast;
-    if (result.balancingPlan.length === 0) result.balancingPlan = defaultValues.pro.balancingPlan;
-    if (result.crystalRecommendations.length === 0) result.crystalRecommendations = defaultValues.pro.crystalRecommendations;
-    if (result.monthSummaryTable.length === 0) result.monthSummaryTable = defaultValues.pro.monthSummaryTable;
-    if (!result.navigationNote) result.navigationNote = defaultValues.pro.navigationNote;
-    if (!result.energyCycle) result.energyCycle = defaultValues.pro.energyCycle;
-    if (result.energyMethods.length === 0) result.energyMethods = defaultValues.pro.energyMethods;
-    if (result.rituals.length === 0) result.rituals = defaultValues.pro.rituals;
-    if (result.advancedRituals.length === 0) result.advancedRituals = defaultValues.pro.advancedRituals;
-    if (!result.crystalPlan || Object.keys(result.crystalPlan).length === 0) {
-      result.crystalPlan = defaultValues.pro.crystalPlan;
-    } else {
-      if (!result.crystalPlan.crystals || result.crystalPlan.crystals.length === 0) {
-        result.crystalPlan.crystals = defaultValues.pro.crystalPlan.crystals;
-      }
-      if (!result.crystalPlan.usage) result.crystalPlan.usage = defaultValues.pro.crystalPlan.usage;
-      if (!result.crystalPlan.cleansing) result.crystalPlan.cleansing = defaultValues.pro.crystalPlan.cleansing;
-      if (!result.crystalPlan.placement) result.crystalPlan.placement = defaultValues.pro.crystalPlan.placement;
-    }
-    if (!result.growthPath) result.growthPath = defaultValues.pro.growthPath;
-  }
-  
-  return result;
-}
-
-// 删除generateMockReport函数的整个实现，但保留函数声明，以避免破坏其他引用
 function generateMockReport(context: any, tier: SubscriptionTier): any {
-  console.error('尝试使用已禁用的模拟数据功能');
-  // 返回一个最小化的错误报告对象
-  return {
-    error: "Mock data generation is disabled. Please configure a valid OpenAI API key.",
-    analysis: "Error: Mock data generation is disabled.",
-    monthlyTips: ["Error: Mock data is no longer available."],
-    crystalRecommendations: ["Error: Please configure OpenAI API key for real data."]
+  const mockReport = {
+    title: "能量报告 [模拟数据]",
+    overview: "这是一个模拟的能量报告，实际API调用已禁用以节省费用。",
+    energyScore: Math.floor(Math.random() * 30) + 70,
+    elements: {
+      wood: Math.floor(Math.random() * 30) + 60,
+      fire: Math.floor(Math.random() * 30) + 50,
+      earth: Math.floor(Math.random() * 30) + 40,
+      metal: Math.floor(Math.random() * 30) + 30,
+      water: Math.floor(Math.random() * 30) + 20
+    },
+    insights: "这是模拟的洞察内容，实际API调用已禁用以节省费用。",
+    recommendations: [
+      "这是模拟的建议1，实际API调用已禁用以节省费用。",
+      "这是模拟的建议2，实际API调用已禁用以节省费用。",
+      "这是模拟的建议3，实际API调用已禁用以节省费用。"
+    ]
   };
+  
+  return mockReport;
 }
 
 /**
- * 处理会员类型兼容性，将旧版类型名称转换为新版
- * @param tier 会员类型，可能是新版或旧版名称
- * @returns 标准化的会员类型('free', 'plus', 'pro')
+ * 标准化订阅等级
  */
 function normalizeSubscriptionTier(tier: string): SubscriptionTier {
-  if (!tier) return 'free';
-  
-  const tierLower = tier.toLowerCase();
-  
-  // 精确匹配plus和pro
-  if (tierLower === 'plus') return 'plus';
-  if (tierLower === 'pro') return 'pro';
-  
-  // 特殊情况处理，可能的historical值
-  if (tierLower.includes('premium') || tierLower.includes('yearly')) return 'pro';
-  if (tierLower.includes('monthly')) return 'plus';
-  
-  // 默认返回免费会员
-  return 'free';
-}
-
-// 在进行比较前使用此函数处理会员类型
-// 例如: if (normalizeSubscriptionTier(tier) === 'plus') { ... } 
+  const validTiers: SubscriptionTier[] = ['free', 'plus', 'pro'];
+  return validTiers.includes(tier as SubscriptionTier) ? tier as SubscriptionTier : 'free';
+} 

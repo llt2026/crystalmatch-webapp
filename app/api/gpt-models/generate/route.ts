@@ -1,45 +1,21 @@
 /**
  * GPT模型生成API端点
  * 处理不同模型的内容生成请求
+ * 注意：此API已禁用实际OpenAI调用，改为返回模拟数据
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import OpenAI from 'openai';
+// import OpenAI from 'openai';
+
+// 定义消息类型
+interface Message {
+  role: string;
+  content: string;
+}
 
 export async function POST(request: NextRequest) {
   try {
-    // 检查API密钥
-    const apiKey = process.env.OPENAI_API_KEY;
-    if (!apiKey) {
-      console.error('OPENAI_API_KEY environment variable is not set');
-      return NextResponse.json(
-        { error: 'OpenAI API key not configured' },
-        { status: 500 }
-      );
-    }
-
-    // 验证API密钥格式
-    if (!apiKey.startsWith('sk-')) {
-      console.error('OPENAI_API_KEY does not start with sk-:', apiKey.substring(0, 10) + '...');
-      return NextResponse.json(
-        { error: 'Invalid OpenAI API key format' },
-        { status: 500 }
-      );
-    }
-
-    // 记录API密钥信息（隐藏敏感部分）
-    console.log('OpenAI API key info:', {
-      length: apiKey.length,
-      prefix: apiKey.substring(0, 7),
-      suffix: apiKey.substring(apiKey.length - 4)
-    });
-
-    // 在函数内部创建OpenAI客户端，确保使用最新的环境变量
-    const openai = new OpenAI({
-      apiKey: apiKey,
-      timeout: 60000, // 60秒超时
-      maxRetries: 3,   // 重试3次
-    });
+    console.log('⚠️ GPT模型生成API已禁用实际OpenAI调用，使用模拟数据');
     
     // 解析请求数据
     const requestData = await request.json();
@@ -57,72 +33,35 @@ export async function POST(request: NextRequest) {
     const temperature = requestData.temperature ?? 0.7;
     const maxTokens = requestData.max_tokens || 2000;
     
-    console.log(`Calling OpenAI API with model: ${model}, maxTokens: ${maxTokens}`);
-    console.log(`Request will be sent to: https://api.openai.com/v1/chat/completions`);
+    console.log(`模拟调用OpenAI API: model=${model}, maxTokens=${maxTokens}, temperature=${temperature}`);
     
-    try {
-      // 调用OpenAI API
-      const completion = await openai.chat.completions.create({
-        model,
-        messages: requestData.messages,
-        temperature,
-        max_tokens: maxTokens,
-        user: requestData.user || 'anonymous'
-      });
-      
-      // 提取结果
-      const content = completion.choices[0]?.message?.content || '';
-      
-      console.log(`OpenAI API call successful, content length: ${content.length}`);
-      
-      // 返回响应
-      return NextResponse.json({
-        content,
-        model: completion.model,
-        promptTokens: completion.usage?.prompt_tokens || 0,
-        completionTokens: completion.usage?.completion_tokens || 0,
-        totalTokens: completion.usage?.total_tokens || 0
-      });
-    } catch (openaiError: any) {
-      console.error('OpenAI API error details:', {
-        message: openaiError.message,
-        status: openaiError.status,
-        code: openaiError.code,
-        type: openaiError.type,
-        error: openaiError.error,
-        stack: openaiError.stack?.substring(0, 500)
-      });
-      
-      // 特别处理认证错误
-      if (openaiError.status === 401) {
-        return NextResponse.json({ 
-          error: 'authentication_error',
-          message: 'OpenAI API authentication failed. Please check your API key.',
-          details: {
-            status: 401,
-            type: 'invalid_api_key',
-            suggestion: 'Verify that your OpenAI API key is correctly set in environment variables',
-            apiKeyInfo: {
-              exists: !!apiKey,
-              length: apiKey?.length,
-              prefix: apiKey?.substring(0, 7),
-              startsWithSk: apiKey?.startsWith('sk-')
-            }
-          }
-        }, { status: 500 }); // 对外返回500，不暴露内部401
-      }
-      
-      // 确保返回有效的JSON错误响应
-      return NextResponse.json({ 
-        error: 'openai_error',
-        message: openaiError.message || 'Error calling OpenAI API',
-        details: {
-          status: openaiError.status,
-          type: openaiError.type,
-          code: openaiError.code
-        }
-      }, { status: 502 }); // 使用502 Bad Gateway表示上游服务失败
-    }
+    // 从消息中提取最后一条用户消息
+    const messages: Message[] = requestData.messages || [];
+    const lastUserMessage = messages.filter(m => m.role === 'user').pop()?.content || '无用户消息';
+    const shortUserMessage = lastUserMessage.substring(0, 50) + (lastUserMessage.length > 50 ? '...' : '');
+    
+    // 生成模拟响应
+    const mockResponse = `这是来自模型 ${model} 的模拟响应。
+
+您的请求已收到，但为了节省API费用，实际调用已被禁用。
+
+请求概要:
+- 模型: ${model}
+- 温度: ${temperature}
+- 最大令牌: ${maxTokens}
+- 用户消息: "${shortUserMessage}"
+
+[模拟数据] 如需实际生成内容，请联系管理员启用API调用。`;
+    
+    // 返回模拟响应
+    return NextResponse.json({
+      content: mockResponse,
+      model: model,
+      promptTokens: Math.floor(lastUserMessage.length / 4),
+      completionTokens: Math.floor(mockResponse.length / 4),
+      totalTokens: Math.floor(lastUserMessage.length / 4) + Math.floor(mockResponse.length / 4),
+      isMockData: true
+    });
     
   } catch (error: any) {
     console.error('Error in GPT generate API:', error);

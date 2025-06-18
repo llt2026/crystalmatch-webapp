@@ -13,6 +13,7 @@ build/
 .env.*.local
 env-temp.txt
 env-config.txt
+.env*
 
 # VSCode / IDE 配置文件
 .vscode/
