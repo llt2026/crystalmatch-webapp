@@ -18,9 +18,20 @@ interface UserProfile {
   };
 }
 
+// 用户报告接口
+interface UserReport {
+  id: string;
+  title: string;
+  tier: string;
+  generatedAt: string;
+  reportMonth: string;
+  slug: string;
+}
+
 export default function ProfilePage() {
   const router = useRouter();
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [userReports, setUserReports] = useState<UserReport[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -54,6 +65,11 @@ export default function ProfilePage() {
         }
         
         setProfile(userData);
+
+        // 如果用户已付费，获取报告列表
+        if (userData.subscription && userData.subscription.status !== 'free') {
+          await fetchUserReports();
+        }
       } catch (err) {
         console.error('Failed to fetch user data:', err);
         if ((err as any).message?.includes('401')) {
@@ -65,6 +81,30 @@ export default function ProfilePage() {
         // 保持加载状态为false，但不设置profile，这样会显示错误信息
       } finally {
         setIsLoading(false);
+      }
+    }
+
+    // 获取用户报告列表
+    async function fetchUserReports() {
+      try {
+        const token = localStorage.getItem('authToken');
+        if (!token) return;
+
+        const response = await fetch('/api/user/reports', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setUserReports(data.reports || []);
+        }
+      } catch (error) {
+        console.error('Failed to fetch user reports:', error);
       }
     }
     
@@ -222,36 +262,65 @@ export default function ProfilePage() {
             )}
           </Link>
 
-          {/* Monthly Deep Reports */}
-          <div className="space-y-2">
-            <h3 className="text-xs font-semibold tracking-wide uppercase text-purple-200 mb-1">MONTHLY DEEP REPORTS</h3>
-            
-            {/* May 2025 Report - Direct Access */}
-            <div
-              onClick={() => navigateToReport('/profile/monthly-reports/may-2025')}
-              className="bg-black/40 p-3 rounded-lg flex justify-between items-center no-underline cursor-pointer hover:bg-black/60 transition-colors"
-            >
-              <span className="text-xs">May 2025 Energy Report</span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-purple-600 text-white">NEW</span>
+          {/* Monthly Deep Reports - 只对已付费用户显示 */}
+          {profile.subscription && profile.subscription.status !== 'free' && (
+            <div className="space-y-2">
+              <h3 className="text-xs font-semibold tracking-wide uppercase text-purple-200 mb-1">MONTHLY DEEP REPORTS</h3>
+              
+              {/* 显示用户已生成的报告 */}
+              {userReports.length > 0 ? (
+                userReports.map((report) => (
+                  <div
+                    key={report.id}
+                    onClick={() => router.push(`/report/generated/${report.slug}`)}
+                    className="bg-black/40 p-3 rounded-lg flex justify-between items-center no-underline cursor-pointer hover:bg-black/60 transition-colors"
+                  >
+                    <span className="text-xs">{report.title}</span>
+                    <div className="flex items-center space-x-2">
+                      {/* 会员等级标识 */}
+                      {report.tier === 'pro' && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-gradient-to-r from-purple-700 to-indigo-700 text-white">PRO</span>
+                      )}
+                      {report.tier === 'plus' && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-purple-600 text-white">PLUS</span>
+                      )}
+                      {/* 最新报告标识 */}
+                      {userReports.indexOf(report) === 0 && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-600 text-white">NEW</span>
+                      )}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="bg-black/40 p-3 rounded-lg text-center">
+                  <p className="text-xs text-purple-200">No reports generated yet</p>
+                  <p className="text-[10px] text-purple-300 mt-1">Reports will appear here after payment</p>
+                </div>
+              )}
             </div>
-            
-            {/* April 2025 Report - Direct Access */}
-            <div
-              onClick={() => navigateToReport('/profile/monthly-reports/apr-2025')}
-              className="bg-black/40 p-3 rounded-lg flex justify-between items-center no-underline cursor-pointer hover:bg-black/60 transition-colors"
-            >
-              <span className="text-xs">Apr 2025 Energy Report</span>
+          )}
+
+          {/* 免费用户提示升级 */}
+          {(!profile.subscription || profile.subscription.status === 'free') && (
+            <div className="space-y-2">
+              <h3 className="text-xs font-semibold tracking-wide uppercase text-purple-200 mb-1">MONTHLY DEEP REPORTS</h3>
+              <div className="bg-black/40 p-4 rounded-lg text-center border border-purple-400/30">
+                <div className="mb-3">
+                  <svg className="w-8 h-8 mx-auto text-purple-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                </div>
+                <p className="text-xs text-white mb-2">Unlock Monthly Energy Reports</p>
+                <p className="text-[10px] text-purple-300 mb-3">Get personalized monthly insights based on your birth chart</p>
+                <button
+                  onClick={() => router.push('/subscription')}
+                  className="text-[10px] px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-full transition-colors"
+                >
+                  UPGRADE NOW
+                </button>
+              </div>
             </div>
-            
-            {/* Future reports can be added here */}
-            {/* <div
-              onClick={() => navigateToReport('/profile/monthly-reports/jun-2025')}
-              className="bg-black/40 p-3 rounded-lg flex justify-between items-center no-underline cursor-pointer hover:bg-black/60 transition-colors opacity-60"
-            >
-              <span className="text-xs">Jun 2025 Energy Report</span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-gray-600 text-white">SOON</span>
-            </div> */}
-          </div>
+          )}
         </section>
       </div>
     </main>

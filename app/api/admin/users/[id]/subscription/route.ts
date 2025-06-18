@@ -112,6 +112,41 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       }
     }).catch((err: unknown) => console.error('Failed to create log:', err));
     
+    // 更新用户订阅状态
+    const updatedUser = await prisma.user.update({
+      where: { id },
+      data: {
+        subscription: {
+          status: subscriptionStatus,
+          planId: planId || null,
+          expiresAt: expiresAt
+        }
+      }
+    });
+    
+    // 如果用户升级为付费会员，自动生成报告
+    if (subscriptionStatus === 'plus' || subscriptionStatus === 'pro') {
+      try {
+        // 动态导入报告生成服务
+        const { handleSubscriptionChange } = await import('../../../../../lib/services/report-generation');
+        
+        // 生成报告
+        const reportResult = await handleSubscriptionChange(
+          id,
+          subscriptionStatus as 'plus' | 'pro'
+        );
+        
+        if (reportResult.success) {
+          console.log(`Report generated for user ${id} with tier ${subscriptionStatus}, reportId: ${reportResult.reportId}`);
+        } else {
+          console.error(`Failed to generate report for user ${id}: ${reportResult.error}`);
+        }
+      } catch (reportError) {
+        console.error('Error generating report after subscription update:', reportError);
+        // 不阻止主流程，只记录错误
+      }
+    }
+    
     console.log(`Admin updated user ${id} subscription to ${subscriptionStatus}`, expiresAt);
     
     return NextResponse.json({ 
