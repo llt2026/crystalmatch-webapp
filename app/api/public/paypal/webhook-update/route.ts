@@ -98,7 +98,8 @@ export async function POST(request: NextRequest) {
       'BILLING.SUBSCRIPTION.ACTIVATED',
       'BILLING.SUBSCRIPTION.RENEWED',
       'BILLING.SUBSCRIPTION.UPGRADED',
-      'BILLING.SUBSCRIPTION.UPDATED'
+      'BILLING.SUBSCRIPTION.UPDATED',
+      'PAYMENT.SALE.COMPLETED',
     ];
 
     if (!SUBSCRIPTION_EVENTS.includes(data.event_type)) {
@@ -106,7 +107,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: true, ignored: true });
     }
 
-    const subscriptionId = data.resource?.id;
+    // 根据事件类型确定订阅ID
+    let subscriptionId: string | undefined;
+    if (data.event_type === 'PAYMENT.SALE.COMPLETED') {
+      subscriptionId = data.resource?.billing_agreement_id;
+    } else {
+      subscriptionId = data.resource?.id;
+    }
+
     if (!subscriptionId) {
       console.error('Missing subscription id in webhook resource');
       return NextResponse.json({ error: 'Missing subscription id' }, { status: 400 });
