@@ -77,7 +77,13 @@ export default function SubscriptionPage() {
             // @ts-ignore - 忽略TypeScript错误
             createSubscription: async function(data, actions) {
               try {
-                // 首先通过我们的 API 创建订阅，包含用户ID
+                // 获取用户ID并验证
+                const userId = await getUserIdFromToken();
+                if (!userId || userId === 'anonymous') {
+                  throw new Error('用户未登录或身份验证失败');
+                }
+
+                // 通过我们的 API 创建订阅，包含用户ID
                 const response = await fetch('/api/paypal/create-subscription', {
                   method: 'POST',
                   headers: {
@@ -86,7 +92,7 @@ export default function SubscriptionPage() {
                   body: JSON.stringify({
                     planId: selectedPlan,
                     amount: selectedTier?.price || 0,
-                    userId: await getUserIdFromToken() // 获取用户ID
+                    userId: userId
                   }),
                 });
 
@@ -95,10 +101,11 @@ export default function SubscriptionPage() {
                   throw new Error(result.error || 'Failed to create subscription');
                 }
 
+                console.log('PayPal subscription created with user ID:', userId);
                 return result.id; // 返回 PayPal 订阅ID
               } catch (error) {
                 console.error('Error creating subscription:', error);
-                setPaymentError('Failed to create subscription. Please try again.');
+                setPaymentError((error as Error).message || 'Failed to create subscription. Please try again.');
                 throw error;
               }
             },
@@ -130,21 +137,40 @@ export default function SubscriptionPage() {
   // 从令牌中获取用户ID
   const getUserIdFromToken = async (): Promise<string> => {
     try {
-      const response = await fetch('/api/auth/check');
-      if (response.ok) {
-        const data = await response.json();
-        // 如果API返回用户信息，尝试获取用户详细信息
-        if (data.email) {
-          const profileResponse = await fetch('/api/user/profile');
-          if (profileResponse.ok) {
-            const profileData = await profileResponse.json();
-            return profileData.user?.id || 'anonymous';
-          }
+      // 直接调用profile API获取完整用户信息
+      const profileResponse = await fetch('/api/user/profile', {
+        method: 'GET',
+        headers: {
+          'Cache-Control': 'no-cache',
+        },
+        credentials: 'include', // 确保发送cookies
+      });
+      
+      if (profileResponse.ok) {
+        const profileData = await profileResponse.json();
+        console.log('Profile data for PayPal subscription:', profileData); // 调试日志
+        
+        const userId = profileData.id;
+        if (userId && userId !== 'anonymous') {
+          console.log('Successfully retrieved user ID:', userId);
+          return userId;
+        } else {
+          console.warn('User ID is empty or anonymous');
+          setPaymentError('请先登录后再购买订阅');
+          return 'anonymous';
         }
+      }
+      
+      console.warn('Profile API failed with status:', profileResponse.status);
+      if (profileResponse.status === 401) {
+        setPaymentError('用户未登录，请先登录');
+      } else {
+        setPaymentError('获取用户信息失败，请刷新页面重试');
       }
       return 'anonymous';
     } catch (error) {
       console.error('Error getting user ID:', error);
+      setPaymentError('网络错误，请检查网络连接');
       return 'anonymous';
     }
   };
