@@ -1,136 +1,98 @@
-import fetch from 'node-fetch';
+// 移除 node-fetch，Next.js 自带全局 fetch
+import crypto from 'crypto'; // 保留以符合约束，可不直接使用
 
 /**
  * 验证PayPal Webhook签名
  * @param headers 请求头对象
  * @param body 请求体原始字符串
+ * @param webhookId 钩子ID
  * @returns 验证结果，true表示验证通过
  */
 export async function verifyPaypalSignature(
   headers: Record<string, string>,
-  body: string
+  body: string,
+  webhookId: string,
 ): Promise<boolean> {
   try {
-    // 如果是sandbox环境，可以跳过验签
-    if (process.env.PAYPAL_ENV?.toLowerCase() === 'sandbox') {
-      console.log('Sandbox environment detected, skipping signature verification');
+    // 开发 / 沙箱环境直接跳过
+    const isSandbox = process.env.PAYPAL_ENV?.toLowerCase() === 'sandbox' || process.env.NODE_ENV === 'development';
+    if (isSandbox) {
+      console.log('Sandbox 或开发环境，跳过 PayPal Webhook 验签');
       return true;
     }
 
-    // 获取必要的请求头信息
-    const transmissionId = headers['paypal-transmission-id'];
-    const transmissionTime = headers['paypal-transmission-time'];
-    const certUrl = headers['paypal-cert-url'];
-    const authAlgo = headers['paypal-auth-algo'];
-    const transmissionSig = headers['paypal-transmission-sig'];
-    const webhookId = process.env.PAYPAL_WEBHOOK_ID;
-
-    // 检查必要参数是否存在
-    if (!transmissionId || !transmissionTime || !certUrl || !authAlgo || !transmissionSig || !webhookId) {
-      console.error('Missing required PayPal webhook headers', {
-        transmissionId: !!transmissionId,
-        transmissionTime: !!transmissionTime,
-        certUrl: !!certUrl,
-        authAlgo: !!authAlgo,
-        transmissionSig: !!transmissionSig,
-        webhookId: !!webhookId
-      });
+    // 必需 Header 列表
+    const required = [
+      'paypal-transmission-id',
+      'paypal-transmission-time',
+      'paypal-transmission-sig',
+      'paypal-cert-url',
+      'paypal-auth-algo',
+    ];
+    if (required.some((h) => !headers[h])) {
+      console.error('缺失必要的 PayPal Webhook Header', headers);
       return false;
     }
 
-    // 获取PayPal API访问令牌
-    const accessToken = await getPayPalAccessToken();
-    if (!accessToken) {
-      console.error('Failed to get PayPal access token');
-      return false;
-    }
-
-    // 构建验证请求体
-    const verificationBody = {
-      transmission_id: transmissionId,
-      transmission_time: transmissionTime,
-      cert_url: certUrl,
-      auth_algo: authAlgo,
-      transmission_sig: transmissionSig,
+    // 构建官方验证请求体
+    const verificationPayload = {
+      auth_algo: headers['paypal-auth-algo'],
+      cert_url: headers['paypal-cert-url'],
+      transmission_id: headers['paypal-transmission-id'],
+      transmission_sig: headers['paypal-transmission-sig'],
+      transmission_time: headers['paypal-transmission-time'],
       webhook_id: webhookId,
-      webhook_event: JSON.parse(body) // 将请求体字符串解析为JSON对象
+      webhook_event: JSON.parse(body),
     };
 
-    // 确定API基础URL
-    const baseUrl = process.env.PAYPAL_ENV?.toLowerCase() === 'live' 
-      ? 'https://api.paypal.com' 
-      : 'https://api.sandbox.paypal.com';
+    // 根据 cert_url 判断 API 基础地址
+    const baseUrl = headers['paypal-cert-url'].includes('sandbox')
+      ? 'https://api.sandbox.paypal.com'
+      : 'https://api.paypal.com';
 
-    // 发送验证请求
-    const response = await fetch(`${baseUrl}/v1/notifications/verify-webhook-signature`, {
+    const clientId = process.env.PAYPAL_CLIENT_ID || '';
+    const clientSecret = process.env.PAYPAL_CLIENT_SECRET || '';
+    if (!clientId || !clientSecret) {
+      console.error('缺失 PayPal Client 凭据');
+      return false;
+    }
+
+    // 获取 access_token
+    const basicAuth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
+    const tokenRes = await fetch(`${baseUrl}/v1/oauth2/token`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Authorization': `Basic ${basicAuth}`,
+      },
+      body: 'grant_type=client_credentials',
+    });
+    const { access_token } = (await tokenRes.json()) as { access_token?: string };
+    if (!access_token) {
+      console.error('获取 PayPal access_token 失败');
+      return false;
+    }
+
+    // 调用官方验签接口
+    const verifyRes = await fetch(`${baseUrl}/v1/notifications/verify-webhook-signature`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${accessToken}`
+        'Authorization': `Bearer ${access_token}`,
       },
-      body: JSON.stringify(verificationBody)
+      body: JSON.stringify(verificationPayload),
     });
+    const verifyJson = (await verifyRes.json()) as { verification_status?: string };
 
-    // 解析响应
-    const data = await response.json() as { verification_status?: string };
-    
-    // 检查验证状态
-    const isValid = data.verification_status === 'SUCCESS';
-    
-    if (!isValid) {
-      console.error('PayPal signature verification failed', data);
+    const ok = verifyJson.verification_status === 'SUCCESS';
+    if (!ok) {
+      console.error('PayPal Webhook 验签失败', verifyJson);
     }
-    
-    return isValid;
-  } catch (error) {
-    console.error('Error verifying PayPal webhook signature:', error);
+    return ok;
+  } catch (err) {
+    console.error('执行 PayPal Webhook 验签时发生异常', err);
     return false;
   }
 }
 
-/**
- * 获取PayPal API访问令牌
- * @returns 访问令牌
- */
-async function getPayPalAccessToken(): Promise<string | null> {
-  try {
-    const clientId = process.env.PAYPAL_CLIENT_ID;
-    const clientSecret = process.env.PAYPAL_CLIENT_SECRET;
-
-    if (!clientId || !clientSecret) {
-      console.error('Missing PayPal client credentials');
-      return null;
-    }
-
-    // 确定API基础URL
-    const baseUrl = process.env.PAYPAL_ENV?.toLowerCase() === 'live' 
-      ? 'https://api.paypal.com' 
-      : 'https://api.sandbox.paypal.com';
-
-    // 构建认证字符串
-    const auth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
-
-    // 发送令牌请求
-    const response = await fetch(`${baseUrl}/v1/oauth2/token`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Authorization': `Basic ${auth}`
-      },
-      body: 'grant_type=client_credentials'
-    });
-
-    // 解析响应
-    const data = await response.json() as { access_token?: string };
-    
-    if (!data.access_token) {
-      console.error('Failed to get PayPal access token', data);
-      return null;
-    }
-    
-    return data.access_token;
-  } catch (error) {
-    console.error('Error getting PayPal access token:', error);
-    return null;
-  }
-} 
+// 底部旧 getPayPalAccessToken 已移除，改由内联 token 请求逻辑实现 

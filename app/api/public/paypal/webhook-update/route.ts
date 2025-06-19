@@ -1,7 +1,12 @@
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { updateSubscriptionStatus } from '@/app/lib/subscription/service';
-import { OrderStatus, SubscriptionStatus } from '@/app/lib/subscription/types';
+import { SubscriptionStatus } from '@/app/lib/subscription/types';
 import { verifyPaypalSignature } from '@/app/lib/paypal/verifySignature';
+
+const PAYPAL_WEBHOOK_ID = process.env.PAYPAL_WEBHOOK_ID || '';
 
 /**
  * 获取PayPal API访问令牌
@@ -58,11 +63,12 @@ export async function POST(request: NextRequest) {
   try {
     console.log('PayPal Webhook received');
     
-    // 获取原始请求体（字符串形式）
-    const bodyText = await request.text();
+    // 获取原始请求体 (保持 Buffer 供签名验证)
+    const bodyBuffer = Buffer.from(await request.arrayBuffer());
+    const bodyText   = bodyBuffer.toString('utf8');
     console.log('Webhook body:', bodyText);
     
-    // 将请求头转换为普通对象
+    // 将 Headers 转为小写键值对象，便于 verify 函数使用
     const headers: Record<string, string> = {};
     request.headers.forEach((value, key) => {
       headers[key.toLowerCase()] = value;
@@ -74,7 +80,7 @@ export async function POST(request: NextRequest) {
     console.log('Test mode:', isTestMode);
     
     if (!isTestMode) {
-      const isValid = await verifyPaypalSignature(headers, bodyText);
+      const isValid = await verifyPaypalSignature(headers, bodyText, PAYPAL_WEBHOOK_ID);
       if (!isValid) {
         console.error('Invalid PayPal signature');
         return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
