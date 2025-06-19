@@ -51,11 +51,6 @@ export default function SubscriptionPage() {
       return null;
     }
     
-    // 获取计划ID
-    const planId = selectedPlan === 'plus' 
-      ? process.env.NEXT_PUBLIC_P_PAYPAL_PLAN_PLUS 
-      : process.env.NEXT_PUBLIC_P_PAYPAL_PLAN_PRO;
-      
     // 返回按钮容器
     return (
       <div id="paypal-button-container" className="min-h-[150px]"></div>
@@ -70,11 +65,6 @@ export default function SubscriptionPage() {
         // 清空容器
         paypalButtonsContainer.innerHTML = '';
         
-        // 获取计划ID
-        const planId = selectedPlan === 'plus' 
-          ? process.env.NEXT_PUBLIC_P_PAYPAL_PLAN_PLUS 
-          : process.env.NEXT_PUBLIC_P_PAYPAL_PLAN_PRO;
-          
         try {
           // @ts-ignore - 忽略TypeScript错误
           window.paypal.Buttons({
@@ -85,10 +75,32 @@ export default function SubscriptionPage() {
               label: 'subscribe'
             },
             // @ts-ignore - 忽略TypeScript错误
-            createSubscription: function(data, actions) {
-              return actions.subscription.create({
-                'plan_id': planId || ''
-              });
+            createSubscription: async function(data, actions) {
+              try {
+                // 首先通过我们的 API 创建订阅，包含用户ID
+                const response = await fetch('/api/paypal/create-subscription', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    planId: selectedPlan,
+                    amount: selectedTier?.price || 0,
+                    userId: await getUserIdFromToken() // 获取用户ID
+                  }),
+                });
+
+                const result = await response.json();
+                if (!response.ok) {
+                  throw new Error(result.error || 'Failed to create subscription');
+                }
+
+                return result.id; // 返回 PayPal 订阅ID
+              } catch (error) {
+                console.error('Error creating subscription:', error);
+                setPaymentError('Failed to create subscription. Please try again.');
+                throw error;
+              }
             },
             // @ts-ignore - 忽略TypeScript错误
             onApprove: function(data) {
@@ -113,7 +125,29 @@ export default function SubscriptionPage() {
         }
       }
     }
-  }, [paypalLoaded, selectedPlan]);
+  }, [paypalLoaded, selectedPlan, selectedTier]);
+
+  // 从令牌中获取用户ID
+  const getUserIdFromToken = async (): Promise<string> => {
+    try {
+      const response = await fetch('/api/auth/check');
+      if (response.ok) {
+        const data = await response.json();
+        // 如果API返回用户信息，尝试获取用户详细信息
+        if (data.email) {
+          const profileResponse = await fetch('/api/user/profile');
+          if (profileResponse.ok) {
+            const profileData = await profileResponse.json();
+            return profileData.user?.id || 'anonymous';
+          }
+        }
+      }
+      return 'anonymous';
+    } catch (error) {
+      console.error('Error getting user ID:', error);
+      return 'anonymous';
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">

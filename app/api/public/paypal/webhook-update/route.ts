@@ -4,6 +4,53 @@ import { OrderStatus, SubscriptionStatus } from '@/app/lib/subscription/types';
 import { verifyPaypalSignature } from '@/app/lib/paypal/verifySignature';
 
 /**
+ * 获取PayPal API访问令牌
+ */
+async function getPayPalAccessToken(): Promise<string | null> {
+  try {
+    const clientId = process.env.PAYPAL_CLIENT_ID;
+    const clientSecret = process.env.PAYPAL_CLIENT_SECRET;
+
+    if (!clientId || !clientSecret) {
+      console.error('Missing PayPal client credentials');
+      return null;
+    }
+
+    // 确定API基础URL
+    const isTestMode = process.env.PAYPAL_ENV?.toLowerCase() === 'sandbox' || process.env.NODE_ENV === 'development';
+    const baseUrl = isTestMode 
+      ? 'https://api.sandbox.paypal.com' 
+      : 'https://api.paypal.com';
+
+    // 构建认证字符串
+    const auth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
+
+    // 发送令牌请求
+    const response = await fetch(`${baseUrl}/v1/oauth2/token`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Authorization': `Basic ${auth}`
+      },
+      body: 'grant_type=client_credentials'
+    });
+
+    // 解析响应
+    const data = await response.json() as { access_token?: string };
+    
+    if (!data.access_token) {
+      console.error('Failed to get PayPal access token', data);
+      return null;
+    }
+    
+    return data.access_token;
+  } catch (error) {
+    console.error('Error getting PayPal access token:', error);
+    return null;
+  }
+}
+
+/**
  * PayPal Webhook 处理 - 订阅更新
  * POST /api/public/paypal/webhook-update
  */
@@ -36,71 +83,85 @@ export async function POST(request: NextRequest) {
       console.log('Skipping signature verification in test mode');
     }
     
-    // 解析请求体
+    // 解析 PayPal Webhook 事件
     const data = JSON.parse(bodyText);
-    const { userId, planId, transactionId, status, amount } = data;
-    
-    console.log('Parsed webhook data:', { userId, planId, transactionId, status, amount });
-    
-    // 验证必要参数
-    if (!userId || !planId || !status) {
-      console.error('Missing required parameters:', { userId: !!userId, planId: !!planId, status: !!status });
-      return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 });
+    console.log('Parsed webhook event:', data.event_type);
+
+    // 仅处理订阅相关事件
+    const SUBSCRIPTION_EVENTS = [
+      'BILLING.SUBSCRIPTION.ACTIVATED',
+      'BILLING.SUBSCRIPTION.RENEWED',
+      'BILLING.SUBSCRIPTION.UPGRADED',
+      'BILLING.SUBSCRIPTION.UPDATED'
+    ];
+
+    if (!SUBSCRIPTION_EVENTS.includes(data.event_type)) {
+      console.log('Ignored event type:', data.event_type);
+      return NextResponse.json({ ok: true, ignored: true });
     }
-    
-    console.log('Processing PayPal webhook:', { userId, planId, status, transactionId });
-    
-    // 根据状态更新订阅
-    let subscriptionStatus: SubscriptionStatus;
-    
-    switch (status.toLowerCase()) {
-      case 'completed':
-      case 'active':
-        subscriptionStatus = SubscriptionStatus.ACTIVE;
-        break;
-      case 'cancelled':
-      case 'suspended':
-        subscriptionStatus = SubscriptionStatus.CANCELLED;
-        break;
-      case 'expired':
-        subscriptionStatus = SubscriptionStatus.EXPIRED;
-        break;
-      default:
-        subscriptionStatus = SubscriptionStatus.ACTIVE; // 默认为激活状态
+
+    const subscriptionId = data.resource?.id;
+    if (!subscriptionId) {
+      console.error('Missing subscription id in webhook resource');
+      return NextResponse.json({ error: 'Missing subscription id' }, { status: 400 });
     }
-    
-    console.log('Mapped subscription status:', subscriptionStatus);
-    
-    // 更新订阅状态 (暂时跳过数据库操作以测试基本功能)
-    try {
-      if (isTestMode) {
-        console.log('Test mode: Skipping database operation');
-        console.log(`Would update subscription: ${userId}, ${planId}, ${subscriptionStatus}`);
-      } else {
-        await updateSubscriptionStatus(userId, planId, subscriptionStatus);
-        console.log(`Subscription updated: ${userId}, ${planId}, ${subscriptionStatus}`);
-      }
-    } catch (dbError) {
-      console.error('Database update error:', dbError);
-      // 在测试模式下不阻止流程
-      if (!isTestMode) {
-        throw dbError;
-      }
+
+    // 获取访问令牌
+    const accessToken = await getPayPalAccessToken();
+    if (!accessToken) {
+      return NextResponse.json({ error: 'Failed to get PayPal access token' }, { status: 500 });
     }
-    
-    // 返回成功响应
-    console.log('Webhook processed successfully');
-    return NextResponse.json({ 
-      success: true, 
-      message: 'Webhook processed successfully',
-      data: {
-        userId,
-        planId,
-        status: subscriptionStatus,
-        transactionId,
-        testMode: isTestMode
+
+    // 查询订阅详情，获取 custom_id(userId) 与 plan_id
+    const baseUrl = isTestMode ? 'https://api.sandbox.paypal.com' : 'https://api.paypal.com';
+    const subRes = await fetch(`${baseUrl}/v1/billing/subscriptions/${subscriptionId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`
       }
     });
+
+    const subData = await subRes.json();
+    if (!subRes.ok) {
+      console.error('Failed to fetch subscription details:', subData);
+      return NextResponse.json({ error: 'Failed to fetch subscription details' }, { status: 500 });
+    }
+
+    const userId = subData.custom_id as string | undefined;
+    const planId = subData.plan_id as string | undefined;
+    const status = subData.status as string | undefined;
+
+    console.log('Subscription details:', { userId, planId, status });
+
+    if (!userId || !planId) {
+      console.error('custom_id(userId) or plan_id missing in subscription');
+      return NextResponse.json({ error: 'User identification not found in subscription' }, { status: 400 });
+    }
+
+    // 仅处理已激活或续费成功的状态
+    const activeStatuses = ['ACTIVE', 'APPROVAL_PENDING', 'APPROVED'];
+    if (!activeStatuses.includes(status || '')) {
+      console.log('Subscription status not active, ignored:', status);
+      return NextResponse.json({ ok: true, ignored: true });
+    }
+
+    // 映射 planId 到 tier
+    const tier = planId.toLowerCase().includes('pro') ? 'pro' : 'plus';
+
+    // 更新订阅状态 + 生成报告
+    try {
+      const { handleSubscriptionChange } = await import('@/app/lib/services/report-generation');
+
+      await updateSubscriptionStatus(userId, planId, SubscriptionStatus.ACTIVE);
+      await handleSubscriptionChange(userId, tier as 'plus' | 'pro');
+      console.log(`Subscription & report updated for user ${userId}`);
+    } catch (err) {
+      console.error('Error updating subscription / generating report:', err);
+      return NextResponse.json({ error: 'Internal update error' }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true });
     
   } catch (error) {
     console.error('Error processing PayPal webhook:', error);

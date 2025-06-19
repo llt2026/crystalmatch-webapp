@@ -24,7 +24,11 @@ async function getPayPalAccessToken() {
 
 export async function POST(request: NextRequest) {
   try {
-    const { planId, amount } = await request.json();
+    const { planId, amount, userId } = await request.json();
+    
+    if (!userId) {
+      return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
+    }
     
     const accessToken = await getPayPalAccessToken();
     
@@ -33,6 +37,7 @@ export async function POST(request: NextRequest) {
       plan_id: planId === 'plus' ? process.env.P_PAYPAL_PLAN_PLUS : process.env.P_PAYPAL_PLAN_PRO,
       start_time: new Date(Date.now() + 60000).toISOString(), // Start 1 minute from now
       quantity: '1',
+      custom_id: userId,
       shipping_amount: {
         currency_code: 'USD',
         value: '0.00'
