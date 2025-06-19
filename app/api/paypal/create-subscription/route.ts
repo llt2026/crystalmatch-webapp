@@ -27,15 +27,34 @@ export async function POST(request: NextRequest) {
   try {
     const { planId, amount, userId } = await request.json();
     
+    // 映射到实际的 PayPal 计划 ID
+    const PAYPAL_PLAN_PLUS = process.env.NEXT_PUBLIC_P_PAYPAL_PLAN_PLUS;
+    const PAYPAL_PLAN_PRO  = process.env.NEXT_PUBLIC_P_PAYPAL_PLAN_PRO;
+
     if (!userId) {
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
+    }
+    if (!planId || !['plus', 'pro'].includes(planId)) {
+      return NextResponse.json({ error: 'Invalid planId, must be "plus" or "pro"' }, { status: 400 });
+    }
+
+    // 根据 planId 取出 PayPal plan_id
+    const paypalPlanId = planId === 'plus' ? PAYPAL_PLAN_PLUS : PAYPAL_PLAN_PRO;
+
+    if (!paypalPlanId) {
+      return NextResponse.json({
+        error: 'Missing PayPal plan_id in environment variables',
+        details: {
+          expectedVar: planId === 'plus' ? 'NEXT_PUBLIC_P_PAYPAL_PLAN_PLUS' : 'NEXT_PUBLIC_P_PAYPAL_PLAN_PRO'
+        }
+      }, { status: 500 });
     }
     
     const accessToken = await getPayPalAccessToken();
     
     // Create subscription
     const subscriptionData = {
-      plan_id: planId === 'plus' ? process.env.P_PAYPAL_PLAN_PLUS : process.env.P_PAYPAL_PLAN_PRO,
+      plan_id: paypalPlanId,
       start_time: new Date(Date.now() + 60000).toISOString(), // Start 1 minute from now
       quantity: '1',
       custom_id: userId,
