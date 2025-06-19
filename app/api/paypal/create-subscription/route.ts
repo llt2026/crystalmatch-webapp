@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const PAYPAL_CLIENT_ID = process.env.PAYPAL_CLIENT_ID;
 const PAYPAL_CLIENT_SECRET = process.env.PAYPAL_CLIENT_SECRET;
-const PAYPAL_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://api.paypal.com' 
-  : 'https://api.sandbox.paypal.com';
+const IS_SANDBOX = (process.env.PAYPAL_ENV || '').toLowerCase() === 'sandbox';
+const PAYPAL_BASE_URL = IS_SANDBOX 
+  ? 'https://api.sandbox.paypal.com' 
+  : 'https://api.paypal.com';
 
 async function getPayPalAccessToken() {
   const auth = Buffer.from(`${PAYPAL_CLIENT_ID}:${PAYPAL_CLIENT_SECRET}`).toString('base64');
