@@ -75,8 +75,11 @@ const MonthlyReportTemplate: React.FC<MonthlyReportTemplateProps> = ({ overview,
       {/* Daily Calendar */}
       <DailyCalendar data={daily} />
 
-      {/* Crystal Grid */}
-      <CrystalGrid crystals={crystals} />
+      {/* Informational paragraph */}
+      <p className="text-sm text-purple-300 bg-black/20 rounded-xl p-4 leading-relaxed">
+        This report weaves together almost 4,000 years of evolving Chinese Five-Element Feng Shui, evidence-backed
+        modern science, and the freshest AI intelligence—ancient wisdom, updated for your everyday life.
+      </p>
 
       {/* Footer */}
       <footer className="text-center space-y-3 pb-12">
