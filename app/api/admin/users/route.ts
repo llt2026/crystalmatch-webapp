@@ -58,8 +58,7 @@ export async function GET(request: NextRequest) {
           const activeSubscription = await prisma.subscription.findFirst({
             where: {
               userId: user.id,
-              status: 'active',
-              endDate: { gt: new Date() }
+              status: 'active'
             },
             orderBy: { createdAt: 'desc' },
             include: { 
