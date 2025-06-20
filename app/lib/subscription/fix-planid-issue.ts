@@ -33,8 +33,6 @@ export async function ensureSubscriptionPlans() {
           name: 'Plus Plan',
           description: '基础月度能量报告和水晶推荐',
           price: 4.99,
-          currency: 'USD',
-          interval: 'month',
           period: 'month', // 添加必需的period字段
           features: [
             'Monthly Energy Report',
@@ -60,8 +58,6 @@ export async function ensureSubscriptionPlans() {
           name: 'Pro Plan',
           description: '高级年度能量报告和专业水晶指导',
           price: 9.99,
-          currency: 'USD',
-          interval: 'month',
           period: 'month', // 添加必需的period字段
           features: [
             'Advanced Monthly Reports',
