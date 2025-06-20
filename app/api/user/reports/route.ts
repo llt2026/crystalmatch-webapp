@@ -8,13 +8,21 @@ import { prisma } from '../../../lib/prisma';
  */
 export async function GET(request: NextRequest) {
   try {
-    // 验证用户身份
-    const token = request.headers.get('Authorization')?.replace('Bearer ', '');
-    
+    // 尝试从 Authorization 头或 cookie 中获取 JWT
+    let token = request.headers.get('Authorization')?.replace('Bearer ', '') || '';
+
+    if (!token) {
+      const cookieHeader = request.headers.get('cookie') || '';
+      const match = cookieHeader.match(/(?:^|; )token=([^;]+)/);
+      if (match) {
+        token = decodeURIComponent(match[1]);
+      }
+    }
+
     if (!token) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
+    
     // 验证 JWT
     let payload;
     try {
