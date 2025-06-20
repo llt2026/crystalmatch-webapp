@@ -23,17 +23,13 @@ export default function GeneratedReportPage() {
     const fetchReport = async () => {
       try {
         const token = localStorage.getItem('authToken');
-        if (!token) {
-          setError('Please sign in to view your reports');
-          setIsLoading(false);
-          return;
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
         }
 
         const response = await fetch(`/api/report/generated/${params.slug}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
+          headers,
           credentials: 'include',
         });
 
