@@ -37,7 +37,7 @@ export default function MonthlyReportPage() {
   useEffect(() => {
     const fetchAll = async () => {
       try {
-        const birthDate = searchParams.get('birthDate');
+        const birthDate = searchParams.get('birthDate') || '';
         const query = birthDate ? `?birthDate=${encodeURIComponent(birthDate)}` : '';
         const res = await fetch(`/api/report/${params.slug}${query}`, { cache: 'no-store' });
         if (!res.ok) throw new Error('Failed to load report');
@@ -60,7 +60,23 @@ export default function MonthlyReportPage() {
               d.overview.weakestElement = er.weakestElement.toLowerCase();
             }
 
-            // 补全 daily 分数
+            // 若 daily 为空或缺少分数，则重新计算整月数据
+            if (!Array.isArray(d.daily) || d.daily.length === 0) {
+              const monthStart = d.overview.periodStart ? new Date(d.overview.periodStart) : new Date();
+              const monthDays = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0).getDate();
+              const { getDailyEnergyForRange } = await import('@/app/lib/energyCalculation2025');
+              const rawDaily = await getDailyEnergyForRange(birthDate, monthStart, monthDays);
+              d.daily = rawDaily.map((it: any) => ({
+                date: it.date.toISOString(),
+                energyChange: it.energyChange,
+                trend: it.trend,
+                crystal: it.crystal,
+                element: it.element,
+                score: it.score ?? 0
+              }));
+            }
+
+            // 填充 score 字段
             if (Array.isArray(d.daily)) {
               d.daily = d.daily.map((item: any) => {
                 if (item.score === undefined) {
@@ -69,6 +85,12 @@ export default function MonthlyReportPage() {
                 }
                 return item;
               });
+            }
+
+            // 若 hourly 为空则计算首日 24 小时
+            if (!Array.isArray(d.hourly) || d.hourly.length === 0) {
+              const { getHourlyEnergyHeatmap } = await import('@/app/lib/energyCalculation2025');
+              d.hourly = await getHourlyEnergyHeatmap(birthDate, d.overview.periodStart ? new Date(d.overview.periodStart) : new Date());
             }
           }
         } catch (calcErr) {
