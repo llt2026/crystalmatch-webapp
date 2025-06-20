@@ -16,12 +16,22 @@ export async function GET(request: NextRequest) {
     }
 
     // 验证 JWT
-    const { payload } = await jwtVerify(
-      token,
-      new TextEncoder().encode(process.env.JWT_SECRET || 'crystalmatch-secure-jwt-secret-key')
-    );
+    let payload;
+    try {
+      const result = await jwtVerify(
+        token,
+        new TextEncoder().encode(process.env.JWT_SECRET || 'crystalmatch-secure-jwt-secret-key')
+      );
+      payload = result.payload;
+    } catch (joseError) {
+      console.log('JOSE verification failed, trying jsonwebtoken...');
+      
+      // 如果jose失败，尝试使用jsonwebtoken库
+      const jwt = require('jsonwebtoken');
+      payload = jwt.verify(token, process.env.JWT_SECRET || 'crystalmatch-secure-jwt-secret-key');
+    }
     
-    const userId = payload.sub as string;
+    const userId = (payload.userId || payload.sub) as string;
     
     // 从数据库获取用户的所有有效报告
     const reports = await prisma.energyReportCache.findMany({

@@ -23,11 +23,21 @@ async function getJwtPayload(request: NextRequest): Promise<JwtPayload | null> {
       return null;
     }
 
-    const { payload } = await jwtVerify(
-      token,
-      new TextEncoder().encode(process.env.JWT_SECRET || 'crystalmatch-secure-jwt-secret-key')
-    );
-    return payload as JwtPayload;
+    // 尝试使用jose库验证
+    try {
+      const { payload } = await jwtVerify(
+        token,
+        new TextEncoder().encode(process.env.JWT_SECRET || 'crystalmatch-secure-jwt-secret-key')
+      );
+      return payload as JwtPayload;
+    } catch (joseError) {
+      console.log('JOSE verification failed, trying jsonwebtoken...');
+      
+      // 如果jose失败，尝试使用jsonwebtoken库
+      const jwt = require('jsonwebtoken');
+      const payload = jwt.verify(token, process.env.JWT_SECRET || 'crystalmatch-secure-jwt-secret-key');
+      return payload as JwtPayload;
+    }
   } catch (error) {
     console.error('JWT verification failed:', error);
     return null;
@@ -148,7 +158,7 @@ export async function GET(request: NextRequest) {
           status: subscriptionStatus,
           expiresAt: subscriptionExpiresAt?.toISOString() ?? undefined,
         },
-        joinedAt: user.createdAt.toISOString(),
+        joinedAt: user.createdAt?.toISOString() || new Date().toISOString(),
       };
 
       return NextResponse.json(userProfile, {

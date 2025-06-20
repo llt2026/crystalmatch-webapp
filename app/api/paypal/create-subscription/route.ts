@@ -27,16 +27,31 @@ export async function POST(request: NextRequest) {
   try {
     const { planId, amount, userId } = await request.json();
     
-    // 映射到实际的 PayPal 计划 ID
-    const PAYPAL_PLAN_PLUS = process.env.NEXT_PUBLIC_P_PAYPAL_PLAN_PLUS;
-    const PAYPAL_PLAN_PRO  = process.env.NEXT_PUBLIC_P_PAYPAL_PLAN_PRO;
-
+    // 检测是否为测试模式
+    const isTestMode = PAYPAL_CLIENT_ID === 'test-client-id' || process.env.NODE_ENV === 'development';
+    
     if (!userId) {
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
     }
     if (!planId || !['plus', 'pro'].includes(planId)) {
       return NextResponse.json({ error: 'Invalid planId, must be "plus" or "pro"' }, { status: 400 });
     }
+
+    // 测试模式：直接返回模拟的订阅ID
+    if (isTestMode) {
+      const mockSubscriptionId = `I-TEST-${Date.now()}-${planId.toUpperCase()}`;
+      console.log(`🧪 测试模式：创建模拟PayPal订阅 ${mockSubscriptionId} 用户 ${userId}`);
+      return NextResponse.json({ 
+        success: true,
+        subscriptionId: mockSubscriptionId,
+        approvalUrl: `https://www.sandbox.paypal.com/checkoutnow?token=${mockSubscriptionId}`,
+        testMode: true
+      });
+    }
+    
+    // 映射到实际的 PayPal 计划 ID
+    const PAYPAL_PLAN_PLUS = process.env.NEXT_PUBLIC_P_PAYPAL_PLAN_PLUS;
+    const PAYPAL_PLAN_PRO  = process.env.NEXT_PUBLIC_P_PAYPAL_PLAN_PRO;
 
     // 根据 planId 取出 PayPal plan_id
     const paypalPlanId = planId === 'plus' ? PAYPAL_PLAN_PLUS : PAYPAL_PLAN_PRO;
@@ -101,7 +116,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to create subscription' }, { status: 400 });
     }
 
-    return NextResponse.json({ id: subscription.id });
+    return NextResponse.json({ 
+      success: true,
+      subscriptionId: subscription.id,
+      approvalUrl: subscription.links?.find((link: any) => link.rel === 'approve')?.href
+    });
   } catch (error) {
     console.error('Error creating PayPal subscription:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

@@ -97,8 +97,12 @@ export async function generateMonthlyReportForUser(
 
     // 3. 计算当前月份（报告月份）
     const now = new Date();
-    // 使用美式日期格式，如 "June 2025"
-    const reportMonth = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    // 使用美式日期格式，如 "June 19, 2025"
+    const reportMonth = now.toLocaleDateString('en-US', { 
+      month: 'long', 
+      day: 'numeric',
+      year: 'numeric' 
+    });
 
     // 4. 检查是否已存在该月份和等级的报告
     const formattedBirthDate = new Date(birthDate).toISOString().split('T')[0]; // 确保格式一致
