@@ -42,6 +42,39 @@ export default function MonthlyReportPage() {
         const res = await fetch(`/api/report/${params.slug}${query}`, { cache: 'no-store' });
         if (!res.ok) throw new Error('Failed to load report');
         const d: ApiResponse = await res.json();
+
+        // 计算缺失概要数据
+        try {
+          if (birthDate) {
+            const { getBaseBaziVector, calculateDayEnergy } = await import('@/app/lib/energyCalculation2025');
+            const { calculateProReportEnergy } = await import('@/app/lib/proReportCalculation');
+
+            const baseBazi = getBaseBaziVector(birthDate);
+
+            // 补全 overview
+            if (!d.overview.energyScore || d.overview.energyScore === 0) {
+              const startDate = d.overview.periodStart ? new Date(d.overview.periodStart) : new Date();
+              const er = calculateProReportEnergy(startDate, baseBazi);
+              d.overview.energyScore = er.score;
+              d.overview.strongestElement = er.dominantElement.toLowerCase();
+              d.overview.weakestElement = er.weakestElement.toLowerCase();
+            }
+
+            // 补全 daily 分数
+            if (Array.isArray(d.daily)) {
+              d.daily = d.daily.map((item: any) => {
+                if (item.score === undefined) {
+                  const scoreRes = calculateDayEnergy(baseBazi, new Date(item.date));
+                  item.score = scoreRes.score;
+                }
+                return item;
+              });
+            }
+          }
+        } catch (calcErr) {
+          console.error('Local energy calc error', calcErr);
+        }
+
         setData(d);
       } catch (e: any) {
         console.error('report fetch', e);
