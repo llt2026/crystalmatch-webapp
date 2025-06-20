@@ -44,6 +44,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ 
         success: true,
         subscriptionId: mockSubscriptionId,
+        id: mockSubscriptionId,
         approvalUrl: `https://www.sandbox.paypal.com/checkoutnow?token=${mockSubscriptionId}`,
         testMode: true
       });
@@ -119,6 +120,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ 
       success: true,
       subscriptionId: subscription.id,
+      id: subscription.id,
       approvalUrl: subscription.links?.find((link: any) => link.rel === 'approve')?.href
     });
   } catch (error) {
