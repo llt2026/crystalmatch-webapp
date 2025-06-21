@@ -256,13 +256,32 @@ export async function GET(req: NextRequest, { params }: { params:{ slug:string }
       });
     } catch (gptError: any) {
       console.error('❌ Direct OpenAI API call failed:', gptError);
+      console.log('🔄 Using fallback report with real calculated data...');
       
-      // 直接返回错误信息，不使用静态回退内容
+      // 使用回退报告，但保持真实的计算数据
+      const fallbackReport = `## 💰 Money Flow
+Your financial energy shows potential for growth this month. Focus on practical decisions and avoid impulsive spending. The cosmic influences suggest a good time for budgeting and long-term planning.
+
+## 👥 Social Vibes  
+Relationships are highlighted during this period. Communication flows more smoothly, making it an ideal time for important conversations. Your social energy attracts positive connections.
+
+## 🌙 Mood Balance
+Emotional stability comes through mindful practices. Pay attention to your inner rhythms and honor your need for both activity and rest. This month brings opportunities for emotional healing.
+
+## 🔥 Body Fuel
+Physical vitality varies throughout the month. Listen to your body's signals and adjust your energy output accordingly. Focus on nourishing foods and gentle exercise routines.
+
+## 🚀 Growth Track
+Personal development accelerates during this time. Set clear intentions and take consistent action toward your goals. The energy supports learning new skills and expanding your horizons.`;
+
       return NextResponse.json({ 
-        error: 'openai_api_error',
-        message: 'Monthly report generation service temporarily unavailable',
-        details: gptError.message
-      }, { status: 503 });
+        overview, 
+        daily: dailyWithScore, 
+        hourly: hourlyWithScore, 
+        report: fallbackReport,
+        fallback: true,
+        tokens: { prompt: 0, completion: 0, total: 0 }
+      });
     }
   } catch (error: any) {
     console.error('❌ Monthly report generation failed:', error);
