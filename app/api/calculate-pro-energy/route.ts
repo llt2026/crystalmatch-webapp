@@ -15,6 +15,9 @@ const sampleBaseBazi: FiveElementVector = {
   water: 0.1
 };
 
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: NextRequest) {
   try {
     // 从查询参数获取必要信息
