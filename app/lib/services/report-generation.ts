@@ -1,6 +1,11 @@
 import { prisma } from '../prisma';
 import { saveReportToDatabase, type ReportCacheKey } from '../report-cache-service';
 import { generateMonthlyReportData } from '../mockReportData';
+import {
+  getBaseBaziVector,
+  calculateMonthEnergy,
+  getDailyEnergyForRange
+} from '../energyCalculation2025';
 
 export interface UserSubscriptionInfo {
   userId: string;
@@ -11,16 +16,42 @@ export interface UserSubscriptionInfo {
 /**
  * 简化的报告生成函数
  */
-function generateSimpleReport(tier: 'plus' | 'pro', birthDate: string) {
+async function generateSimpleReport(tier: 'plus' | 'pro', birthDate: string) {
+  // 当前时间及本月信息
   const now = new Date();
-  const birth = new Date(birthDate);
-  
-  // 生成基础报告数据
-  const reportData = generateMonthlyReportData(now.getFullYear(), now.getMonth() + 1, new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate());
-  
+  const year = now.getFullYear();
+  const month = now.getMonth() + 1; // 1-12
+  const daysInMonth = new Date(year, month, 0).getDate();
+
+  // 1. 生成静态段落/文案（仍复用 mockReportData 便于文案多样性）
+  const reportData = generateMonthlyReportData(year, month, daysInMonth);
+
+  // 2. 计算本月总体能量分数
+  const baseVector = getBaseBaziVector(birthDate);
+  const monthEnergy = calculateMonthEnergy(baseVector, now);
+  const energyScore = Math.round(monthEnergy.score);
+
+  // 3. 计算每日能量（含得分）
+  const monthStart = new Date(year, month - 1, 1);
+  const dailyEnergyRaw = await getDailyEnergyForRange(birthDate, monthStart, daysInMonth);
+
+  const dailyEnergy = dailyEnergyRaw.map((d) => ({
+    date: d.date.toISOString().split('T')[0],
+    energyChange: d.energyChange,
+    trend: d.trend,
+    score: Math.round(d.score),
+    crystal: d.crystal
+  }));
+
+  // 4. 确定最强/最弱元素
+  const sortedEntries = Object.entries(monthEnergy.vector).sort((a, b) => b[1] - a[1]);
+  const strongestElement = sortedEntries[0][0];
+  const weakestElement = sortedEntries[sortedEntries.length - 1][0];
+
+  // 5. 组装 LegacyReport 结构，确保前端兼容
   return {
     basicInfo: {
-      birthDate: birth.toLocaleDateString('en-US'),
+      birthDate: new Date(birthDate).toLocaleDateString('en-US'),
       energySignature: `${tier.toUpperCase()} Energy Profile`,
       tier
     },
@@ -31,7 +62,7 @@ function generateSimpleReport(tier: 'plus' | 'pro', birthDate: string) {
       },
       {
         title: 'Energy Phases',
-        content: reportData.monthlyOverview.phases.map(phase => `${phase.title}: ${phase.description}`).join('\n\n')
+        content: reportData.monthlyOverview.phases.map((p) => `${p.title}: ${p.description}`).join('\n\n')
       }
     ],
     crystals: [
@@ -48,7 +79,11 @@ function generateSimpleReport(tier: 'plus' | 'pro', birthDate: string) {
         purpose: 'Amplifies energy and clarity'
       }
     ],
-    dailyEnergy: reportData.dailyEnergy,
+    // 新增真实能量数据
+    energyScore,
+    strongestElement,
+    weakestElement,
+    dailyEnergy,
     notifications: reportData.notifications,
     weeklyForecast: reportData.weeklyForecast
   };
@@ -123,9 +158,14 @@ export async function generateMonthlyReportForUser(
       return { success: true, reportId: existingReport.id };
     }
 
-    // 5. 生成报告内容
-    const report = generateSimpleReport(tier, birthDate);
-    const energyContext = { tier, birthDate, generatedAt: now.toISOString() };
+    // 5. 生成报告内容（包含真实能量计算）
+    const report = await generateSimpleReport(tier, birthDate);
+    const energyContext = {
+      tier,
+      birthDate,
+      generatedAt: now.toISOString(),
+      energyScore: (report as any).energyScore
+    };
 
     // 6. 保存到数据库
     const cacheKey = {
