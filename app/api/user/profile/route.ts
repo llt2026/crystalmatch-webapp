@@ -25,11 +25,11 @@ async function getJwtPayload(request: NextRequest): Promise<JwtPayload | null> {
 
     // 尝试使用jose库验证
     try {
-      const { payload } = await jwtVerify(
-        token,
-        new TextEncoder().encode(process.env.JWT_SECRET || 'crystalmatch-secure-jwt-secret-key')
-      );
-      return payload as JwtPayload;
+    const { payload } = await jwtVerify(
+      token,
+      new TextEncoder().encode(process.env.JWT_SECRET || 'crystalmatch-secure-jwt-secret-key')
+    );
+    return payload as JwtPayload;
     } catch (joseError) {
       console.log('JOSE verification failed, trying jsonwebtoken...');
       

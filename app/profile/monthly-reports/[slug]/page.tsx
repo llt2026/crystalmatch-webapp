@@ -4,6 +4,7 @@ import React, { useEffect, useState, Suspense } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import MonthlyReportTemplate from '@/app/components/MonthlyReportTemplate';
 import type { AspectKey } from '@/app/components/AspectTabs';
+import { useReportAdapter } from '@/app/hooks/useReportAdapter';
 
 interface ApiResponse {
   overview: any;
@@ -30,9 +31,12 @@ const LoadingPage = () => (
 export default function MonthlyReportPage() {
   const params = useParams<{ slug: string }>();
   const searchParams = useSearchParams();
-  const [data, setData] = useState<ApiResponse | null>(null);
+  const [rawData, setRawData] = useState<unknown>(null);
   const [tier, setTier] = useState<'plus' | 'pro'>('plus');
   const [error, setError] = useState('');
+
+  // 使用 useReportAdapter 处理数据
+  const vm = useReportAdapter(rawData);
 
   useEffect(() => {
     const fetchAll = async () => {
@@ -97,7 +101,36 @@ export default function MonthlyReportPage() {
           console.error('Local energy calc error', calcErr);
         }
 
-        setData(d);
+        // 转换为适配器期望的格式
+        const adaptedData = {
+          energyScore: d.overview.energyScore,
+          strongestElement: d.overview.strongestElement,
+          weakestElement: d.overview.weakestElement,
+          elementVector: d.overview.vector ? Object.values(d.overview.vector) : undefined,
+          dailyEnergy: d.daily,
+          hourlyEnergy: d.hourly,
+          sections: {},
+          crystals: d.crystals?.map((c: any) => c.name || c) || [],
+          tier,
+          birthDate: searchParams.get('birthDate') || ''
+        };
+
+        // Split report markdown into sections
+        const sections: Record<string, string> = {};
+        const lines = d.report.split('\n');
+        let current: AspectKey | null = null;
+        lines.forEach((line) => {
+          const headerKey = (Object.keys(SECTION_HEADERS) as AspectKey[]).find((k) => line.startsWith(SECTION_HEADERS[k]));
+          if (headerKey) {
+            current = headerKey;
+            sections[current] = '';
+          } else if (current) {
+            sections[current] += `${line}\n`;
+          }
+        });
+        adaptedData.sections = sections;
+
+        setRawData(adaptedData);
       } catch (e: any) {
         console.error('report fetch', e);
         setError(e.message);
@@ -124,41 +157,39 @@ export default function MonthlyReportPage() {
     );
   }
 
-  if (!data) {
+  if (!rawData) {
     return <LoadingPage />;
   }
 
-  // Split report markdown into sections
-  const sections: Record<AspectKey, string> = {
-    finance: '',
-    relationship: '',
-    mood: '',
-    health: '',
-    growth: ''
-  } as Record<AspectKey, string>;
-
-  const lines = data.report.split('\n');
-  let current: AspectKey | null = null;
-  lines.forEach((line) => {
-    const headerKey = (Object.keys(SECTION_HEADERS) as AspectKey[]).find((k) => line.startsWith(SECTION_HEADERS[k]));
-    if (headerKey) {
-      current = headerKey;
-      sections[current] = '';
-    } else if (current) {
-      sections[current] += `${line}\n`;
-    }
-  });
+  // 使用适配后的数据
+  const overview = {
+    title: `Energy Level ${vm.overview.score}/100`,
+    energyScore: vm.overview.score,
+    strongestElement: (vm.overview.strong !== '—' ? vm.overview.strong : 'water') as 'water' | 'fire' | 'earth' | 'metal' | 'wood',
+    weakestElement: (vm.overview.weak !== '—' ? vm.overview.weak : 'water') as 'water' | 'fire' | 'earth' | 'metal' | 'wood',
+    periodStart: '',
+    periodEnd: ''
+  };
 
   return (
     <Suspense fallback={<LoadingPage />}>
       <main className="min-h-screen bg-gradient-to-br from-purple-900 to-black py-8 px-4 text-white">
         <MonthlyReportTemplate
-          overview={data.overview}
-          sections={sections}
-          daily={data.daily}
-          hourly={data.hourly}
-          crystals={data.crystals || []}
-          tier={tier}
+          overview={overview}
+          sections={vm.sections}
+          daily={vm.daily.map(d => ({
+            date: d.date,
+            energyChange: d.delta,
+            trend: d.trend,
+            crystal: d.crystal
+          }))}
+          hourly={vm.hourly.map(h => ({
+            hour: h.hour,
+            score: h.score,
+            energyChange: h.delta
+          }))}
+          crystals={[]}
+          tier={vm.tier === 'free' ? 'plus' : vm.tier}
         />
       </main>
     </Suspense>

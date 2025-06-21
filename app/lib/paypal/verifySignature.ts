@@ -70,8 +70,8 @@ export async function verifyPaypalSignature(
     const { access_token } = (await tokenRes.json()) as { access_token?: string };
     if (!access_token) {
       console.error('获取 PayPal access_token 失败');
-      return false;
-    }
+    return false;
+  }
 
     // 调用官方验签接口
     const verifyRes = await fetch(`${baseUrl}/v1/notifications/verify-webhook-signature`, {
@@ -83,7 +83,7 @@ export async function verifyPaypalSignature(
       body: JSON.stringify(verificationPayload),
     });
     const verifyJson = (await verifyRes.json()) as { verification_status?: string };
-
+    
     const ok = verifyJson.verification_status === 'SUCCESS';
     if (!ok) {
       console.error('PayPal Webhook 验签失败', verifyJson);

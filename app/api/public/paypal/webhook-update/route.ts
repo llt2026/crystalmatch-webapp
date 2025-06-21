@@ -143,26 +143,26 @@ export async function POST(request: NextRequest) {
       status = 'ACTIVE';
     } else {
       // 生产模式：调用PayPal API
-      const accessToken = await getPayPalAccessToken();
-      if (!accessToken) {
-        return NextResponse.json({ error: 'Failed to get PayPal access token' }, { status: 500 });
-      }
+    const accessToken = await getPayPalAccessToken();
+    if (!accessToken) {
+      return NextResponse.json({ error: 'Failed to get PayPal access token' }, { status: 500 });
+    }
 
-      // 查询订阅详情，获取 custom_id(userId) 与 plan_id
-      const baseUrl = isTestMode ? 'https://api.sandbox.paypal.com' : 'https://api.paypal.com';
-      const subRes = await fetch(`${baseUrl}/v1/billing/subscriptions/${subscriptionId}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`
-        }
-      });
-
-      const subData = await subRes.json();
-      if (!subRes.ok) {
-        console.error('Failed to fetch subscription details:', subData);
-        return NextResponse.json({ error: 'Failed to fetch subscription details' }, { status: 500 });
+    // 查询订阅详情，获取 custom_id(userId) 与 plan_id
+    const baseUrl = isTestMode ? 'https://api.sandbox.paypal.com' : 'https://api.paypal.com';
+    const subRes = await fetch(`${baseUrl}/v1/billing/subscriptions/${subscriptionId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`
       }
+    });
+
+    const subData = await subRes.json();
+    if (!subRes.ok) {
+      console.error('Failed to fetch subscription details:', subData);
+      return NextResponse.json({ error: 'Failed to fetch subscription details' }, { status: 500 });
+    }
 
       userId = subData.custom_id as string | undefined;
       planId = subData.plan_id as string | undefined;

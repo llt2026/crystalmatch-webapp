@@ -146,8 +146,8 @@ export default function SubscriptionPage() {
         credentials: 'include', // 确保发送cookies
       });
       
-      if (profileResponse.ok) {
-        const profileData = await profileResponse.json();
+          if (profileResponse.ok) {
+            const profileData = await profileResponse.json();
         console.log('Profile data for PayPal subscription:', profileData); // 调试日志
         
         const userId = profileData.id;
@@ -158,8 +158,8 @@ export default function SubscriptionPage() {
           console.warn('User ID is empty or anonymous');
           setPaymentError('请先登录后再购买订阅');
           return 'anonymous';
+          }
         }
-      }
       
       console.warn('Profile API failed with status:', profileResponse.status);
       if (profileResponse.status === 401) {

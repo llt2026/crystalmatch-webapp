@@ -4,7 +4,6 @@ import React, { Suspense, useState } from 'react';
 import EnergyOverview from './EnergyOverview';
 import AspectTabs, { AspectKey } from './AspectTabs';
 import DailyCalendar from './DailyCalendar';
-import CrystalGrid from './CrystalGrid';
 import FeedbackModal from './FeedbackModal';
 
 interface OverviewData {
@@ -47,16 +46,16 @@ const MonthlyReportTemplate: React.FC<MonthlyReportTemplateProps> = ({ overview,
     : undefined;
 
   return (
-    <div className="max-w-3xl mx-auto space-y-8">
+    <div className="max-w-3xl mx-auto space-y-6 sm:space-y-8 px-4 sm:px-6">
       {/* Header */}
       <header className="text-center space-y-2">
-        <h1 className="text-2xl sm:text-3xl font-bold">CrystalMatch Monthly Energy Report</h1>
-        {dateLabel && <p className="text-purple-300">{dateLabel}</p>}
+        <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">CrystalMatch Monthly Energy Report</h1>
+        {dateLabel && <p className="text-purple-300 text-sm sm:text-base">{dateLabel}</p>}
         <div>
           {tier === 'pro' ? (
-            <span className="px-3 py-1 rounded-full bg-gradient-to-r from-purple-700 to-indigo-700 text-white text-sm">PRO</span>
+            <span className="px-3 py-1 rounded-full bg-gradient-to-r from-purple-700 to-indigo-700 text-white text-xs sm:text-sm">PRO</span>
           ) : (
-            <span className="px-3 py-1 rounded-full bg-purple-600 text-white text-sm">PLUS</span>
+            <span className="px-3 py-1 rounded-full bg-purple-600 text-white text-xs sm:text-sm">PLUS</span>
           )}
         </div>
       </header>
@@ -76,26 +75,40 @@ const MonthlyReportTemplate: React.FC<MonthlyReportTemplateProps> = ({ overview,
       <DailyCalendar data={daily} />
 
       {/* Informational paragraph */}
-      <p className="text-sm text-purple-300 bg-black/20 rounded-xl p-4 leading-relaxed">
-        This report weaves together almost 4,000 years of evolving Chinese Five-Element Feng Shui, evidence-backed
-        modern science, and the freshest AI intelligence—ancient wisdom, updated for your everyday life.
-      </p>
+      <div className="space-y-3 sm:space-y-4">
+        <p className="text-xs sm:text-sm text-purple-300 bg-black/20 rounded-xl p-3 sm:p-4 leading-relaxed">
+          This report weaves together almost 4,000 years of evolving Chinese Five-Element Feng Shui, evidence-backed
+          modern science, and the freshest AI intelligence—ancient wisdom, updated for your everyday life.
+        </p>
+        
+        <p className="text-xs sm:text-sm text-purple-300 bg-black/20 rounded-xl p-3 sm:p-4 leading-relaxed">
+          Your personal energy patterns are calculated using authentic Bazi (Four Pillars of Destiny) methodology,
+          cross-referenced with contemporary chronobiology research and enhanced by AI analysis of thousands of
+          energy correlations. Each recommendation is tailored specifically to your birth chart and current cosmic influences.
+        </p>
+        
+        <p className="text-xs sm:text-sm text-purple-300 bg-black/20 rounded-xl p-3 sm:p-4 leading-relaxed">
+          The crystal suggestions combine traditional Chinese mineral therapy with modern crystal healing principles,
+          selected to harmonize with your dominant and deficient elements during this specific time period.
+          These insights evolve monthly as celestial patterns shift and your personal energy cycles progress.
+        </p>
+      </div>
 
       {/* Footer */}
-      <footer className="text-center space-y-3 pb-12">
-        <div className="flex items-center justify-center gap-4">
+      <footer className="text-center space-y-3 pb-8 sm:pb-12">
+        <div className="flex items-center justify-center gap-3 sm:gap-4 flex-wrap">
           <button
             onClick={() => openFeedback('positive')}
-            className="flex items-center px-4 py-2 rounded-lg bg-purple-900/40 hover:bg-purple-800/50 transition-colors"
+            className="flex items-center px-3 sm:px-4 py-2 rounded-lg bg-purple-900/40 hover:bg-purple-800/50 transition-colors text-sm sm:text-base"
           >
-            <span className="mr-2 text-lg">👍</span>
+            <span className="mr-2 text-base sm:text-lg">👍</span>
             Useful
           </button>
           <button
             onClick={() => openFeedback('negative')}
-            className="flex items-center px-4 py-2 rounded-lg bg-purple-900/40 hover:bg-purple-800/50 transition-colors"
+            className="flex items-center px-3 sm:px-4 py-2 rounded-lg bg-purple-900/40 hover:bg-purple-800/50 transition-colors text-sm sm:text-base"
           >
-            <span className="mr-2 text-lg">👎</span>
+            <span className="mr-2 text-base sm:text-lg">👎</span>
             Not really
           </button>
         </div>
