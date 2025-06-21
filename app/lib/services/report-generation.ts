@@ -154,8 +154,19 @@ export async function generateMonthlyReportForUser(
     });
 
     if (existingReport) {
-      console.log(`Report already exists for user ${userId}, tier ${tier}, month ${reportMonth}`);
-      return { success: true, reportId: existingReport.id };
+      try {
+        const parsedReport = JSON.parse(existingReport.report || '{}');
+        // 若 energyScore 不存在或为 0，则视为失效数据，需要重新生成
+        if (typeof parsedReport.energyScore === 'number' && parsedReport.energyScore > 0) {
+          console.log(`Report already exists with energyScore=${parsedReport.energyScore}. Skip regeneration.`);
+          return { success: true, reportId: existingReport.id };
+        } else {
+          console.warn(`Existing report missing valid energyScore, regenerating...`);
+        }
+      } catch (e) {
+        console.error('Failed to parse existing report JSON, regenerating...', e);
+      }
+      // 若解析失败或分数失效，继续下面流程重新生成
     }
 
     // 5. 生成报告内容（包含真实能量计算）
